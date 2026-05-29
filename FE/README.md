@@ -71,3 +71,145 @@ export default defineConfig([
   },
 ])
 ```
+
+┌──────────────────────────────┐
+│          main.jsx           │
+│------------------------------│
+│ - import ReactDOM           │
+│ - import App                │
+│ - import index.css          │
+│ - render <App />            │
+└──────────────┬──────────────┘
+               │
+               ▼
+┌──────────────────────────────┐
+│           App.jsx           │
+│------------------------------│
+│ - BrowserRouter             │
+│ - Global Providers          │
+│   (Redux/Auth/Theme...)     │
+│ - Render AppRoutes          │
+└──────────────┬──────────────┘
+               │
+               ▼
+┌──────────────────────────────┐
+│      routes/AppRoutes       │
+│------------------------------│
+│ - Định nghĩa toàn bộ route  │
+│ - Phân quyền route          │
+│ - ProtectedRoute            │
+└───────┬─────────┬───────────┘
+        │         │
+        │         │
+        │         │
+        ▼         ▼
+ ┌───────────┐ ┌───────────┐
+ │   Admin   │ │   Staff   │
+ │  Routes   │ │  Routes   │
+ └─────┬─────┘ └─────┬─────┘
+       │             │
+       ▼             ▼
+
+┌──────────────────┐   ┌──────────────────┐
+│ AdminLayout.jsx  │   │ StaffLayout.jsx  │
+│------------------│   │------------------│
+│ Sidebar          │   │ Navbar           │
+│ Header           │   │ Staff Menu       │
+│ Outlet           │   │ Outlet           │
+└────────┬─────────┘   └────────┬─────────┘
+         │                      │
+         ▼                      ▼
+
+ ┌────────────────┐      ┌────────────────┐
+ │ DashboardPage  │      │ CheckInPage    │
+ │ UserManagement │      │ CheckOutPage   │
+ │ PricingPage    │      │ IncidentPage   │
+ │ ReportPage     │      └────────────────┘
+ └────────────────┘
+
+
+                USER FLOW
+                =========
+
+                       ▼
+              ┌─────────────────┐
+              │  UserLayout.jsx │
+              │-----------------│
+              │ Navbar          │
+              │ Footer          │
+              │ Outlet          │
+              └────────┬────────┘
+                       │
+                       ▼
+
+          ┌─────────────────────────┐
+          │ HomePage                │
+          │ ReservationPage         │
+          │ MyParkingPage           │
+          │ PaymentHistoryPage      │
+          └─────────────────────────┘
+
+
+
+AUTH FLOW
+=========
+
+┌────────────────────┐
+│ LoginPage.jsx      │
+│ RegisterPage.jsx   │
+└─────────┬──────────┘
+          │
+          ▼
+┌────────────────────┐
+│ authApi.js         │
+│ axiosClient.js     │
+└─────────┬──────────┘
+          │
+          ▼
+┌────────────────────┐
+│ Backend API        │
+└────────────────────┘
+
+
+
+DATA FLOW
+==========
+
+Pages
+  │
+  ▼
+Components
+  │
+  ▼
+Services
+  │
+  ▼
+API Layer (axios)
+  │
+  ▼
+Backend Server
+
+
+
+SHARED MODULES
+==============
+
+components/
+├── common     → Button, Input, Spinner...
+├── forms      → Form components
+├── modal      → Popup/Dialog
+├── table      → Reusable tables
+├── charts     → Charts thống kê
+└── layout     → Header/Sidebar/Navbar
+
+hooks/
+└── custom hooks dùng chung
+
+utils/
+└── helper functions
+
+constants/
+└── role, status, config...
+
+store/
+└── Redux/Zustand state global
