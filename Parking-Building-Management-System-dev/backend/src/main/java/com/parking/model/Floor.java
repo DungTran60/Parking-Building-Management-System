@@ -49,4 +49,15 @@ public class Floor {
     public void setCreatedAt(Timestamp createdAt) {
         this.createdAt = createdAt;
     }
+
+    @Override
+    public String toString() {
+        return "Floor{" +
+                "id=" + id +
+                ", floorName='" + floorName + '\'' +
+                ", totalSlots=" + totalSlots +
+                ", createdAt=" + createdAt +
+                '}';
+    }
 }
+
