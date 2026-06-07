@@ -83,3 +83,20 @@ CREATE TABLE IF NOT EXISTS exception_logs (
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     FOREIGN KEY(session_id) REFERENCES parking_sessions(id)
 );
+
+-- -----------------------------------------------------
+-- TABLE: vehicle_types
+-- -----------------------------------------------------
+CREATE TABLE IF NOT EXISTS vehicle_types (
+    id          INTEGER PRIMARY KEY AUTOINCREMENT,
+    name        TEXT NOT NULL UNIQUE,
+    description TEXT,
+    created_at  TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);
+
+-- -----------------------------------------------------
+-- SEED DATA: vehicle_types (chèn dữ liệu mặc định nếu chưa tồn tại)
+-- -----------------------------------------------------
+INSERT OR IGNORE INTO vehicle_types (name, description) VALUES ('CAR',       'Xe ô tô 4 chỗ trở lên');
+INSERT OR IGNORE INTO vehicle_types (name, description) VALUES ('MOTORBIKE', 'Xe máy, xe mô tô');
+INSERT OR IGNORE INTO vehicle_types (name, description) VALUES ('TRUCK',     'Xe tải, xe vận chuyển hàng hóa');
