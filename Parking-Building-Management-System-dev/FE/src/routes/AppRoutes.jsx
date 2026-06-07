@@ -10,6 +10,7 @@ import RegisterPage from '../pages/auth/RegisterPage';
 import DashboardPage from '../pages/admin/DashboardPage';
 import UserManagementPage from '../pages/admin/UserManagementPage';
 import VehicleTypePage from '../pages/admin/VehicleTypePage';
+import FloorPage from '../pages/admin/FloorPage';
 
 import CheckInPage from '../pages/staff/CheckInPage';
 import CheckOutPage from '../pages/staff/CheckOutPage';
@@ -49,6 +50,7 @@ const AppRoutes = () => {
           <Route path="/admin" element={<DashboardPage />} />
           <Route path="/admin/users" element={<UserManagementPage />} />
           <Route path="/admin/vehicle-types" element={<VehicleTypePage />} />
+          <Route path="/admin/floors" element={<FloorPage />} />
         </Route>
       </Route>
 
