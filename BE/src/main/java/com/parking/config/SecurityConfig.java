@@ -66,6 +66,7 @@ public class SecurityConfig {
         return config.getAuthenticationManager();
     }
 
+    //mã hóa mật khẩu và lưu vào container của spring boot
     @Bean
     public PasswordEncoder passwordEncoder() {
         return new BCryptPasswordEncoder();

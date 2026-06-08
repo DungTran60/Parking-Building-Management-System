@@ -29,6 +29,7 @@ public class AuthController {
     private final UserService userService;
     private final JwtService jwtService;
 
+    //Xác thực đăng nhập (login).
     @PostMapping("/login")
     public ResponseEntity<LoginResponse> login(@Valid @RequestBody LoginRequest request) {
         Authentication authentication = authenticationManager.authenticate(
@@ -57,5 +58,10 @@ public class AuthController {
     public ResponseEntity<UserResponseDto> register(@Valid @RequestBody UserCreateDto dto) {
         UserResponseDto response = userService.createUser(dto);
         return new ResponseEntity<>(response, HttpStatus.CREATED);
+    }
+
+    @PostMapping("/logout")
+    public ResponseEntity<String> logout() {
+        return ResponseEntity.ok("Logout success");
     }
 }

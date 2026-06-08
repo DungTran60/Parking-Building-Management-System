@@ -18,10 +18,12 @@ public class User {
     
     @Column(nullable = false, unique = true, length = 100)
     private String username;
-    
+
+    //Pass không được null và dài k quá 255 ký tự
     @Column(nullable = false, length = 255)
     private String password;
-    
+
+    //role_id là khóa ngoại của Role
     @ManyToOne(fetch = FetchType.EAGER)
     @JoinColumn(name = "role_id", nullable = false)
     private Role role;
