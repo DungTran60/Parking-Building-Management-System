@@ -3,6 +3,9 @@ package com.parking.entity;
 import jakarta.persistence.*;
 import lombok.*;
 
+/**
+ * Entity đại diện cho bảng roles trong database
+ */
 @Entity
 @Table(name = "roles")
 @Getter
@@ -12,12 +15,20 @@ import lombok.*;
 @Builder
 public class Role {
 
-    //Khóa chính và tự tăng dần
+    /**
+     * Khóa chính của bảng roles
+     * Tự động tăng giá trị khi thêm bản ghi mới
+     */
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
-    //Name không được trùng, không được rỗng và không dài hơn 50 ký tự
+    /**
+     * Tên quyền (ROLE_ADMIN, ROLE_USER,...)
+     * - Không được null
+     * - Không được trùng lặp
+     * - Tối đa 50 ký tự
+     */
     @Column(nullable = false, unique = true, length = 50)
     private String name;
 }
