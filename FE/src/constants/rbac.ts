@@ -22,6 +22,7 @@ export const ROLE_PERMISSIONS: Record<Role, Permission[]> = {
     "users:manage",
     "roles:manage",
     "settings:manage",
+    "buildings:manage",
     "ai:view"
   ],
   PARKING_MANAGER: [
@@ -33,6 +34,7 @@ export const ROLE_PERMISSIONS: Record<Role, Permission[]> = {
     "sessions:manage",
     "reservations:manage",
     "reports:view",
+    "buildings:manage",
     "ai:view"
   ],
   PARKING_STAFF: ["dashboard:view", "slots:manage", "sessions:manage", "checkin:create", "checkout:create", "reservations:manage"],

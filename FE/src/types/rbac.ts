@@ -14,4 +14,5 @@ export type Permission =
   | "users:manage"
   | "roles:manage"
   | "settings:manage"
+  | "buildings:manage"
   | "ai:view";

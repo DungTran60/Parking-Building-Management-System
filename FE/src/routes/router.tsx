@@ -2,6 +2,7 @@ import { createBrowserRouter } from "react-router-dom";
 import type { ReactNode } from "react";
 import App from "@/App";
 import { AiOptimizationPage } from "@/pages/admin/AiOptimizationPage";
+import { BuildingPage } from "@/pages/admin/BuildingPage";
 import { CheckInPage } from "@/pages/staff/CheckInPage";
 import { CheckOutPage } from "@/pages/staff/CheckOutPage";
 import { DashboardPage } from "@/pages/admin/DashboardPage";
@@ -39,6 +40,7 @@ export const router = createBrowserRouter([
     element: <App />,
     children: [
       protectedChild("dashboard:view", <DashboardPage />),
+      { path: "buildings", ...protectedChild("buildings:manage", <BuildingPage />) },
       { path: "vehicle-types", ...protectedChild("vehicleTypes:manage", <VehicleTypesPage />) },
       { path: "floors", ...protectedChild("floors:manage", <FloorsPage />) },
       { path: "slots", ...protectedChild("slots:manage", <SlotsPage />) },

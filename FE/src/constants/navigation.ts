@@ -27,6 +27,7 @@ export interface NavItem {
 
 export const NAV_ITEMS: NavItem[] = [
   { label: "Dashboard", path: "/app", permission: "dashboard:view", icon: Gauge },
+  { label: "Tòa nhà", path: "/app/buildings", permission: "buildings:manage", icon: Building2 },
   { label: "Loại xe", path: "/app/vehicle-types", permission: "vehicleTypes:manage", icon: Car },
   { label: "Tầng", path: "/app/floors", permission: "floors:manage", icon: DoorClosed },
   { label: "Slot", path: "/app/slots", permission: "slots:manage", icon: LayoutGrid },
