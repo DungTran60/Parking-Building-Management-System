@@ -1,6 +1,6 @@
 import { Check } from "lucide-react";
 import { Card, CardContent, CardHeader } from "@/components/common/Card";
-import { PageHeader } from "@/components/common/PageHeader";
+import { PageHeader } from "@/components/layout/PageHeader";
 import { ROLE_LABELS, ROLE_PERMISSIONS } from "@/constants/rbac";
 import type { Permission, Role } from "@/types/rbac";
 
