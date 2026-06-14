@@ -3,7 +3,7 @@ import dayjs from "dayjs";
 import { Printer, ReceiptText, Search } from "lucide-react";
 import { Button } from "@/components/common/Button";
 import { Card, CardContent, CardHeader } from "@/components/common/Card";
-import { PageHeader } from "@/components/common/PageHeader";
+import { PageHeader } from "@/components/layout/PageHeader";
 import { Field, Input } from "@/components/forms/FormField";
 import { checkOut } from "@/services/mockRepository";
 import { currency, dateTime } from "@/utils/format";

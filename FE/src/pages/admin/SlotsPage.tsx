@@ -4,7 +4,7 @@ import { Badge } from "@/components/common/Badge";
 import { Button } from "@/components/common/Button";
 import { Card, CardContent } from "@/components/common/Card";
 import { Modal } from "@/components/common/Modal";
-import { PageHeader } from "@/components/common/PageHeader";
+import { PageHeader } from "@/components/layout/PageHeader";
 import { Select } from "@/components/forms/FormField";
 import { floors, vehicleTypes } from "@/api/mockData";
 import { useResourceMutations, useResources } from "@/hooks/useResources";

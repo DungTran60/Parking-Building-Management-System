@@ -7,7 +7,7 @@ import { Button } from "@/components/common/Button";
 import { Card, CardContent, CardHeader } from "@/components/common/Card";
 import { Drawer } from "@/components/common/Drawer";
 import { Modal } from "@/components/common/Modal";
-import { PageHeader } from "@/components/common/PageHeader";
+import { PageHeader } from "@/components/layout/PageHeader";
 import { Field, Input, Select } from "@/components/forms/FormField";
 import { DataTable } from "@/components/tables/DataTable";
 import { useResourceMutations, useResources } from "@/hooks/useResources";

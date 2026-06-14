@@ -4,7 +4,7 @@ import { AlertTriangle } from "lucide-react";
 import { Badge } from "@/components/common/Badge";
 import { Button } from "@/components/common/Button";
 import { Card, CardContent, CardHeader } from "@/components/common/Card";
-import { PageHeader } from "@/components/common/PageHeader";
+import { PageHeader } from "@/components/layout/PageHeader";
 import { DataTable } from "@/components/tables/DataTable";
 import { ExceptionModal } from "@/modules/sessions/ExceptionModals";
 import { useResources } from "@/hooks/useResources";

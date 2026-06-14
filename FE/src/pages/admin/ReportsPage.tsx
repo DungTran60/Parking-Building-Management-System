@@ -1,7 +1,7 @@
 import { Bar, BarChart, CartesianGrid, Line, LineChart, ResponsiveContainer, Tooltip, XAxis, YAxis } from "recharts";
 import { Card, CardContent } from "@/components/common/Card";
 import { ChartCard } from "@/components/charts/ChartCard";
-import { PageHeader } from "@/components/common/PageHeader";
+import { PageHeader } from "@/components/layout/PageHeader";
 
 const revenue = [{ d: "T2", v: 24 }, { d: "T3", v: 31 }, { d: "T4", v: 28 }, { d: "T5", v: 44 }, { d: "T6", v: 61 }, { d: "T7", v: 70 }, { d: "CN", v: 55 }];
 const peak = [{ h: "07", v: 42 }, { h: "08", v: 88 }, { h: "09", v: 73 }, { h: "17", v: 94 }, { h: "18", v: 112 }, { h: "19", v: 76 }];
