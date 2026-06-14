@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { Link } from 'react-router-dom';
 
-export type IconName = 'parking' | 'shield' | 'user' | 'lock' | 'eye' | 'eyeOff' | 'login' | 'car' | 'building' | 'creditCard' | 'chart' | 'camera';
+export type IconName = 'parking' | 'shield' | 'user' | 'lock' | 'eye' | 'eyeOff' | 'login' | 'car' | 'building' | 'creditCard' | 'chart' | 'camera' | 'arrowLeft';
 
 interface IconProps {
   name: IconName;
@@ -92,6 +92,12 @@ const Icon = ({ name, className = 'w-5 h-5' }: IconProps) => {
         <circle cx="12" cy="13" r="3" />
       </>
     ),
+    arrowLeft: (
+      <>
+        <path d="m12 19-7-7 7-7" />
+        <path d="M19 12H5" />
+      </>
+    ),
   };
 
   return (
@@ -109,22 +115,8 @@ interface RoleCardProps {
   onClick: () => void;
 }
 
-const RoleCard = ({ role, description, icon, active, onClick }: RoleCardProps) => (
-  <button
-    type="button"
-    onClick={onClick}
-    className={`rounded-lg border p-3 text-left transition hover:border-blue-300 ${active ? 'border-blue-500 bg-blue-50 text-blue-700' : 'border-slate-200 bg-white text-slate-700'
-      }`}
-  >
-    <Icon name={icon} className="w-[18px] h-[18px]" />
-    <span className="block text-sm font-semibold mt-2">{role}</span>
-    <span className="text-xs text-slate-500">{description}</span>
-  </button>
-);
-
 const LoginPage = () => {
   const [showPassword, setShowPassword] = useState(false);
-  const [selectedRole, setSelectedRole] = useState('Driver');
 
   const handleSubmit = (event: React.FormEvent<HTMLFormElement>) => {
     event.preventDefault();
@@ -206,8 +198,16 @@ const LoginPage = () => {
               </div>
             </div>
 
-            <div className="rounded-xl shadow-2xl border border-white/60 bg-white/90 backdrop-blur p-6 sm:p-8">
-              <div className="mb-6">
+            <div className="rounded-xl shadow-2xl border border-white/60 bg-white/90 backdrop-blur p-6 sm:p-8 relative">
+              <Link 
+                to="/" 
+                className="absolute top-4 right-4 sm:top-6 sm:right-6 text-slate-500 hover:text-slate-800 transition flex items-center gap-1 text-sm font-medium bg-slate-100 hover:bg-slate-200 px-3 py-1.5 rounded-lg"
+              >
+                <Icon name="arrowLeft" className="w-4 h-4" />
+                Trang chủ
+              </Link>
+
+              <div className="mb-6 mt-2">
                 <p className="text-xs uppercase tracking-wide text-blue-600 font-semibold">Welcome back</p>
                 <h2 className="text-2xl font-bold text-slate-800 mt-1">Đăng nhập hệ thống</h2>
                 <p className="text-sm text-slate-500 mt-2">Sử dụng tài khoản được cấp để truy cập đúng vai trò.</p>
@@ -250,19 +250,6 @@ const LoginPage = () => {
                   Đăng nhập
                 </button>
               </form>
-
-              <div className="my-6 flex items-center gap-3">
-                <div className="h-px bg-slate-200 flex-1" />
-                <span className="text-xs text-slate-400">Chọn nhanh vai trò</span>
-                <div className="h-px bg-slate-200 flex-1" />
-              </div>
-
-              <div className="grid grid-cols-2 gap-3">
-                <RoleCard role="Driver" description="Gửi xe, đặt chỗ" icon="car" active={selectedRole === 'Driver'} onClick={() => setSelectedRole('Driver')} />
-                <RoleCard role="Staff" description="Xe vào / ra" icon="login" active={selectedRole === 'Staff'} onClick={() => setSelectedRole('Staff')} />
-                <RoleCard role="Manager" description="Bãi xe, báo cáo" icon="building" active={selectedRole === 'Manager'} onClick={() => setSelectedRole('Manager')} />
-                <RoleCard role="Admin" description="Hệ thống" icon="shield" active={selectedRole === 'Admin'} onClick={() => setSelectedRole('Admin')} />
-              </div>
 
               <p className="text-center text-sm text-slate-500 mt-6">
                 Chưa có tài khoản? <Link to="/register" className="font-semibold text-blue-600 hover:text-blue-700">Đăng ký ngay</Link>

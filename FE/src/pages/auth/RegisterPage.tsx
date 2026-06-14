@@ -61,6 +61,12 @@ const Icon = ({ name, className = 'w-5 h-5' }: { name: string; className?: strin
             </>
         ),
         check: <path d="m20 6-11 11-5-5" />,
+        arrowLeft: (
+            <>
+                <path d="m12 19-7-7 7-7" />
+                <path d="M19 12H5" />
+            </>
+        ),
     };
 
     return (
@@ -70,15 +76,7 @@ const Icon = ({ name, className = 'w-5 h-5' }: { name: string; className?: strin
     );
 };
 
-const accountTypes = [
-    { id: 'driver', label: 'Driver', description: 'Gửi xe, đặt chỗ', icon: 'car' },
-    { id: 'staff', label: 'Staff', description: 'Nhân viên vận hành', icon: 'userPlus' },
-    { id: 'manager', label: 'Manager', description: 'Quản lý bãi xe', icon: 'shield' },
-];
-
 const RegisterPage = () => {
-    const [accountType, setAccountType] = useState('driver');
-
     const handleSubmit = (event: React.FormEvent<HTMLFormElement>) => {
         event.preventDefault();
         alert('Đăng ký thành công! (Demo)');
@@ -152,33 +150,22 @@ const RegisterPage = () => {
                             </div>
                         </div>
 
-                        <div className="rounded-xl shadow-2xl border border-white/60 bg-white/90 backdrop-blur p-6 sm:p-8">
-                            <div className="mb-6">
+                        <div className="rounded-xl shadow-2xl border border-white/60 bg-white/90 backdrop-blur p-6 sm:p-8 relative">
+                            <Link
+                                to="/"
+                                className="absolute top-4 right-4 sm:top-6 sm:right-6 text-slate-500 hover:text-slate-800 transition flex items-center gap-1 text-sm font-medium bg-slate-100 hover:bg-slate-200 px-3 py-1.5 rounded-lg"
+                            >
+                                <Icon name="arrowLeft" className="w-4 h-4" />
+                                Trang chủ
+                            </Link>
+
+                            <div className="mb-6 mt-2">
                                 <p className="text-xs uppercase tracking-wide text-blue-600 font-semibold">Create account</p>
                                 <h2 className="text-2xl font-bold text-slate-800 mt-1">Đăng ký tài khoản</h2>
                                 <p className="text-sm text-slate-500 mt-2">Nhập thông tin để tạo tài khoản sử dụng Parking BMS.</p>
                             </div>
 
                             <form onSubmit={handleSubmit} className="space-y-4">
-                                <div>
-                                    <label className="block text-sm font-medium text-slate-700 mb-2">Loại tài khoản</label>
-                                    <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
-                                        {accountTypes.map((type) => (
-                                            <button
-                                                key={type.id}
-                                                type="button"
-                                                onClick={() => setAccountType(type.id)}
-                                                className={`rounded-lg border p-3 text-left transition hover:border-blue-300 ${accountType === type.id ? 'border-blue-500 bg-blue-50 text-blue-700' : 'border-slate-200 bg-white text-slate-700'
-                                                    }`}
-                                            >
-                                                <Icon name={type.icon} className="w-[18px] h-[18px]" />
-                                                <span className="block text-sm font-semibold mt-2">{type.label}</span>
-                                                <span className="text-xs text-slate-500">{type.description}</span>
-                                            </button>
-                                        ))}
-                                    </div>
-                                </div>
-
                                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                                     <div>
                                         <label className="block text-sm font-medium text-slate-700 mb-2" htmlFor="fullName">Họ và tên</label>

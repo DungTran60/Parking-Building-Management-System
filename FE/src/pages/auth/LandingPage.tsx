@@ -268,10 +268,10 @@ const LandingPage = () => {
         </div>
       </section>
 
-      {/* ── CTA ── */}
+      {/* ── CTA & Location ── */}
       <section className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pb-20">
         <div
-          className="rounded-3xl border border-white/10 p-10 sm:p-16 text-center relative overflow-hidden"
+          className="rounded-3xl border border-white/10 p-8 sm:p-12 lg:p-16 relative overflow-hidden flex flex-col lg:flex-row items-center gap-10 lg:gap-16"
           style={{
             background:
               'linear-gradient(135deg, rgba(37,99,235,0.25) 0%, rgba(109,40,217,0.15) 100%)',
@@ -285,29 +285,45 @@ const LandingPage = () => {
                 'radial-gradient(ellipse at center, rgba(59,130,246,0.15) 0%, transparent 70%)',
             }}
           />
-          <h2 className="relative text-3xl sm:text-4xl font-bold text-white">
-            Sẵn sàng tối ưu vận hành bãi xe?
-          </h2>
-          <p className="relative text-slate-300 mt-4 max-w-xl mx-auto">
-            Tạo tài khoản miễn phí ngay hôm nay và trải nghiệm hệ thống quản lý toàn diện.
-          </p>
-          <div className="relative mt-8 flex flex-col sm:flex-row items-center justify-center gap-4">
-            <Link
-              to="/register"
-              id="cta-register-btn"
-              className="w-full sm:w-auto inline-flex items-center justify-center gap-2 px-8 py-4 rounded-xl bg-blue-600 hover:bg-blue-500 text-white font-semibold shadow-xl shadow-blue-500/30 transition-all hover:-translate-y-0.5"
-            >
-              <LandingIcon name="userPlus" className="w-5 h-5" />
-              Đăng ký ngay
-            </Link>
-            <Link
-              to="/login"
-              id="cta-login-btn"
-              className="w-full sm:w-auto inline-flex items-center justify-center gap-2 px-8 py-4 rounded-xl border border-white/20 bg-white/5 hover:bg-white/10 text-white font-semibold backdrop-blur transition-all hover:-translate-y-0.5"
-            >
-              <LandingIcon name="login" className="w-5 h-5" />
-              Đã có tài khoản
-            </Link>
+          
+          <div className="relative text-center lg:text-left flex-1 w-full">
+            <h2 className="text-3xl sm:text-4xl font-bold text-white">
+              Sẵn sàng tối ưu vận hành bãi xe?
+            </h2>
+            <p className="text-slate-300 mt-4 max-w-xl mx-auto lg:mx-0">
+              Tạo tài khoản miễn phí ngay hôm nay và trải nghiệm hệ thống quản lý toàn diện trực tiếp hoặc qua nền tảng.
+            </p>
+            <div className="mt-8 flex flex-col sm:flex-row items-center lg:justify-start justify-center gap-4">
+              <Link
+                to="/register"
+                id="cta-register-btn"
+                className="w-full sm:w-auto inline-flex items-center justify-center gap-2 px-8 py-4 rounded-xl bg-blue-600 hover:bg-blue-500 text-white font-semibold shadow-xl shadow-blue-500/30 transition-all hover:-translate-y-0.5"
+              >
+                <LandingIcon name="userPlus" className="w-5 h-5" />
+                Đăng ký ngay
+              </Link>
+              <Link
+                to="/login"
+                id="cta-login-btn"
+                className="w-full sm:w-auto inline-flex items-center justify-center gap-2 px-8 py-4 rounded-xl border border-white/20 bg-white/5 hover:bg-white/10 text-white font-semibold backdrop-blur transition-all hover:-translate-y-0.5"
+              >
+                <LandingIcon name="login" className="w-5 h-5" />
+                Đã có tài khoản
+              </Link>
+            </div>
+          </div>
+
+          <div className="relative w-full lg:w-[450px] xl:w-[500px] h-64 sm:h-80 rounded-2xl overflow-hidden border border-white/20 shadow-2xl flex-shrink-0">
+            <iframe
+              title="Location Map"
+              width="100%"
+              height="100%"
+              style={{ border: 0 }}
+              loading="lazy"
+              allowFullScreen
+              referrerPolicy="no-referrer-when-downgrade"
+              src="https://maps.google.com/maps?q=70%20Tô%20Ký,%20phường%20Tân%20Chánh%20Hiệp,%20Quận%2012&t=&z=15&ie=UTF8&iwloc=&output=embed"
+            />
           </div>
         </div>
       </section>
