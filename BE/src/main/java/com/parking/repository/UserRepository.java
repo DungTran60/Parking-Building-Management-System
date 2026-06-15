@@ -6,8 +6,22 @@ import org.springframework.stereotype.Repository;
 
 import java.util.Optional;
 
+/**
+ * Repository thao tác với bảng users
+ * Kế thừa JpaRepository để sử dụng các hàm CRUD có sẵn
+ */
 @Repository
-public interface UserRepository extends JpaRepository<User, Long> {
+public interface UserRepository extends JpaRepository<User, Long>
+{
+    /**
+     * Tìm User theo username
+     * Trả về Optional<User> để tránh lỗi null
+     */
     Optional<User> findByUsername(String username);
+
+    /**
+     * Kiểm tra username đã tồn tại hay chưa
+     * Trả về true nếu tồn tại, false nếu không tồn tại
+     */
     boolean existsByUsername(String username);
 }
