@@ -29,12 +29,11 @@ public class AuthController {
     private final UserService userService;
     private final JwtService jwtService;
 
-    //Xác thực đăng nhập (login).
+    // Xác thực đăng nhập (login).
     @PostMapping("/login")
     public ResponseEntity<LoginResponse> login(@Valid @RequestBody LoginRequest request) {
         Authentication authentication = authenticationManager.authenticate(
-                new UsernamePasswordAuthenticationToken(request.getUsername(), request.getPassword())
-        );
+                new UsernamePasswordAuthenticationToken(request.getUsername(), request.getPassword()));
 
         UserDetails userDetails = (UserDetails) authentication.getPrincipal();
         String jwtToken = jwtService.generateToken(userDetails);
