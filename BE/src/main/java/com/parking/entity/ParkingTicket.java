@@ -17,6 +17,9 @@ public class ParkingTicket {
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
+    @Column(unique = true)
+    private String ticketCode;
+
     private LocalDateTime checkInTime;
 
     private LocalDateTime checkOutTime;
