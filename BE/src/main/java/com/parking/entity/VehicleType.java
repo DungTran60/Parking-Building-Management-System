@@ -27,4 +27,7 @@ public class VehicleType {
 
     @Column(length = 20)
     private String color;
+
+    @Column(name = "hourly_rate")
+    private Double hourlyRate;
 }
