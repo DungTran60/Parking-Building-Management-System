@@ -9,7 +9,13 @@ export const resourceService = {
     }
     return listResource<T>(name);
   },
-  create: createResource,
+  create: async <T extends { id: string }>(name: ResourceName, payload: Omit<T, "id">): Promise<T> => {
+    if (name === "slots") {
+      const response = await httpClient.post<T>("/slots", payload);
+      return response.data;
+    }
+    return createResource<T>(name, payload);
+  },
   update: async <T extends { id: string }>(name: ResourceName, id: string, payload: Partial<T>): Promise<T> => {
     if (name === "slots") {
       const response = await httpClient.put<T>(`/slots/${id}`, payload);
@@ -17,7 +23,13 @@ export const resourceService = {
     }
     return updateResource<T>(name, id, payload);
   },
-  remove: deleteResource
+  remove: async (name: ResourceName, id: string): Promise<void> => {
+    if (name === "slots") {
+      await httpClient.delete(`/slots/${id}`);
+      return;
+    }
+    return deleteResource(name, id);
+  }
 };
 
 export type { ResourceName };
