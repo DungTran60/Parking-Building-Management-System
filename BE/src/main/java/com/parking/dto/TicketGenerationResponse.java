@@ -15,9 +15,17 @@ public class TicketGenerationResponse {
 
     private String licensePlate;
 
+    private String vehicleType;
+
     private String parkingArea;
+
+    private String slotCode;
+
+    private String entryGate;
 
     private LocalDateTime checkInTime;
 
     private String status;
+
+    private Double fee;
 }

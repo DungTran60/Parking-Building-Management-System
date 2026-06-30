@@ -35,4 +35,11 @@ public class ParkingTicket {
     @ManyToOne
     @JoinColumn(name = "parking_area_id")
     private ParkingArea parkingArea;
+
+    @ManyToOne
+    @JoinColumn(name = "slot_id")
+    private ParkingSlot slot;
+
+    @Column(name = "entry_gate")
+    private String entryGate;
 }

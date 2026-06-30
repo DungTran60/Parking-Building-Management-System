@@ -7,5 +7,9 @@ public class TicketGenerationRequest {
 
     private String licensePlate;
 
+    private String vehicleType;
+
     private Long parkingAreaId;
+
+    private String entryGate;
 }
