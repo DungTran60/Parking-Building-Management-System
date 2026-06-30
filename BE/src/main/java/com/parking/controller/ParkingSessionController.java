@@ -23,4 +23,9 @@ public class ParkingSessionController {
     public ResponseEntity<ParkingSessionResponseDto> checkOut(@RequestParam String query) {
         return ResponseEntity.ok(parkingSessionService.checkOut(query));
     }
+
+    @GetMapping("/active")
+    public ResponseEntity<ParkingSessionResponseDto> getActiveSession() {
+        return ResponseEntity.ok(parkingSessionService.getActiveSession());
+    }
 }
