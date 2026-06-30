@@ -1,21 +1,37 @@
 import dayjs from "dayjs";
 import type {
   Building,
+  FeedbackTicket,
   Floor,
   ParkingSession,
   ParkingSlot,
+  PaymentRecord,
   PricingPolicy,
   Reservation,
   User,
   VehicleType
 } from "@/types/domain";
-
+export const hourly = [
+  { time: "07:00", in: 42, out: 12 },
+  { time: "09:00", in: 86, out: 24 },
+  { time: "11:00", in: 52, out: 38 },
+  { time: "13:00", in: 45, out: 41 },
+  { time: "17:00", in: 96, out: 78 },
+  { time: "19:00", in: 34, out: 88 }
+];
+export const vehiclePie = [{ name: "Xe máy", value: 48 }, { name: "Ô tô", value: 31 }, { name: "Xe điện", value: 12 }, { name: "Khác", value: 9 }];
+export const colors = ["#2563eb", "#16a34a", "#0891b2", "#f59e0b"];
 export const vehicleTypes: VehicleType[] = [
   { id: "motorbike", name: "Xe máy", size: "0.8m x 2m", capacityUnit: 1, color: "#2563eb" },
   { id: "car", name: "Ô tô", size: "2.5m x 5m", capacityUnit: 3, color: "#16a34a" },
   { id: "ev", name: "Xe điện", size: "2.5m x 5m", capacityUnit: 3, color: "#0891b2" },
   { id: "truck", name: "Xe tải", size: "3m x 8m", capacityUnit: 5, color: "#f59e0b" },
   { id: "coach", name: "Xe khách", size: "3m x 12m", capacityUnit: 8, color: "#dc2626" }
+];
+export const buildings: Building[] = [
+  { id: "b1", name: "Central Parking Tower", address: "12 Nguyen Hue, Q1", floors: 8, status: "ACTIVE", capacity: 980 },
+  { id: "b2", name: "West Gate Parking", address: "88 Tran Duy Hung", floors: 5, status: "ACTIVE", capacity: 620 },
+  { id: "b3", name: "Airport Staff Garage", address: "Tan Son Nhat", floors: 6, status: "INACTIVE", capacity: 740 }
 ];
 
 export const floors: Floor[] = [
@@ -74,9 +90,45 @@ export const reservations: Reservation[] = Array.from({ length: 10 }).map((_, in
   status: ["PENDING", "CONFIRMED", "CANCELLED"][index % 3] as Reservation["status"]
 }));
 
+export const payments: PaymentRecord[] = [
+  {
+    id: "pay1",
+    sessionId: "ps2",
+    amount: 24000,
+    method: "QR_CODE",
+    status: "PAID",
+    paidAt: dayjs().subtract(3, "day").toISOString()
+  },
+  {
+    id: "pay2",
+    sessionId: "ps4",
+    amount: 15000,
+    method: "BANK_CARD",
+    status: "PAID",
+    paidAt: dayjs().subtract(7, "day").toISOString()
+  }
+];
+
+export const feedbackTickets: FeedbackTicket[] = [];
+
 export const users: User[] = [
   { id: "u1", username: "sysadmin", email: "admin@parking.vn", phone: "0901000001", role: "SYSTEM_ADMIN", status: "ACTIVE" },
   { id: "u2", username: "manager.hcm", email: "manager@parking.vn", phone: "0901000002", role: "PARKING_MANAGER", status: "ACTIVE" },
   { id: "u3", username: "staff.gate1", email: "staff1@parking.vn", phone: "0901000003", role: "PARKING_STAFF", status: "ACTIVE" },
-  { id: "u4", username: "driver.lan", email: "driver@parking.vn", phone: "0901000004", role: "PARKING_USER", status: "INACTIVE" }
+  { id: "u4", username: "driver.lan", email: "driver@parking.vn", phone: "0901000004", role: "PARKING_USER", status: "INACTIVE" },
+  { id: "u5", username: "driver.minh", email: "minh@parking.vn", phone: "0901000005", role: "PARKING_USER", status: "ACTIVE" }
+];
+
+export interface MockLoginAccount {
+  userId: string;
+  password: string;
+}
+
+// Demo-only credentials. A real application must never keep plain-text passwords in client code.
+export const mockLoginAccounts: MockLoginAccount[] = [
+  { userId: "u1", password: "Admin@123" },
+  { userId: "u2", password: "Manager@123" },
+  { userId: "u3", password: "Staff@123" },
+  { userId: "u4", password: "Driver@123" },
+  { userId: "u5", password: "Driver@123" }
 ];
