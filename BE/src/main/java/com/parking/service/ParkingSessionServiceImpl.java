@@ -101,6 +101,16 @@ public class ParkingSessionServiceImpl implements ParkingSessionService {
         return convertToDto(saved);
     }
 
+    @Override
+    @Transactional(readOnly = true)
+    public ParkingSessionResponseDto getActiveSession() {
+        return parkingSessionRepository.findAll().stream()
+                .filter(s -> "ACTIVE".equals(s.getStatus()))
+                .map(this::convertToDto)
+                .findFirst()
+                .orElseThrow(() -> new ResourceNotFoundException("Không tìm thấy lượt gửi xe nào đang hoạt động!"));
+    }
+
     private ParkingSessionResponseDto convertToDto(ParkingSession session) {
         return ParkingSessionResponseDto.builder()
                 .id(String.valueOf(session.getId()))
