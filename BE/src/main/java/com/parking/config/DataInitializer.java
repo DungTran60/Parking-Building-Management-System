@@ -62,11 +62,11 @@ public class DataInitializer implements CommandLineRunner {
 
         // Seed VehicleTypes
         if (vehicleTypeRepository.count() == 0) {
-            vehicleTypeRepository.save(VehicleType.builder().id("motorbike").name("Xe máy").size("0.8m x 2m").capacityUnit(1).color("#2563eb").build());
-            vehicleTypeRepository.save(VehicleType.builder().id("car").name("Ô tô").size("2.5m x 5m").capacityUnit(3).color("#16a34a").build());
-            vehicleTypeRepository.save(VehicleType.builder().id("ev").name("Xe điện").size("2.5m x 5m").capacityUnit(3).color("#0891b2").build());
-            vehicleTypeRepository.save(VehicleType.builder().id("truck").name("Xe tải").size("3m x 8m").capacityUnit(5).color("#f59e0b").build());
-            vehicleTypeRepository.save(VehicleType.builder().id("coach").name("Xe khách").size("3m x 12m").capacityUnit(8).color("#dc2626").build());
+            vehicleTypeRepository.save(VehicleType.builder().id("motorbike").name("Xe máy").size("0.8m x 2m").capacityUnit(1).color("#2563eb").hourlyRate(5000.0).build());
+            vehicleTypeRepository.save(VehicleType.builder().id("car").name("Ô tô").size("2.5m x 5m").capacityUnit(3).color("#16a34a").hourlyRate(25000.0).build());
+            vehicleTypeRepository.save(VehicleType.builder().id("ev").name("Xe điện").size("2.5m x 5m").capacityUnit(3).color("#0891b2").hourlyRate(30000.0).build());
+            vehicleTypeRepository.save(VehicleType.builder().id("truck").name("Xe tải").size("3m x 8m").capacityUnit(5).color("#f59e0b").hourlyRate(45000.0).build());
+            vehicleTypeRepository.save(VehicleType.builder().id("coach").name("Xe khách").size("3m x 12m").capacityUnit(8).color("#dc2626").hourlyRate(60000.0).build());
             System.out.println("Seeded vehicle types");
         }
 
