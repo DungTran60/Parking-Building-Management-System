@@ -1,6 +1,7 @@
 import dayjs from "dayjs";
 import { floors, pricingPolicies, reservations, sessions, slots, users, vehicleTypes } from "@/api/mockData";
-import type { AiOptimizationResult, ParkingSession, PricingPolicy } from "@/types/domain";
+import type { AiOptimizationResult, ParkingSession, PricingPolicy, PaymentMethod, PaymentRecord } from "@/types/domain";
+import { httpClient } from "@/api/httpClient";
 
 const database = {
   vehicleTypes,
@@ -92,4 +93,31 @@ export async function optimizeParking(input: { currentVehicles: number; emptySlo
     peakHourForecast: occupancyForecast > 85 ? "17:30 - 19:00" : "07:30 - 09:00",
     confidence: 88
   };
+}
+
+export async function getCurrentUserSession(): Promise<ParkingSession | null> {
+  try {
+    const response = await httpClient.get<ParkingSession>("/sessions/active");
+    return response.data;
+  } catch (error) {
+    return null;
+  }
+}
+
+export async function getUserPayments(): Promise<PaymentRecord[]> {
+  try {
+    const response = await httpClient.get<PaymentRecord[]>("/payments");
+    return response.data;
+  } catch (error) {
+    return [];
+  }
+}
+
+export async function payCurrentSession(method: PaymentMethod): Promise<void> {
+  const session = await getCurrentUserSession();
+  if (!session) return;
+  await httpClient.post("/payments", {
+    sessionId: session.id,
+    method
+  });
 }

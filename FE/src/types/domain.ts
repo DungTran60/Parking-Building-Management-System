@@ -97,3 +97,13 @@ export interface AiOptimizationResult {
   peakHourForecast: string;
   confidence: number;
 }
+
+export type PaymentMethod = "QR_CODE" | "BANK_CARD" | "CASH";
+
+export interface PaymentRecord {
+  id: string;
+  sessionId: string;
+  amount: number;
+  method: PaymentMethod;
+  paidAt: string;
+}
