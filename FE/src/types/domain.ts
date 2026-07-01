@@ -5,6 +5,9 @@ export type SlotStatus = "AVAILABLE" | "OCCUPIED" | "RESERVED" | "MAINTENANCE" |
 export type SessionStatus = "ACTIVE" | "COMPLETED" | "UNPAID" | "LOST_TICKET" | "EXPIRED";
 export type ReservationStatus = "PENDING" | "CONFIRMED" | "CANCELLED";
 export type ExceptionType = "LOST_TICKET" | "WRONG_PLATE" | "WRONG_ZONE" | "OVERTIME" | "UNPAID";
+export type PaymentMethod = "QR_CODE" | "BANK_CARD" | "CASH";
+export type PaymentStatus = "PENDING" | "PAID" | "FAILED";
+export type FeedbackType = "LOST_TICKET" | "WRONG_FEE" | "FIND_VEHICLE" | "OCCUPIED_SLOT" | "FACILITY_ISSUE";
 
 export interface Building {
   id: string;
@@ -76,6 +79,25 @@ export interface Reservation {
   status: ReservationStatus;
 }
 
+export interface PaymentRecord {
+  id: string;
+  sessionId: string;
+  amount: number;
+  method: PaymentMethod;
+  status: PaymentStatus;
+  paidAt: string;
+}
+
+export interface FeedbackTicket {
+  id: string;
+  type: FeedbackType;
+  sessionCode: string;
+  message: string;
+  contactPhone: string;
+  createdAt: string;
+  status: "OPEN" | "IN_REVIEW" | "RESOLVED";
+}
+
 export interface User {
   id: string;
   username: string;
@@ -96,14 +118,4 @@ export interface AiOptimizationResult {
   occupancyForecast: number;
   peakHourForecast: string;
   confidence: number;
-}
-
-export type PaymentMethod = "QR_CODE" | "BANK_CARD" | "CASH";
-
-export interface PaymentRecord {
-  id: string;
-  sessionId: string;
-  amount: number;
-  method: PaymentMethod;
-  paidAt: string;
 }
