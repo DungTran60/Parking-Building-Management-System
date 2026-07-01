@@ -1,4 +1,5 @@
 import type { InputHTMLAttributes, ReactNode, SelectHTMLAttributes } from "react";
+import { cn } from "@/utils/cn";
 
 export function Field({ label, children, error }: { label: string; children: ReactNode; error?: string }) {
   return (
@@ -10,10 +11,10 @@ export function Field({ label, children, error }: { label: string; children: Rea
   );
 }
 
-export function Input(props: InputHTMLAttributes<HTMLInputElement>) {
-  return <input className="h-10 rounded-md border border-border bg-white px-3 text-sm outline-none focus:border-primary focus:ring-2 focus:ring-blue-100" {...props} />;
+export function Input({ className, ...props }: InputHTMLAttributes<HTMLInputElement>) {
+  return <input className={cn("h-10 rounded-md border border-border bg-white px-3 text-sm outline-none focus:border-primary focus:ring-2 focus:ring-blue-100", className)} {...props} />;
 }
 
-export function Select(props: SelectHTMLAttributes<HTMLSelectElement>) {
-  return <select className="h-10 rounded-md border border-border bg-white px-3 text-sm outline-none focus:border-primary focus:ring-2 focus:ring-blue-100" {...props} />;
+export function Select({ className, ...props }: SelectHTMLAttributes<HTMLSelectElement>) {
+  return <select className={cn("h-10 rounded-md border border-border bg-white px-3 text-sm outline-none focus:border-primary focus:ring-2 focus:ring-blue-100", className)} {...props} />;
 }
