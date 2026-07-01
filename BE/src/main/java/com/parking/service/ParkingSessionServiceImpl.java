@@ -14,7 +14,7 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
-import java.time.Duration;
+import java.math.BigDecimal;
 import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
 import java.util.List;
@@ -26,8 +26,9 @@ import java.util.UUID;
 public class ParkingSessionServiceImpl implements ParkingSessionService {
 
     private final ParkingSessionRepository parkingSessionRepository;
-    private final ParkingSlotRepository parkingSlotRepository;
-    private final VehicleTypeRepository vehicleTypeRepository;
+    private final ParkingSlotRepository    parkingSlotRepository;
+    private final VehicleTypeRepository    vehicleTypeRepository;
+    private final FeeCalculationService    feeCalculationService;
 
     @Override
     @Transactional
@@ -79,17 +80,16 @@ public class ParkingSessionServiceImpl implements ParkingSessionService {
         ParkingSession session = sessionOpt.orElseThrow(() ->
                 new ResourceNotFoundException("Không tìm thấy lượt gửi xe đang hoạt động phù hợp với mã vé hoặc biển số này!"));
 
-        // 2. Tính số giờ gửi và phí gửi xe
+        // 2. Tính phí theo giờ từ bảng Pricing (ưu tiên) hoặc fallback
         LocalDateTime checkOutTime = LocalDateTime.now();
-        long seconds = Duration.between(session.getCheckInAt(), checkOutTime).getSeconds();
-        // Làm tròn lên số giờ gửi, tối thiểu 1 giờ
-        double hours = Math.max(1.0, Math.ceil(seconds / 3600.0));
-        double hourlyRate = session.getVehicleType().getHourlyRate() != null ? session.getVehicleType().getHourlyRate() : 5000.0;
-        double fee = hours * hourlyRate;
+        BigDecimal fee = feeCalculationService.calculateFee(
+                session.getVehicleType().getId(),
+                session.getCheckInAt(),
+                checkOutTime);
 
         // 3. Cập nhật thông tin checkout của session
         session.setCheckOutAt(checkOutTime);
-        session.setFee(fee);
+        session.setFee(fee.doubleValue());
         session.setStatus("COMPLETED");
         ParkingSession saved = parkingSessionRepository.save(session);
 
