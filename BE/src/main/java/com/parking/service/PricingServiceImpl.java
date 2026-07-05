@@ -33,10 +33,10 @@ public class PricingServiceImpl implements PricingService {
     @Override
     @Transactional
     public PricingResponseDto createPricing(PricingRequestDto dto) {
-        VehicleType vehicleType = findVehicleTypeOrThrow(dto.getVehicleTypeId());
+        VehicleType vehicleType = resolveVehicleType(dto.getVehicleTypeId());
 
         // Mỗi cặp (vehicleType, timeUnit) phải là duy nhất
-        if (pricingRepository.existsByVehicleTypeIdAndTimeUnit(dto.getVehicleTypeId(), dto.getTimeUnit())) {
+        if (pricingRepository.existsByVehicleTypeIdAndTimeUnit(vehicleType.getId(), dto.getTimeUnit())) {
             throw new IllegalArgumentException(
                     "Pricing already exists for vehicle type '" + dto.getVehicleTypeId()
                     + "' with time unit '" + dto.getTimeUnit() + "'");
@@ -92,8 +92,8 @@ public class PricingServiceImpl implements PricingService {
     @Override
     @Transactional(readOnly = true)
     public List<PricingResponseDto> getPricingsByVehicleType(String vehicleTypeId) {
-        findVehicleTypeOrThrow(vehicleTypeId);
-        return pricingRepository.findByVehicleTypeId(vehicleTypeId).stream()
+        VehicleType vt = resolveVehicleType(vehicleTypeId);
+        return pricingRepository.findByVehicleTypeId(vt.getId()).stream()
                 .map(this::mapToResponse)
                 .collect(Collectors.toList());
     }
@@ -104,8 +104,8 @@ public class PricingServiceImpl implements PricingService {
     @Override
     @Transactional(readOnly = true)
     public List<PricingResponseDto> getActivePricingsByVehicleType(String vehicleTypeId) {
-        findVehicleTypeOrThrow(vehicleTypeId);
-        return pricingRepository.findByVehicleTypeIdAndActiveTrue(vehicleTypeId).stream()
+        VehicleType vt = resolveVehicleType(vehicleTypeId);
+        return pricingRepository.findByVehicleTypeIdAndActiveTrue(vt.getId()).stream()
                 .map(this::mapToResponse)
                 .collect(Collectors.toList());
     }
@@ -117,11 +117,11 @@ public class PricingServiceImpl implements PricingService {
     @Transactional
     public PricingResponseDto updatePricing(Long id, PricingRequestDto dto) {
         Pricing pricing = findOrThrow(id);
-        VehicleType vehicleType = findVehicleTypeOrThrow(dto.getVehicleTypeId());
+        VehicleType vehicleType = resolveVehicleType(dto.getVehicleTypeId());
 
         // Kiểm tra trùng lặp với bản ghi KHÁC (loại trừ chính bản ghi đang sửa)
         if (pricingRepository.existsByVehicleTypeIdAndTimeUnitAndIdNot(
-                dto.getVehicleTypeId(), dto.getTimeUnit(), id)) {
+                vehicleType.getId(), dto.getTimeUnit(), id)) {
             throw new IllegalArgumentException(
                     "Pricing already exists for vehicle type '" + dto.getVehicleTypeId()
                     + "' with time unit '" + dto.getTimeUnit() + "'");
@@ -185,9 +185,7 @@ public class PricingServiceImpl implements PricingService {
         }
 
         // Validate vehicleType must exist
-        if (!vehicleTypeRepository.existsById(vehicleTypeId)) {
-            throw new ResourceNotFoundException("Vehicle type not found: " + vehicleTypeId);
-        }
+        VehicleType vehicleType = resolveVehicleType(vehicleTypeId);
 
         // Validate checkOut > checkIn
         if (checkOut.isBefore(checkIn) || checkOut.isEqual(checkIn)) {
@@ -196,7 +194,7 @@ public class PricingServiceImpl implements PricingService {
 
         // 2. Resolve Pricing and Overnight Fee
         BigDecimal overnightFeeVal = BigDecimal.ZERO;
-        Optional<Pricing> pricingOpt = pricingRepository.findByVehicleTypeIdAndTimeUnit(vehicleTypeId, PricingTimeUnit.HOURLY);
+        Optional<Pricing> pricingOpt = pricingRepository.findByVehicleTypeIdAndTimeUnit(vehicleType.getId(), PricingTimeUnit.HOURLY);
         if (pricingOpt.isPresent() && Boolean.TRUE.equals(pricingOpt.get().getActive())) {
             overnightFeeVal = pricingOpt.get().getOvernightFee();
             if (overnightFeeVal == null) {
@@ -242,12 +240,10 @@ public class PricingServiceImpl implements PricingService {
         }
 
         // Validate vehicleType must exist
-        if (!vehicleTypeRepository.existsById(vehicleTypeId)) {
-            throw new ResourceNotFoundException("Vehicle type not found: " + vehicleTypeId);
-        }
+        VehicleType vehicleType = resolveVehicleType(vehicleTypeId);
 
         BigDecimal lostTicketFeeVal = BigDecimal.ZERO;
-        Optional<Pricing> pricingOpt = pricingRepository.findByVehicleTypeIdAndTimeUnit(vehicleTypeId, PricingTimeUnit.HOURLY);
+        Optional<Pricing> pricingOpt = pricingRepository.findByVehicleTypeIdAndTimeUnit(vehicleType.getId(), PricingTimeUnit.HOURLY);
         if (pricingOpt.isPresent() && Boolean.TRUE.equals(pricingOpt.get().getActive())) {
             lostTicketFeeVal = pricingOpt.get().getLostTicketFee();
             if (lostTicketFeeVal == null) {
@@ -275,16 +271,34 @@ public class PricingServiceImpl implements PricingService {
                 .orElseThrow(() -> new ResourceNotFoundException("Pricing not found with ID: " + id));
     }
 
-    private VehicleType findVehicleTypeOrThrow(String vehicleTypeId) {
-        return vehicleTypeRepository.findById(vehicleTypeId)
-                .orElseThrow(() -> new ResourceNotFoundException(
-                        "Vehicle type not found: " + vehicleTypeId));
+    /**
+     * Resolve VehicleType từ một chuỗi có thể là:
+     *  - Numeric ID (Long)
+     *  - Code string (ví dụ: "car", "CAR", "motorbike")
+     */
+    VehicleType resolveVehicleType(String vehicleTypeRef) {
+        if (vehicleTypeRef == null || vehicleTypeRef.trim().isEmpty()) {
+            throw new ResourceNotFoundException("Vehicle type reference is required");
+        }
+        // Try parse as Long (numeric ID)
+        try {
+            Long numericId = Long.parseLong(vehicleTypeRef.trim());
+            return vehicleTypeRepository.findById(numericId)
+                    .orElseThrow(() -> new ResourceNotFoundException(
+                            "Vehicle type not found with ID: " + numericId));
+        } catch (NumberFormatException e) {
+            // Fallback: lookup by code (case-insensitive via toUpperCase)
+            return vehicleTypeRepository.findByCode(vehicleTypeRef.trim().toUpperCase())
+                    .or(() -> vehicleTypeRepository.findByCode(vehicleTypeRef.trim()))
+                    .orElseThrow(() -> new ResourceNotFoundException(
+                            "Vehicle type not found: " + vehicleTypeRef));
+        }
     }
 
     private PricingResponseDto mapToResponse(Pricing p) {
         return PricingResponseDto.builder()
                 .id(p.getId())
-                .vehicleTypeId(p.getVehicleType().getId())
+                .vehicleTypeId(String.valueOf(p.getVehicleType().getId()))
                 .vehicleTypeName(p.getVehicleType().getName())
                 .timeUnit(p.getTimeUnit())
                 .price(p.getPrice())

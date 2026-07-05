@@ -34,11 +34,10 @@ public class ParkingSessionServiceImpl implements ParkingSessionService {
     @Transactional
     public ParkingSessionResponseDto checkIn(CheckInRequestDto request) {
         // 1. Tìm loại xe
-        VehicleType vehicleType = vehicleTypeRepository.findById(request.getVehicleTypeId())
-                .orElseThrow(() -> new ResourceNotFoundException("Vehicle type not found with id: " + request.getVehicleTypeId()));
+        VehicleType vehicleType = resolveVehicleType(request.getVehicleTypeId());
 
         // 2. Tìm slot trống phù hợp
-        List<ParkingSlot> availableSlots = parkingSlotRepository.findByStatusAndVehicleTypeId(SlotStatus.AVAILABLE, request.getVehicleTypeId());
+        List<ParkingSlot> availableSlots = parkingSlotRepository.findByStatusAndVehicleTypeId(SlotStatus.AVAILABLE, vehicleType.getId());
         if (availableSlots.isEmpty()) {
             throw new RuntimeException("Không còn slot đỗ xe trống phù hợp cho loại xe này!");
         }
@@ -83,7 +82,7 @@ public class ParkingSessionServiceImpl implements ParkingSessionService {
         // 2. Tính phí theo giờ từ bảng Pricing (ưu tiên) hoặc fallback
         LocalDateTime checkOutTime = LocalDateTime.now();
         BigDecimal fee = feeCalculationService.calculateFee(
-                session.getVehicleType().getId(),
+                String.valueOf(session.getVehicleType().getId()),
                 session.getCheckInAt(),
                 checkOutTime);
 
@@ -116,7 +115,7 @@ public class ParkingSessionServiceImpl implements ParkingSessionService {
                 .id(String.valueOf(session.getId()))
                 .ticketCode(session.getTicketCode())
                 .plateNumber(session.getPlateNumber())
-                .vehicleTypeId(session.getVehicleType().getId())
+                .vehicleTypeId(String.valueOf(session.getVehicleType().getId()))
                 .slotId(String.valueOf(session.getSlot().getId()))
                 .entryGate(session.getEntryGate())
                 .checkInAt(session.getCheckInAt())
@@ -124,5 +123,22 @@ public class ParkingSessionServiceImpl implements ParkingSessionService {
                 .fee(session.getFee())
                 .status(session.getStatus())
                 .build();
+    }
+
+    /**
+     * Resolve VehicleType từ string reference (numeric ID hoặc code string).
+     */
+    private VehicleType resolveVehicleType(String vehicleTypeRef) {
+        try {
+            Long numericId = Long.parseLong(vehicleTypeRef.trim());
+            return vehicleTypeRepository.findById(numericId)
+                    .orElseThrow(() -> new ResourceNotFoundException(
+                            "Vehicle type not found with ID: " + numericId));
+        } catch (NumberFormatException e) {
+            return vehicleTypeRepository.findByCode(vehicleTypeRef.trim().toUpperCase())
+                    .or(() -> vehicleTypeRepository.findByCode(vehicleTypeRef.trim()))
+                    .orElseThrow(() -> new ResourceNotFoundException(
+                            "Vehicle type not found: " + vehicleTypeRef));
+        }
     }
 }
