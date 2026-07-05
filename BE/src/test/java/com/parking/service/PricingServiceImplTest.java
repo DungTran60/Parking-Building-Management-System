@@ -5,6 +5,7 @@ import com.parking.dto.OvernightFeeResponseDto;
 import com.parking.entity.Pricing;
 import com.parking.entity.PricingTimeUnit;
 import com.parking.entity.VehicleType;
+import com.parking.entity.VehicleTypeStatus;
 import com.parking.exception.ResourceNotFoundException;
 import com.parking.repository.PricingRepository;
 import com.parking.repository.VehicleTypeRepository;
@@ -35,9 +36,17 @@ class PricingServiceImplTest {
     @InjectMocks
     private PricingServiceImpl pricingService;
 
+    private VehicleType mockCar;
+
     @BeforeEach
     void setUp() {
         MockitoAnnotations.openMocks(this);
+        mockCar = VehicleType.builder()
+                .id(1L)
+                .code("CAR")
+                .name("Ô tô")
+                .status(VehicleTypeStatus.ACTIVE)
+                .build();
     }
 
     @Test
@@ -46,7 +55,7 @@ class PricingServiceImplTest {
         LocalDateTime checkIn = LocalDateTime.of(2026, 7, 1, 20, 0);
         LocalDateTime checkOut = LocalDateTime.of(2026, 7, 2, 8, 0);
 
-        when(vehicleTypeRepository.existsById(vehicleTypeId)).thenReturn(false);
+        when(vehicleTypeRepository.findByCode("INVALID-CAR")).thenReturn(Optional.empty());
 
         assertThrows(ResourceNotFoundException.class, () -> {
             pricingService.calculateOvernightFee(checkIn, checkOut, vehicleTypeId);
@@ -59,7 +68,7 @@ class PricingServiceImplTest {
         LocalDateTime checkIn = LocalDateTime.of(2026, 7, 2, 8, 0);
         LocalDateTime checkOut = LocalDateTime.of(2026, 7, 1, 20, 0); // before checkIn
 
-        when(vehicleTypeRepository.existsById(vehicleTypeId)).thenReturn(true);
+        when(vehicleTypeRepository.findByCode("CAR")).thenReturn(Optional.of(mockCar));
 
         assertThrows(IllegalArgumentException.class, () -> {
             pricingService.calculateOvernightFee(checkIn, checkOut, vehicleTypeId);
@@ -72,13 +81,13 @@ class PricingServiceImplTest {
         LocalDateTime checkIn = LocalDateTime.of(2026, 7, 1, 8, 0);
         LocalDateTime checkOut = LocalDateTime.of(2026, 7, 1, 18, 0); // same day
 
-        when(vehicleTypeRepository.existsById(vehicleTypeId)).thenReturn(true);
+        when(vehicleTypeRepository.findByCode("CAR")).thenReturn(Optional.of(mockCar));
 
         Pricing pricing = Pricing.builder()
                 .overnightFee(BigDecimal.valueOf(20000))
                 .active(true)
                 .build();
-        when(pricingRepository.findByVehicleTypeIdAndTimeUnit(vehicleTypeId, PricingTimeUnit.HOURLY))
+        when(pricingRepository.findByVehicleTypeIdAndTimeUnit(1L, PricingTimeUnit.HOURLY))
                 .thenReturn(Optional.of(pricing));
 
         // Mock base fee calculation (e.g. 10 hours stay * hourly rate)
@@ -100,13 +109,13 @@ class PricingServiceImplTest {
         LocalDateTime checkIn = LocalDateTime.of(2026, 7, 1, 20, 0);
         LocalDateTime checkOut = LocalDateTime.of(2026, 7, 2, 8, 0); // 1 night
 
-        when(vehicleTypeRepository.existsById(vehicleTypeId)).thenReturn(true);
+        when(vehicleTypeRepository.findByCode("CAR")).thenReturn(Optional.of(mockCar));
 
         Pricing pricing = Pricing.builder()
                 .overnightFee(BigDecimal.valueOf(20000))
                 .active(true)
                 .build();
-        when(pricingRepository.findByVehicleTypeIdAndTimeUnit(vehicleTypeId, PricingTimeUnit.HOURLY))
+        when(pricingRepository.findByVehicleTypeIdAndTimeUnit(1L, PricingTimeUnit.HOURLY))
                 .thenReturn(Optional.of(pricing));
 
         when(feeCalculationService.calculateFee(vehicleTypeId, checkIn, checkOut))
@@ -127,13 +136,13 @@ class PricingServiceImplTest {
         LocalDateTime checkIn = LocalDateTime.of(2026, 7, 1, 18, 0);
         LocalDateTime checkOut = LocalDateTime.of(2026, 7, 3, 9, 0); // 2 nights
 
-        when(vehicleTypeRepository.existsById(vehicleTypeId)).thenReturn(true);
+        when(vehicleTypeRepository.findByCode("CAR")).thenReturn(Optional.of(mockCar));
 
         Pricing pricing = Pricing.builder()
                 .overnightFee(BigDecimal.valueOf(20000))
                 .active(true)
                 .build();
-        when(pricingRepository.findByVehicleTypeIdAndTimeUnit(vehicleTypeId, PricingTimeUnit.HOURLY))
+        when(pricingRepository.findByVehicleTypeIdAndTimeUnit(1L, PricingTimeUnit.HOURLY))
                 .thenReturn(Optional.of(pricing));
 
         when(feeCalculationService.calculateFee(vehicleTypeId, checkIn, checkOut))
@@ -151,7 +160,7 @@ class PricingServiceImplTest {
     @Test
     void testCalculateLostTicketFee_VehicleTypeNotFound() {
         String vehicleTypeId = "invalid-car";
-        when(vehicleTypeRepository.existsById(vehicleTypeId)).thenReturn(false);
+        when(vehicleTypeRepository.findByCode("INVALID-CAR")).thenReturn(Optional.empty());
 
         assertThrows(ResourceNotFoundException.class, () -> {
             pricingService.calculateLostTicketFee(vehicleTypeId);
@@ -161,13 +170,13 @@ class PricingServiceImplTest {
     @Test
     void testCalculateLostTicketFee_Success() {
         String vehicleTypeId = "car";
-        when(vehicleTypeRepository.existsById(vehicleTypeId)).thenReturn(true);
+        when(vehicleTypeRepository.findByCode("CAR")).thenReturn(Optional.of(mockCar));
 
         Pricing pricing = Pricing.builder()
                 .lostTicketFee(BigDecimal.valueOf(100000))
                 .active(true)
                 .build();
-        when(pricingRepository.findByVehicleTypeIdAndTimeUnit(vehicleTypeId, PricingTimeUnit.HOURLY))
+        when(pricingRepository.findByVehicleTypeIdAndTimeUnit(1L, PricingTimeUnit.HOURLY))
                 .thenReturn(Optional.of(pricing));
 
         LostTicketFeeResponseDto result = pricingService.calculateLostTicketFee(vehicleTypeId);
