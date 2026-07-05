@@ -1,5 +1,6 @@
 package com.parking.service;
 
+import com.parking.dto.OvernightFeeResponseDto;
 import com.parking.dto.PricingRequestDto;
 import com.parking.dto.PricingResponseDto;
 
@@ -33,4 +34,10 @@ public interface PricingService {
 
     /** Kích hoạt / vô hiệu hóa bảng giá */
     PricingResponseDto togglePricingStatus(Long id);
+
+    /** Tính phí đỗ xe qua đêm */
+    OvernightFeeResponseDto calculateOvernightFee(
+            java.time.LocalDateTime checkIn,
+            java.time.LocalDateTime checkOut,
+            String vehicleTypeId);
 }

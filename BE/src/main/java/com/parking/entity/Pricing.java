@@ -44,6 +44,11 @@ public class Pricing {
     @Column(nullable = false, precision = 12, scale = 2)
     private BigDecimal price;
 
+    /** Phí đỗ xe qua đêm (VND) */
+    @Builder.Default
+    @Column(name = "overnight_fee", precision = 12, scale = 2)
+    private BigDecimal overnightFee = BigDecimal.ZERO;
+
     /** Mô tả thêm (tùy chọn) */
     @Column(length = 255)
     private String description;

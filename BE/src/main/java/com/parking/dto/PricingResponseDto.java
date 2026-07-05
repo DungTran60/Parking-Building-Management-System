@@ -21,6 +21,8 @@ public class PricingResponseDto {
 
     private BigDecimal price;
 
+    private BigDecimal overnightFee;
+
     private String description;
 
     private Boolean active;

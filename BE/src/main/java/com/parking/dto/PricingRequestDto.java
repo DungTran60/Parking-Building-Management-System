@@ -23,6 +23,10 @@ public class PricingRequestDto {
     @Digits(integer = 10, fraction = 2, message = "Price format invalid")
     private BigDecimal price;
 
+    @DecimalMin(value = "0.0", inclusive = true, message = "Overnight fee must be greater than or equal to 0")
+    @Digits(integer = 10, fraction = 2, message = "Overnight fee format invalid")
+    private BigDecimal overnightFee;
+
     @Size(max = 255, message = "Description must not exceed 255 characters")
     private String description;
 
