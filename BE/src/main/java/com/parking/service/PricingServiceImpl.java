@@ -1,5 +1,6 @@
 package com.parking.service;
 
+import com.parking.dto.LostTicketFeeResponseDto;
 import com.parking.dto.OvernightFeeResponseDto;
 import com.parking.dto.PricingRequestDto;
 import com.parking.dto.PricingResponseDto;
@@ -46,6 +47,7 @@ public class PricingServiceImpl implements PricingService {
                 .timeUnit(dto.getTimeUnit())
                 .price(dto.getPrice())
                 .overnightFee(dto.getOvernightFee() != null ? dto.getOvernightFee() : BigDecimal.ZERO)
+                .lostTicketFee(dto.getLostTicketFee() != null ? dto.getLostTicketFee() : BigDecimal.ZERO)
                 .description(dto.getDescription())
                 .active(dto.getActive() != null ? dto.getActive() : true)
                 .build();
@@ -129,6 +131,7 @@ public class PricingServiceImpl implements PricingService {
         pricing.setTimeUnit(dto.getTimeUnit());
         pricing.setPrice(dto.getPrice());
         pricing.setOvernightFee(dto.getOvernightFee() != null ? dto.getOvernightFee() : BigDecimal.ZERO);
+        pricing.setLostTicketFee(dto.getLostTicketFee() != null ? dto.getLostTicketFee() : BigDecimal.ZERO);
         pricing.setDescription(dto.getDescription());
         if (dto.getActive() != null) {
             pricing.setActive(dto.getActive());
@@ -229,6 +232,42 @@ public class PricingServiceImpl implements PricingService {
     }
 
     /* ─────────────────────────────────────────────────────
+       Tính phí mất vé
+    ───────────────────────────────────────────────────── */
+    @Override
+    @Transactional(readOnly = true)
+    public LostTicketFeeResponseDto calculateLostTicketFee(String vehicleTypeId) {
+        if (vehicleTypeId == null || vehicleTypeId.trim().isEmpty()) {
+            throw new IllegalArgumentException("Vehicle type is required");
+        }
+
+        // Validate vehicleType must exist
+        if (!vehicleTypeRepository.existsById(vehicleTypeId)) {
+            throw new ResourceNotFoundException("Vehicle type not found: " + vehicleTypeId);
+        }
+
+        BigDecimal lostTicketFeeVal = BigDecimal.ZERO;
+        Optional<Pricing> pricingOpt = pricingRepository.findByVehicleTypeIdAndTimeUnit(vehicleTypeId, PricingTimeUnit.HOURLY);
+        if (pricingOpt.isPresent() && Boolean.TRUE.equals(pricingOpt.get().getActive())) {
+            lostTicketFeeVal = pricingOpt.get().getLostTicketFee();
+            if (lostTicketFeeVal == null) {
+                lostTicketFeeVal = BigDecimal.ZERO;
+            }
+        }
+
+        // Validate lostTicketFee >= 0
+        if (lostTicketFeeVal.compareTo(BigDecimal.ZERO) < 0) {
+            throw new IllegalArgumentException("Lost ticket fee cannot be negative");
+        }
+
+        return LostTicketFeeResponseDto.builder()
+                .vehicleType(vehicleTypeId)
+                .lostTicketFee(lostTicketFeeVal)
+                .total(lostTicketFeeVal)
+                .build();
+    }
+
+    /* ─────────────────────────────────────────────────────
        Helper methods
     ───────────────────────────────────────────────────── */
     private Pricing findOrThrow(Long id) {
@@ -250,6 +289,7 @@ public class PricingServiceImpl implements PricingService {
                 .timeUnit(p.getTimeUnit())
                 .price(p.getPrice())
                 .overnightFee(p.getOvernightFee() != null ? p.getOvernightFee() : BigDecimal.ZERO)
+                .lostTicketFee(p.getLostTicketFee() != null ? p.getLostTicketFee() : BigDecimal.ZERO)
                 .description(p.getDescription())
                 .active(p.getActive())
                 .createdAt(p.getCreatedAt())

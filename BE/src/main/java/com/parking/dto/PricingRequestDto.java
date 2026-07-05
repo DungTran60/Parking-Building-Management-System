@@ -27,6 +27,10 @@ public class PricingRequestDto {
     @Digits(integer = 10, fraction = 2, message = "Overnight fee format invalid")
     private BigDecimal overnightFee;
 
+    @DecimalMin(value = "0.0", inclusive = true, message = "Lost ticket fee must be greater than or equal to 0")
+    @Digits(integer = 10, fraction = 2, message = "Lost ticket fee format invalid")
+    private BigDecimal lostTicketFee;
+
     @Size(max = 255, message = "Description must not exceed 255 characters")
     private String description;
 

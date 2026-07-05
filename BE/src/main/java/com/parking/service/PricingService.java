@@ -1,5 +1,6 @@
 package com.parking.service;
 
+import com.parking.dto.LostTicketFeeResponseDto;
 import com.parking.dto.OvernightFeeResponseDto;
 import com.parking.dto.PricingRequestDto;
 import com.parking.dto.PricingResponseDto;
@@ -40,4 +41,7 @@ public interface PricingService {
             java.time.LocalDateTime checkIn,
             java.time.LocalDateTime checkOut,
             String vehicleTypeId);
+
+    /** Tính phí mất vé */
+    LostTicketFeeResponseDto calculateLostTicketFee(String vehicleTypeId);
 }

@@ -1,5 +1,6 @@
 package com.parking.service;
 
+import com.parking.dto.LostTicketFeeResponseDto;
 import com.parking.dto.OvernightFeeResponseDto;
 import com.parking.entity.Pricing;
 import com.parking.entity.PricingTimeUnit;
@@ -145,5 +146,35 @@ class PricingServiceImplTest {
         assertEquals(BigDecimal.valueOf(20000), result.getOvernightFee());
         assertEquals(2, result.getNumberOfNights());
         assertEquals(BigDecimal.valueOf(70000), result.getTotal()); // 30000 + 2 * 20000
+    }
+
+    @Test
+    void testCalculateLostTicketFee_VehicleTypeNotFound() {
+        String vehicleTypeId = "invalid-car";
+        when(vehicleTypeRepository.existsById(vehicleTypeId)).thenReturn(false);
+
+        assertThrows(ResourceNotFoundException.class, () -> {
+            pricingService.calculateLostTicketFee(vehicleTypeId);
+        });
+    }
+
+    @Test
+    void testCalculateLostTicketFee_Success() {
+        String vehicleTypeId = "car";
+        when(vehicleTypeRepository.existsById(vehicleTypeId)).thenReturn(true);
+
+        Pricing pricing = Pricing.builder()
+                .lostTicketFee(BigDecimal.valueOf(100000))
+                .active(true)
+                .build();
+        when(pricingRepository.findByVehicleTypeIdAndTimeUnit(vehicleTypeId, PricingTimeUnit.HOURLY))
+                .thenReturn(Optional.of(pricing));
+
+        LostTicketFeeResponseDto result = pricingService.calculateLostTicketFee(vehicleTypeId);
+
+        assertNotNull(result);
+        assertEquals(vehicleTypeId, result.getVehicleType());
+        assertEquals(BigDecimal.valueOf(100000), result.getLostTicketFee());
+        assertEquals(BigDecimal.valueOf(100000), result.getTotal());
     }
 }
