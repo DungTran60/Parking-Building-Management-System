@@ -11,7 +11,8 @@ export const ROLE_PERMISSIONS: Record<Role, Permission[]> = {
   SYSTEM_ADMIN: [ 
     "users:manage",
     "roles:manage",
-    "settings:manage"
+    "settings:manage",
+    "feedback:manage"
   ],
   PARKING_MANAGER: [
     "dashboard:view",

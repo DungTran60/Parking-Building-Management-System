@@ -8,6 +8,22 @@ export type ExceptionType = "LOST_TICKET" | "WRONG_PLATE" | "WRONG_ZONE" | "OVER
 export type PaymentMethod = "QR_CODE" | "BANK_CARD" | "CASH";
 export type PaymentStatus = "PENDING" | "PAID" | "FAILED";
 export type FeedbackType = "LOST_TICKET" | "WRONG_FEE" | "FIND_VEHICLE" | "OCCUPIED_SLOT" | "FACILITY_ISSUE";
+export type FeedbackStatus = "PENDING" | "APPROVED" | "REJECTED";
+
+/** Feedback đánh giá sau lượt gửi xe – kết nối với BE FeedbackResponseDto */
+export interface FeedbackItem {
+  id: number;
+  customerId: number;
+  customerName: string;
+  parkingSessionId: number;
+  ticketCode: string;
+  paymentId?: number;
+  rating: number;
+  comment?: string;
+  status: FeedbackStatus;
+  createdAt: string;
+  updatedAt: string;
+}
 
 export interface Building {
   id: string;

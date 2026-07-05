@@ -1,3 +1,4 @@
+import { AdminFeedbackPage } from "@/pages/admin/AdminFeedbackPage";
 import { Navigate, createBrowserRouter } from "react-router-dom";
 import type { ReactNode } from "react";
 import App from "@/App";
@@ -64,6 +65,7 @@ export const router = createBrowserRouter([
       { path: "current-session", ...protectedChild("currentSession:view", <CurrentSessionPage />) },
       { path: "payments", ...protectedChild("payments:create", <PaymentPage />) },
       { path: "feedback", ...protectedChild("feedback:create", <FeedbackPage />) },
+      { path: "feedback-manage", ...protectedChild("feedback:manage", <AdminFeedbackPage />) },
       { path: "reports", ...protectedChild("reports:view", <ReportsPage />) },
       { path: "ai-optimization", ...protectedChild("ai:view", <AiOptimizationPage />) },
       { path: "users", ...protectedChild("users:manage", <UsersPage />) },
