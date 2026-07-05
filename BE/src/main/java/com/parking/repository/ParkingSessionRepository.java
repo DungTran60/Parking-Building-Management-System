@@ -10,4 +10,7 @@ public interface ParkingSessionRepository extends JpaRepository<ParkingSession, 
     Optional<ParkingSession> findByTicketCodeAndStatus(String ticketCode, String status);
     Optional<ParkingSession> findByPlateNumberAndStatus(String plateNumber, String status);
     Optional<ParkingSession> findFirstByTicketCodeOrPlateNumberAndStatusOrderByIdDesc(String ticketCode, String plateNumber, String status);
+
+    /** Kiểm tra VehicleType có đang được dùng trong ParkingSession không */
+    boolean existsByVehicleTypeId(Long vehicleTypeId);
 }
