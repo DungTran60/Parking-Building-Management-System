@@ -3,7 +3,7 @@ import { BadgeCheck } from "lucide-react";
 import { Button } from "@/components/common/Button";
 import { Card, CardContent, CardHeader } from "@/components/common/Card";
 import { PageHeader } from "@/components/layout/PageHeader";
-import { getCurrentUserSession, getUserPayments, payCurrentSession } from "@/services/mockRepository";
+import { getCurrentUserSession, getUserPayments, payCurrentSession } from "@/api/payentApi";
 import { currency, dateTime } from "@/utils/format";
 import type { ParkingSession, PaymentMethod, PaymentRecord } from "@/types/domain";
 

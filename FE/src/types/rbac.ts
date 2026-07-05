@@ -2,6 +2,11 @@ export type Role = "SYSTEM_ADMIN" | "PARKING_MANAGER" | "PARKING_STAFF" | "PARKI
 
 export type Permission =
   | "dashboard:view"
+  | "parkingInfo:view"
+  | "parkingEntry:create"
+  | "currentSession:view"
+  | "payments:create"
+  | "feedback:create"
   | "vehicleTypes:manage"
   | "floors:manage"
   | "slots:manage"

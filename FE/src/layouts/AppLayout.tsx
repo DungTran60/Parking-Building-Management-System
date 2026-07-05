@@ -1,17 +1,21 @@
 import type { ReactNode } from "react";
-import { Menu, ParkingCircle } from "lucide-react";
+import { LogOut, Menu, ParkingCircle } from "lucide-react";
+import { useNavigate } from "react-router-dom";
 import { Sidebar } from "@/components/layout/Sidebar";
 import { Button } from "@/components/common/Button";
 import { ROLE_LABELS } from "@/constants/rbac";
 import { useAuthStore } from "@/stores/authStore";
 import { useUiStore } from "@/stores/uiStore";
-import type { Role } from "@/types/rbac";
-
-const roles = Object.keys(ROLE_LABELS) as Role[];
 
 export function AppLayout({ children }: { children: ReactNode }) {
-  const { role, userName, setRole } = useAuthStore();
+  const navigate = useNavigate();
+  const { role, userName, logout } = useAuthStore();
   const toggleSidebar = useUiStore((state) => state.toggleSidebar);
+
+  const handleLogout = () => {
+    logout();
+    navigate("/login", { replace: true });
+  };
 
   return (
     <div className="min-h-screen bg-background">
@@ -28,17 +32,14 @@ export function AppLayout({ children }: { children: ReactNode }) {
             </div>
           </div>
           <div className="flex items-center gap-3">
-            <select className="h-10 rounded-md border border-border bg-white px-3 text-sm" value={role} onChange={(event) => setRole(event.target.value as Role)}>
-              {roles.map((item) => (
-                <option key={item} value={item}>
-                  {ROLE_LABELS[item]}
-                </option>
-              ))}
-            </select>
             <div className="hidden text-right text-sm md:block">
               <p className="font-medium text-slate-900">{userName}</p>
               <p className="text-slate-500">{ROLE_LABELS[role]}</p>
             </div>
+            <Button variant="secondary" onClick={handleLogout} aria-label="Đăng xuất">
+              <LogOut size={17} />
+              <span className="hidden sm:inline">Đăng xuất</span>
+            </Button>
           </div>
         </header>
         <main className="p-4 md:p-6">{children}</main>

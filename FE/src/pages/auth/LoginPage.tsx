@@ -1,5 +1,8 @@
 import React, { useState } from 'react';
-import { Link } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
+import { authenticateMockUser } from '@/services/mockRepository';
+import { useAuthStore } from '@/stores/authStore';
+import type { Role } from '@/types/rbac';
 
 export type IconName = 'parking' | 'shield' | 'user' | 'lock' | 'eye' | 'eyeOff' | 'login' | 'car' | 'building' | 'creditCard' | 'chart' | 'camera' | 'arrowLeft';
 
@@ -116,11 +119,43 @@ interface RoleCardProps {
 }
 
 const LoginPage = () => {
+  const navigate = useNavigate();
+  const login = useAuthStore((state) => state.login);
   const [showPassword, setShowPassword] = useState(false);
+  const [identifier, setIdentifier] = useState('');
+  const [password, setPassword] = useState('');
+  const [remember, setRemember] = useState(false);
+  const [error, setError] = useState('');
+  const [isSubmitting, setIsSubmitting] = useState(false);
 
-  const handleSubmit = (event: React.FormEvent<HTMLFormElement>) => {
+  const roleHome: Record<Role, string> = {
+    SYSTEM_ADMIN: '/app/users',
+    PARKING_MANAGER: '/app/dashboard',
+    PARKING_STAFF: '/app/dashboard',
+    PARKING_USER: '/app/parking-info',
+  };
+
+  const handleSubmit = async (event: React.FormEvent<HTMLFormElement>) => {
     event.preventDefault();
-    alert('Đăng nhập thành công! (Demo)');
+    setError('');
+    setIsSubmitting(true);
+
+    try {
+      const result = await authenticateMockUser(identifier, password);
+      if (!result.success) {
+        setError(
+          result.reason === 'INACTIVE_ACCOUNT'
+            ? 'Tài khoản đã bị vô hiệu hóa. Vui lòng liên hệ quản trị viên.'
+            : 'Tên đăng nhập/email hoặc mật khẩu không chính xác.'
+        );
+        return;
+      }
+
+      login(result.user, remember);
+      navigate(roleHome[result.user.role], { replace: true });
+    } finally {
+      setIsSubmitting(false);
+    }
   };
 
   return (
@@ -220,7 +255,7 @@ const LoginPage = () => {
                     <div className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400">
                       <Icon name="user" className="w-[18px] h-[18px]" />
                     </div>
-                    <input id="username" type="text" className="w-full bg-white border border-slate-200 focus:border-blue-500 focus:ring-2 focus:ring-blue-100 rounded-lg py-3 pl-10 pr-3 text-sm text-slate-800 placeholder-slate-400 focus:outline-none transition" placeholder="Nhập tên đăng nhập hoặc email" required />
+                    <input id="username" name="username" type="text" value={identifier} onChange={(event) => setIdentifier(event.target.value)} autoComplete="username" className="w-full bg-white border border-slate-200 focus:border-blue-500 focus:ring-2 focus:ring-blue-100 rounded-lg py-3 pl-10 pr-3 text-sm text-slate-800 placeholder-slate-400 focus:outline-none transition" placeholder="Nhập tên đăng nhập hoặc email" required />
                   </div>
                 </div>
 
@@ -230,7 +265,7 @@ const LoginPage = () => {
                     <div className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400">
                       <Icon name="lock" className="w-[18px] h-[18px]" />
                     </div>
-                    <input id="password" type={showPassword ? 'text' : 'password'} className="w-full bg-white border border-slate-200 focus:border-blue-500 focus:ring-2 focus:ring-blue-100 rounded-lg py-3 pl-10 pr-11 text-sm text-slate-800 placeholder-slate-400 focus:outline-none transition" placeholder="Nhập mật khẩu" required />
+                    <input id="password" name="password" type={showPassword ? 'text' : 'password'} value={password} onChange={(event) => setPassword(event.target.value)} autoComplete="current-password" className="w-full bg-white border border-slate-200 focus:border-blue-500 focus:ring-2 focus:ring-blue-100 rounded-lg py-3 pl-10 pr-11 text-sm text-slate-800 placeholder-slate-400 focus:outline-none transition" placeholder="Nhập mật khẩu" required />
                     <button type="button" onClick={() => setShowPassword((value) => !value)} className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-700" aria-label="Hiện hoặc ẩn mật khẩu">
                       <Icon name={showPassword ? 'eyeOff' : 'eye'} className="w-[18px] h-[18px]" />
                     </button>
@@ -239,17 +274,31 @@ const LoginPage = () => {
 
                 <div className="flex items-center justify-between text-sm">
                   <label className="flex items-center text-slate-600 cursor-pointer">
-                    <input type="checkbox" className="w-4 h-4 accent-blue-600 mr-2" />
+                    <input type="checkbox" checked={remember} onChange={(event) => setRemember(event.target.checked)} className="w-4 h-4 accent-blue-600 mr-2" />
                     Ghi nhớ đăng nhập
                   </label>
                   <a href="#" className="text-blue-600 hover:text-blue-700 font-medium">Quên mật khẩu?</a>
                 </div>
 
-                <button type="submit" className="w-full bg-blue-600 hover:bg-blue-700 text-white font-semibold py-3 rounded-lg transition shadow-lg shadow-blue-500/20 flex items-center justify-center gap-2">
+                {error && (
+                  <div role="alert" className="rounded-lg border border-red-200 bg-red-50 px-3 py-2.5 text-sm text-red-700">
+                    {error}
+                  </div>
+                )}
+
+                <button type="submit" disabled={isSubmitting} className="w-full bg-blue-600 hover:bg-blue-700 disabled:cursor-not-allowed disabled:opacity-60 text-white font-semibold py-3 rounded-lg transition shadow-lg shadow-blue-500/20 flex items-center justify-center gap-2">
                   <Icon name="login" className="w-[18px] h-[18px]" />
-                  Đăng nhập
+                  {isSubmitting ? 'Đang đăng nhập...' : 'Đăng nhập'}
                 </button>
               </form>
+
+              <div className="mt-5 rounded-lg border border-blue-100 bg-blue-50 p-3 text-xs text-slate-600">
+                <p className="font-semibold text-slate-700">Tài khoản demo</p>
+                <p className="mt-1">sysadmin / Admin@123</p>
+                <p>manager.hcm / Manager@123</p>
+                <p>staff.gate1 / Staff@123</p>
+                <p>driver.lan / Driver@123</p>
+              </div>
 
               <p className="text-center text-sm text-slate-500 mt-6">
                 Chưa có tài khoản? <Link to="/register" className="font-semibold text-blue-600 hover:text-blue-700">Đăng ký ngay</Link>

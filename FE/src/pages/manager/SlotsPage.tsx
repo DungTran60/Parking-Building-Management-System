@@ -38,7 +38,13 @@ export function SlotsPage() {
     const vehicleTypeId = String(formData.get("vehicleTypeId"));
     const statusVal = String(formData.get("status")) as SlotStatus;
 
-    const payload = { code, floorId, vehicleTypeId, status: statusVal };
+    const payload: Omit<ParkingSlot, "id"> = {
+      code,
+      floorId,
+      vehicleTypeId,
+      status: statusVal,
+      updatedAt: new Date().toISOString()
+    };
 
     if (editingSlot) {
       update.mutate({ id: editingSlot.id, payload });

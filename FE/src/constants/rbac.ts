@@ -8,37 +8,36 @@ export const ROLE_LABELS: Record<Role, string> = {
 };
 
 export const ROLE_PERMISSIONS: Record<Role, Permission[]> = {
-  SYSTEM_ADMIN: [
-    "dashboard:view",
-    "vehicleTypes:manage",
-    "floors:manage",
-    "slots:manage",
-    "pricing:manage",
-    "sessions:manage",
-    "checkin:create",
-    "checkout:create",
-    "reservations:manage",
-    "reports:view",
+  SYSTEM_ADMIN: [ 
     "users:manage",
     "roles:manage",
-    "settings:manage",
-    "buildings:manage",
-    "ai:view"
+    "settings:manage"
   ],
   PARKING_MANAGER: [
     "dashboard:view",
-    "vehicleTypes:manage",
+    "buildings:manage",
     "floors:manage",
+    "vehicleTypes:manage",
     "slots:manage",
     "pricing:manage",
-    "sessions:manage",
-    "reservations:manage",
     "reports:view",
-    "buildings:manage",
     "ai:view"
   ],
-  PARKING_STAFF: ["dashboard:view", "slots:manage", "sessions:manage", "checkin:create", "checkout:create", "reservations:manage"],
-  PARKING_USER: ["dashboard:view", "reservations:manage"]
+  PARKING_STAFF: [
+    "dashboard:view",
+    "slots:manage",
+    "sessions:manage",
+    "checkin:create",
+    "checkout:create"
+  ],
+  PARKING_USER: [
+    "parkingInfo:view",
+    "parkingEntry:create",
+    "reservations:manage",
+    "currentSession:view",
+    "payments:create",
+    "feedback:create"
+  ]
 };
 
 export const hasPermission = (role: Role, permission: Permission) => ROLE_PERMISSIONS[role].includes(permission);
