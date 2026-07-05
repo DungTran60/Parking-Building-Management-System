@@ -21,6 +21,10 @@ public class PricingResponseDto {
 
     private BigDecimal price;
 
+    private BigDecimal overnightFee;
+
+    private BigDecimal lostTicketFee;
+
     private String description;
 
     private Boolean active;

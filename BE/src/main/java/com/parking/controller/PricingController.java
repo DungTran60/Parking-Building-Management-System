@@ -1,15 +1,19 @@
 package com.parking.controller;
 
+import com.parking.dto.LostTicketFeeResponseDto;
+import com.parking.dto.OvernightFeeResponseDto;
 import com.parking.dto.PricingRequestDto;
 import com.parking.dto.PricingResponseDto;
 import com.parking.service.PricingService;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
+import org.springframework.format.annotation.DateTimeFormat;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
 
+import java.time.LocalDateTime;
 import java.util.List;
 
 @RestController
@@ -101,5 +105,31 @@ public class PricingController {
     public ResponseEntity<Void> deletePricing(@PathVariable Long id) {
         pricingService.deletePricing(id);
         return ResponseEntity.noContent().build();
+    }
+
+    /**
+     * GET /api/pricing/calculate
+     * Tính phí gửi xe qua đêm.
+     */
+    @GetMapping("/calculate")
+    @PreAuthorize("isAuthenticated()")
+    public ResponseEntity<OvernightFeeResponseDto> calculateOvernightFee(
+            @RequestParam @DateTimeFormat(iso = DateTimeFormat.ISO.DATE_TIME) LocalDateTime checkIn,
+            @RequestParam @DateTimeFormat(iso = DateTimeFormat.ISO.DATE_TIME) LocalDateTime checkOut,
+            @RequestParam String vehicleType) {
+        OvernightFeeResponseDto response = pricingService.calculateOvernightFee(checkIn, checkOut, vehicleType);
+        return ResponseEntity.ok(response);
+    }
+
+    /**
+     * GET /api/pricing/lost-ticket
+     * Tính phí gửi xe khi mất vé.
+     */
+    @GetMapping("/lost-ticket")
+    @PreAuthorize("isAuthenticated()")
+    public ResponseEntity<LostTicketFeeResponseDto> calculateLostTicketFee(
+            @RequestParam String vehicleType) {
+        LostTicketFeeResponseDto response = pricingService.calculateLostTicketFee(vehicleType);
+        return ResponseEntity.ok(response);
     }
 }
