@@ -14,6 +14,12 @@ public class ParkingTicketController {
 
     private final ParkingTicketService parkingTicketService;
 
+    /**
+     * Handles the generation of a new parking ticket.
+     *
+     * @param request The TicketGenerationRequest containing details for the new ticket.
+     * @return A TicketGenerationResponse with the details of the newly generated ticket.
+     */
     @PostMapping("/generate")
     public TicketGenerationResponse generateTicket(
             @RequestBody TicketGenerationRequest request) {

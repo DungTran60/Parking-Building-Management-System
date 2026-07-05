@@ -29,7 +29,12 @@ public class AuthController {
     private final UserService userService;
     private final JwtService jwtService;
 
-    // Xác thực đăng nhập (login).
+    /**
+     * Handles user login by authenticating credentials and generating a JWT token.
+     *
+     * @param request The LoginRequest containing username and password.
+     * @return A ResponseEntity containing LoginResponse with JWT token and user details.
+     */
     @PostMapping("/login")
     public ResponseEntity<LoginResponse> login(@Valid @RequestBody LoginRequest request) {
         Authentication authentication = authenticationManager.authenticate(
@@ -38,11 +43,12 @@ public class AuthController {
         UserDetails userDetails = (UserDetails) authentication.getPrincipal();
         String jwtToken = jwtService.generateToken(userDetails);
 
+        // Extract and format the user's role
         String role = userDetails.getAuthorities().stream()
                 .map(GrantedAuthority::getAuthority)
                 .map(auth -> auth.startsWith("ROLE_") ? auth.substring(5) : auth)
                 .findFirst()
-                .orElse("DRIVER");
+                .orElse("DRIVER"); // Default role if none found
 
         LoginResponse response = LoginResponse.builder()
                 .token(jwtToken)
@@ -53,12 +59,25 @@ public class AuthController {
         return ResponseEntity.ok(response);
     }
 
+    /**
+     * Handles user registration by creating a new user account.
+     *
+     * @param dto The UserCreateDto containing user registration details.
+     * @return A ResponseEntity containing UserResponseDto of the newly created user.
+     */
     @PostMapping("/register")
     public ResponseEntity<UserResponseDto> register(@Valid @RequestBody UserCreateDto dto) {
         UserResponseDto response = userService.createUser(dto);
         return new ResponseEntity<>(response, HttpStatus.CREATED);
     }
 
+    /**
+     * Handles user logout.
+     * In a JWT-based authentication system, tokens are stateless, so server-side logout
+     * typically involves client-side token removal. This endpoint serves as a confirmation.
+     *
+     * @return A ResponseEntity with a logout success message.
+     */
     @PostMapping("/logout")
     public ResponseEntity<String> logout() {
         return ResponseEntity.ok("Logout success");
