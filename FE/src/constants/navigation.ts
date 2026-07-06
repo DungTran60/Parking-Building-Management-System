@@ -1,5 +1,4 @@
 import {
-  AlertTriangle,
   BarChart3,
   Bot,
   Building2,
@@ -13,6 +12,7 @@ import {
   LogOut,
   MapPin,
   MessageSquareWarning,
+  QrCode,
   Settings,
   Shield,
   SquareParking,
@@ -30,24 +30,25 @@ export interface NavItem {
 }
 
 export const NAV_ITEMS: NavItem[] = [
-  { label: "Dashboard", path: "/app/dashboard", permission: "dashboard:view", icon: Gauge },
+  { label: "Tổng quan", path: "/app/dashboard", permission: "dashboard:view", icon: Gauge },
   { label: "Tòa nhà", path: "/app/buildings", permission: "buildings:manage", icon: Building2 },
-  { label: "Thông tin bãi xe", path: "/app/parking-info", permission: "parkingInfo:view", icon: SquareParking },
+  { label: "Tổng quan", path: "/app/parking-info", permission: "parkingInfo:view", icon: SquareParking },
   { label: "Loại xe", path: "/app/vehicle-types", permission: "vehicleTypes:manage", icon: Car },
-  { label: "Tầng", path: "/app/floors", permission: "floors:manage", icon: DoorClosed },
-  { label: "Slot", path: "/app/slots", permission: "slots:manage", icon: LayoutGrid },
+  { label: "Phân tầng", path: "/app/floors", permission: "floors:manage", icon: DoorClosed },
+  { label: "Vị trí đỗ", path: "/app/slots", permission: "slots:view", icon: LayoutGrid },
   { label: "Bảng giá", path: "/app/pricing", permission: "pricing:manage", icon: CreditCard },
   { label: "Xe vào", path: "/app/check-in", permission: "checkin:create", icon: LogIn },
   { label: "Xe ra", path: "/app/check-out", permission: "checkout:create", icon: LogOut },
-  { label: "Parking Session", path: "/app/sessions", permission: "sessions:manage", icon: SquareParking },
-  { label: "Đặt chỗ", path: "/app/reservations", permission: "reservations:manage", icon: CalendarClock },
-  { label: "Lượt gửi hiện tại", path: "/app/current-session", permission: "currentSession:view", icon: MapPin },
-  { label: "Thanh toán", path: "/app/payments", permission: "payments:create", icon: WalletCards },
-  { label: "Phản hồi sự cố", path: "/app/feedback", permission: "feedback:create", icon: MessageSquareWarning },
-  { label: "Quản lý sự cố", path: "/app/incidents", permission: "incidents:manage", icon: AlertTriangle },
+  { label: "Lịch sử gửi xe", path: "/app/sessions", permission: "sessions:view", icon: SquareParking },
+  { label: "Gửi xe theo lượt", path: "/app/parking-entry", permission: "parkingEntry:create", icon: QrCode },
+  { label: "Đặt chỗ", path: "/app/reservations", permission: "reservations:selfManage", icon: CalendarClock },
+  { label: "Xe đang gửi", path: "/app/current-session", permission: "currentSession:view", icon: MapPin },
+  { label: "Thanh toán", path: "/app/payments", permission: "payments:pay", icon: WalletCards },
+  { label: "Xử lý sự cố", path: "/app/incidents", permission: "exceptions:manage", icon: MessageSquareWarning },
+  { label: "Phản ánh sự cố", path: "/app/feedback", permission: "feedback:create", icon: MessageSquareWarning },
   { label: "Báo cáo", path: "/app/reports", permission: "reports:view", icon: BarChart3 },
   { label: "AI Optimization", path: "/app/ai-optimization", permission: "ai:view", icon: Bot },
-  { label: "User", path: "/app/users", permission: "users:manage", icon: Users },
+  { label: "Tài khoản", path: "/app/users", permission: "users:manage", icon: Users },
   { label: "Phân quyền", path: "/app/roles", permission: "roles:manage", icon: Shield },
-  { label: "Settings", path: "/app/settings", permission: "settings:manage", icon: Settings }
+  { label: "Cài đặt", path: "/app/settings", permission: "settings:manage", icon: Settings }
 ];
