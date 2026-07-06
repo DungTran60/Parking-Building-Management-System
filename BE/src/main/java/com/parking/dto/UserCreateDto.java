@@ -1,8 +1,14 @@
 package com.parking.dto;
 
+import com.parking.entity.Status;
+import jakarta.validation.constraints.Email;
 import jakarta.validation.constraints.NotBlank;
+import jakarta.validation.constraints.NotNull;
 import jakarta.validation.constraints.Size;
-import lombok.*;
+import lombok.AllArgsConstructor;
+import lombok.Builder;
+import lombok.Data;
+import lombok.NoArgsConstructor;
 
 @Data
 @NoArgsConstructor
@@ -15,9 +21,19 @@ public class UserCreateDto {
     private String username;
 
     @NotBlank(message = "Password is required")
-    @Size(min = 6, message = "Password must be at least 6 characters")
+    @Size(min = 8, message = "Password must be at least 8 characters")
     private String password;
+
+    @NotBlank(message = "Email is required")
+    @Email(message = "Email should be valid")
+    private String email;
+
+    @NotBlank(message = "Phone number is required")
+    private String phoneNumber;
 
     @NotBlank(message = "Role name is required")
     private String roleName;
+
+    @NotNull(message = "Status is required")
+    private Status status;
 }
