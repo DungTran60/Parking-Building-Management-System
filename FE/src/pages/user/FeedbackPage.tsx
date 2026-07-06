@@ -43,7 +43,7 @@ export function FeedbackPage() {
                 </Select>
               </Field>
               <Field label="Mã lượt gửi">
-                <Input value={sessionCode} onChange={(event) => setSessionCode(event.target.value)} className="font-mono" />
+                <Input value={sessionCode} onChange={(event) => setSessionCode(event.target.value)} placeholder="Ví dụ: QR-260705-1001" className="font-mono" />
               </Field>
             </div>
             <Field label="Mô tả chi tiết">
