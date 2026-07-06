@@ -26,6 +26,7 @@ public class DataInitializer implements CommandLineRunner {
     private final PasswordEncoder passwordEncoder;
     private final ParkingSessionRepository parkingSessionRepository;
     private final PaymentRepository paymentRepository;
+    private final SystemSettingsRepository systemSettingsRepository;
 
     @Override
     @Transactional
@@ -212,6 +213,21 @@ public class DataInitializer implements CommandLineRunner {
                 parkingSessionRepository.save(activeSession);
             }
             System.out.println("Seeded 5 active parking sessions (occupied slots).");
+        }
+
+        // Seed default System Settings (singleton)
+        if (systemSettingsRepository.count() == 0) {
+            systemSettingsRepository.save(
+                SystemSettings.builder()
+                    .id(1L)
+                    .systemName("Parking Building Management")
+                    .openingTime("06:00")
+                    .closingTime("23:00")
+                    .paymentMode(PaymentMode.HYBRID)
+                    .autoBlockOverdueSlots(true)
+                    .build()
+            );
+            System.out.println("Seeded default system settings.");
         }
     }
 
