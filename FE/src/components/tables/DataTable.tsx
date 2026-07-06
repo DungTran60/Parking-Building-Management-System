@@ -2,7 +2,7 @@ import { flexRender, getCoreRowModel, getFilteredRowModel, useReactTable, type C
 import { Search } from "lucide-react";
 import { Input } from "@/components/forms/FormField";
 
-export function DataTable<T>({ data, columns, searchPlaceholder = "Tìm kiếm..." }: { data: T[]; columns: ColumnDef<T>[]; searchPlaceholder?: string }) {
+export function DataTable<T>({ data, columns, searchPlaceholder = "Tìm kiếm...", showSearch = true }: { data: T[]; columns: ColumnDef<T>[]; searchPlaceholder?: string; showSearch?: boolean }) {
   const table = useReactTable({
     data,
     columns,
@@ -12,10 +12,10 @@ export function DataTable<T>({ data, columns, searchPlaceholder = "Tìm kiếm..
 
   return (
     <div className="grid gap-4">
-      <div className="relative max-w-sm">
+      {showSearch && <div className="relative max-w-sm">
         <Search className="pointer-events-none absolute left-3 top-2.5 text-slate-400" size={17} />
         <Input className="w-full pl-9" placeholder={searchPlaceholder} onChange={(event) => table.setGlobalFilter(event.target.value)} />
-      </div>
+      </div>}
       <div className="overflow-x-auto rounded-md border border-border">
         <table className="min-w-full divide-y divide-border text-sm">
           <thead className="bg-slate-50">
