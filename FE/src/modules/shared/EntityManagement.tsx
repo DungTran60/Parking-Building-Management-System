@@ -1,4 +1,4 @@
-import { useMemo, useState } from "react";
+import { useCallback, useMemo, useState } from "react";
 import type { FormEvent, ReactNode } from "react";
 import type { ColumnDef } from "@tanstack/react-table";
 import { Eye, Pencil, Plus, Trash2 } from "lucide-react";
@@ -11,36 +11,62 @@ import { PageHeader } from "@/components/layout/PageHeader";
 import { Field, Input, Select } from "@/components/forms/FormField";
 import { DataTable } from "@/components/tables/DataTable";
 import { useResourceMutations, useResources } from "@/hooks/useResources";
+import type { ResourceApi } from "@/hooks/useResources";
 import type { ResourceName } from "@/services/resourceService";
+import { getApiErrorMessage } from "@/utils/apiError";
 
 export type FieldConfig<T> = {
   key: keyof T;
   label: string;
   type?: "text" | "number" | "select" | "color";
+  placeholder?: string;
   options?: { label: string; value: string }[];
   render?: (value: T[keyof T], row: T) => ReactNode;
-  /** Whether the field is required when creating/updating */
   required?: boolean;
-  /** Whether the field is read-only in the create/edit form */
-  readOnly?: boolean;
 };
 
 export function EntityManagement<T extends { id: string }>({
   title,
   description,
   resource,
+  api,
   fields
 }: {
   title: string;
   description: string;
   resource: ResourceName;
+  api?: ResourceApi<T>;
   fields: FieldConfig<T>[];
 }) {
-  const { data = [], isLoading } = useResources<T>(resource);
-  const mutations = useResourceMutations<T>(resource);
+  const { data = [], error: loadError, isError: isLoadError, isLoading, refetch } = useResources<T>(resource, api);
+  const mutations = useResourceMutations<T>(resource, api);
   const [modalOpen, setModalOpen] = useState(false);
   const [editing, setEditing] = useState<T | null>(null);
-  const [detail, setDetail] = useState<T | null>(null);
+  // const [detail, setDetail] = useState<T | null>(null);
+  const [submitError, setSubmitError] = useState<string | null>(null);
+  const [deleteError, setDeleteError] = useState<string | null>(null);
+
+  const handleSubmitError = useCallback((error: unknown) => {
+    setSubmitError(getApiErrorMessage(error, "Không thể lưu dữ liệu. Vui lòng thử lại."));
+  }, []);
+
+  const openCreateModal = useCallback(() => {
+    setEditing(null);
+    setSubmitError(null);
+    setModalOpen(true);
+  }, []);
+
+  const openEditModal = useCallback((item: T) => {
+    setEditing(item);
+    setSubmitError(null);
+    setModalOpen(true);
+  }, []);
+
+  const closeModal = useCallback(() => {
+    setModalOpen(false);
+    setEditing(null);
+    setSubmitError(null);
+  }, []);
 
   const columns = useMemo<ColumnDef<T>[]>(
     () => [
@@ -51,40 +77,51 @@ export function EntityManagement<T extends { id: string }>({
           const value = row.original[field.key];
           if (field.render) return field.render(value, row.original);
           if (String(field.key).toLowerCase().includes("status") || String(value).includes("_")) return <Badge value={String(value)} />;
+          if (value === null || value === undefined || value === "") return "—";
           return String(Array.isArray(value) ? value.join(", ") : value);
         }
       })),
       {
         id: "actions",
-        header: "",
+        header: "Thao tác",
         cell: ({ row }) => (
-          <div className="flex justify-end gap-2">
-            <Button variant="ghost" className="h-9 w-9 px-0" onClick={() => setDetail(row.original)} aria-label="Chi tiết">
-              <Eye size={16} />
-            </Button>
+          <div className="flex gap-2">
             <Button
               variant="ghost"
               className="h-9 w-9 px-0"
-              onClick={() => {
-                setEditing(row.original);
-                setModalOpen(true);
-              }}
-              aria-label="Sửa"
+              onClick={() => openEditModal(row.original)}
+              aria-label="Chỉnh sửa"
+              title="Chỉnh sửa"
             >
               <Pencil size={16} />
             </Button>
-            <Button variant="ghost" className="h-9 w-9 px-0 text-red-600" onClick={() => mutations.remove.mutate(row.original.id)} aria-label="Xóa">
+            <Button
+              variant="ghost"
+              className="h-9 w-9 px-0 text-red-600"
+              onClick={() => {
+                setDeleteError(null);
+                const confirmed = window.confirm("Bạn có chắc chắn muốn xóa bản ghi này? Hành động này không thể hoàn tác.");
+                if (confirmed) {
+                  mutations.remove.mutate(row.original.id, {
+                    onError: (error) => setDeleteError(getApiErrorMessage(error, "Không thể xóa dữ liệu. Vui lòng thử lại."))
+                  });
+                }
+              }}
+              aria-label="Xóa"
+              title="Xóa"
+            >
               <Trash2 size={16} />
             </Button>
           </div>
         )
       }
     ],
-    [fields, mutations.remove]
+    [fields, mutations.remove, openEditModal]
   );
 
   const submit = (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault();
+    setSubmitError(null);
     const form = new FormData(event.currentTarget);
     const payload = Object.fromEntries(
       fields.map((field) => {
@@ -92,11 +129,20 @@ export function EntityManagement<T extends { id: string }>({
         return [field.key, field.type === "number" ? Number(value) : value];
       })
     ) as Partial<T>;
-    if (editing) mutations.update.mutate({ id: editing.id, payload });
-    else mutations.create.mutate(payload as Omit<T, "id">);
-    setModalOpen(false);
-    setEditing(null);
+    if (editing) {
+      mutations.update.mutate(
+        { id: editing.id, payload },
+        { onSuccess: closeModal, onError: handleSubmitError }
+      );
+    } else {
+      mutations.create.mutate(payload as Omit<T, "id">, {
+        onSuccess: closeModal,
+        onError: handleSubmitError
+      });
+    }
   };
+
+  const isSaving = mutations.create.isPending || mutations.update.isPending;
 
   return (
     <>
@@ -104,7 +150,7 @@ export function EntityManagement<T extends { id: string }>({
         title={title}
         description={description}
         action={
-          <Button onClick={() => setModalOpen(true)}>
+          <Button onClick={openCreateModal}>
             <Plus size={17} />
             Tạo mới
           </Button>
@@ -113,15 +159,25 @@ export function EntityManagement<T extends { id: string }>({
       <Card>
         <CardHeader title={isLoading ? "Đang tải..." : `${data.length} bản ghi`} />
         <CardContent>
-          <DataTable data={data} columns={columns} />
+          {isLoadError ? (
+            <div role="alert" className="rounded-lg border border-red-200 bg-red-50 p-4 text-sm text-red-700">
+              <p>{getApiErrorMessage(loadError, "Không thể tải dữ liệu. Vui lòng thử lại.")}</p>
+              <Button variant="secondary" className="mt-3" onClick={() => void refetch()}>Thử lại</Button>
+            </div>
+          ) : (
+            <>
+              {deleteError && <div role="alert" className="mb-4 rounded-lg border border-red-200 bg-red-50 px-3 py-2.5 text-sm text-red-700">{deleteError}</div>}
+              <DataTable data={data} columns={columns} />
+            </>
+          )}
         </CardContent>
       </Card>
-      <Modal open={modalOpen} title={editing ? `Cập nhật ${title}` : `Tạo ${title}`} onClose={() => setModalOpen(false)}>
+      <Modal open={modalOpen} title={editing ? `Cập nhật ${title}` : `Tạo ${title}`} onClose={closeModal}>
         <form className="grid gap-4 sm:grid-cols-2" onSubmit={submit}>
           {fields.map((field) => (
             <Field key={String(field.key)} label={field.label}>
               {field.type === "select" ? (
-                <Select name={String(field.key)} defaultValue={editing ? String(editing[field.key]) : field.options?.[0]?.value}>
+                <Select name={String(field.key)} defaultValue={editing ? String(editing[field.key] ?? "") : field.options?.[0]?.value} required={field.required !== false}>
                   {field.options?.map((option) => (
                     <option key={option.value} value={option.value}>
                       {option.label}
@@ -129,19 +185,26 @@ export function EntityManagement<T extends { id: string }>({
                   ))}
                 </Select>
               ) : (
-                <Input name={String(field.key)} type={field.type ?? "text"} defaultValue={editing ? String(editing[field.key]) : ""} required />
+                <Input name={String(field.key)} type={field.type ?? "text"} placeholder={field.placeholder} defaultValue={editing ? String(editing[field.key] ?? "") : ""} required={field.required !== false} />
               )}
             </Field>
           ))}
+          {submitError && (
+            <div role="alert" className="rounded-lg border border-red-200 bg-red-50 px-3 py-2.5 text-sm text-red-700 sm:col-span-2">
+              {submitError}
+            </div>
+          )}
           <div className="flex justify-end gap-3 sm:col-span-2">
-            <Button type="button" variant="secondary" onClick={() => setModalOpen(false)}>
+            <Button type="button" variant="secondary" onClick={closeModal} disabled={isSaving}>
               Hủy
             </Button>
-            <Button type="submit">Lưu</Button>
+            <Button type="submit" disabled={isSaving}>
+              {isSaving ? "Đang lưu..." : "Lưu"}
+            </Button>
           </div>
         </form>
       </Modal>
-      <Drawer open={Boolean(detail)} title="Chi tiết" onClose={() => setDetail(null)}>
+      {/* <Drawer open={Boolean(detail)} title="Chi tiết" onClose={() => setDetail(null)}>
         <dl className="grid gap-3">
           {detail &&
             fields.map((field) => (
@@ -151,7 +214,7 @@ export function EntityManagement<T extends { id: string }>({
               </div>
             ))}
         </dl>
-      </Drawer>
+      </Drawer> */}
     </>
   );
 }
