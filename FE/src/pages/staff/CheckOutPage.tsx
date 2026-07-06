@@ -1,18 +1,48 @@
-import { useState } from "react";
+import { useState, type FormEvent } from "react";
+import axios from "axios";
 import dayjs from "dayjs";
 import { Printer, ReceiptText, Search } from "lucide-react";
 import { Button } from "@/components/common/Button";
 import { Card, CardContent, CardHeader } from "@/components/common/Card";
 import { PageHeader } from "@/components/layout/PageHeader";
 import { Field, Input } from "@/components/forms/FormField";
-import { checkOut } from "@/services/mockRepository";
+import { sessionApi, type CheckOutResponse } from "@/api/sessionApi";
 import { currency, dateTime } from "@/utils/format";
-import type { ParkingSession } from "@/types/domain";
 
 export function CheckOutPage() {
-  const [session, setSession] = useState<ParkingSession | undefined>();
-  const [notFound, setNotFound] = useState(false);
-  const hours = session ? Math.max(1, dayjs(session.checkOutAt).diff(dayjs(session.checkInAt), "hour", true)).toFixed(1) : "0";
+  const [session, setSession] = useState<CheckOutResponse | null>(null);
+  const [searchError, setSearchError] = useState("");
+  const [isChecking, setIsChecking] = useState(false);
+  const hours = session
+    ? session.duration !== undefined
+      ? Number(session.duration).toFixed(1)
+      : Math.max(1, dayjs(session.checkOutAt).diff(dayjs(session.checkInAt), "hour", true)).toFixed(1)
+    : "0";
+
+  const submit = async (event: FormEvent<HTMLFormElement>) => {
+    event.preventDefault();
+    const query = String(new FormData(event.currentTarget).get("query")).trim();
+    setIsChecking(true);
+    setSearchError("");
+    setSession(null);
+    try {
+      setSession(await sessionApi.checkOut(query));
+    } catch (error) {
+      if (axios.isAxiosError<{ message?: string; error?: string }>(error)) {
+        if (error.response?.status === 404) {
+          setSearchError("Không tìm thấy lượt gửi xe phù hợp.");
+        } else if (error.response?.status === 401 || error.response?.status === 403) {
+          setSearchError("Phiên đăng nhập không hợp lệ hoặc bạn không có quyền checkout.");
+        } else {
+          setSearchError(error.response?.data?.message ?? error.response?.data?.error ?? "Không thể kiểm tra phí gửi xe.");
+        }
+      } else {
+        setSearchError("Đã xảy ra lỗi không xác định. Vui lòng thử lại.");
+      }
+    } finally {
+      setIsChecking(false);
+    }
+  };
 
   return (
     <>
@@ -23,17 +53,11 @@ export function CheckOutPage() {
           <CardContent>
             <form
               className="grid gap-4"
-              onSubmit={async (event) => {
-                event.preventDefault();
-                const query = String(new FormData(event.currentTarget).get("query"));
-                const result = await checkOut(query);
-                setSession(result);
-                setNotFound(!result);
-              }}
+              onSubmit={submit}
             >
               <Field label="Biển số / mã vé"><Input name="query" placeholder="QR-... hoặc 51G-..." required /></Field>
-              <Button><Search size={17} /> Kiểm tra phí</Button>
-              {notFound && <p className="text-sm text-red-600">Không tìm thấy lượt gửi xe phù hợp.</p>}
+              <Button disabled={isChecking}><Search size={17} /> {isChecking ? "Đang kiểm tra..." : "Kiểm tra phí"}</Button>
+              {searchError && <p role="alert" className="text-sm text-red-600">{searchError}</p>}
             </form>
           </CardContent>
         </Card>
