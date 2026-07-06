@@ -9,6 +9,8 @@ import org.springframework.stereotype.Component;
 
 import org.springframework.transaction.annotation.Transactional;
 
+import java.time.LocalDate;
+import java.time.LocalDateTime;
 import java.util.*;
 
 @Component
@@ -22,6 +24,8 @@ public class DataInitializer implements CommandLineRunner {
     private final FloorRepository floorRepository;
     private final ParkingSlotRepository parkingSlotRepository;
     private final PasswordEncoder passwordEncoder;
+    private final ParkingSessionRepository parkingSessionRepository;
+    private final PaymentRepository paymentRepository;
 
     @Override
     @Transactional
@@ -108,6 +112,106 @@ public class DataInitializer implements CommandLineRunner {
             }
             parkingSlotRepository.saveAll(slotsToSave);
             System.out.println("Seeded " + slotsToSave.size() + " parking slots");
+        }
+
+        // Seed Sessions and Payments
+        if (parkingSessionRepository.count() == 0) {
+            List<ParkingSlot> slots = parkingSlotRepository.findAll();
+            Random random = new Random();
+            List<ParkingSession> sessionsToSave = new ArrayList<>();
+            List<Payment> paymentsToSave = new ArrayList<>();
+
+            // Seed completed sessions & payments for the last 14 days
+            for (int dayOffset = 14; dayOffset >= 0; dayOffset--) {
+                LocalDate date = LocalDate.now().minusDays(dayOffset);
+                
+                // Let's create between 3 and 7 sessions per day
+                int dailyCount = 3 + random.nextInt(5); 
+                for (int j = 0; j < dailyCount; j++) {
+                    ParkingSlot slot = slots.get(random.nextInt(slots.size()));
+                    VehicleType type = slot.getVehicleType();
+                    
+                    // Entry time between 7:00 and 19:00
+                    int entryHour = 7 + random.nextInt(12);
+                    int entryMinute = random.nextInt(60);
+                    LocalDateTime entryTime = date.atTime(entryHour, entryMinute);
+                    
+                    // Exit time between 1 and 8 hours later
+                    int durationHours = 1 + random.nextInt(8);
+                    LocalDateTime exitTime = entryTime.plusHours(durationHours).plusMinutes(random.nextInt(60));
+                    
+                    // Check exitTime is before now
+                    if (exitTime.isAfter(LocalDateTime.now())) {
+                        continue;
+                    }
+                    
+                    double fee = type.getHourlyRate() * durationHours;
+                    String ticketCode = "TKT-" + date.toString().replace("-", "") + "-" + String.format("%04d", random.nextInt(10000));
+                    String plateNumber = "51G-" + String.format("%05d", 10000 + random.nextInt(90000));
+
+                    ParkingSession session = ParkingSession.builder()
+                            .ticketCode(ticketCode)
+                            .plateNumber(plateNumber)
+                            .vehicleType(type)
+                            .slot(slot)
+                            .entryGate("Gate " + (1 + random.nextInt(3)))
+                            .checkInAt(entryTime)
+                            .checkOutAt(exitTime)
+                            .fee(fee)
+                            .status("COMPLETED")
+                            .build();
+                    
+                    sessionsToSave.add(session);
+                }
+            }
+            
+            // Save sessions first so they have IDs
+            List<ParkingSession> savedSessions = parkingSessionRepository.saveAll(sessionsToSave);
+            
+            // Now create payment records for these sessions
+            String[] methods = {"CASH", "QR_CODE", "BANK_CARD"};
+            for (ParkingSession session : savedSessions) {
+                Payment payment = Payment.builder()
+                        .session(session)
+                        .amount(session.getFee())
+                        .method(methods[random.nextInt(methods.length)])
+                        .paymentTime(session.getCheckOutAt().plusMinutes(1 + random.nextInt(5)))
+                        .build();
+                paymentsToSave.add(payment);
+            }
+            paymentRepository.saveAll(paymentsToSave);
+            System.out.println("Seeded " + savedSessions.size() + " completed parking sessions and payments.");
+            
+            // Also seed a few ACTIVE sessions (currently parked cars)
+            int activeCount = 5;
+            for (int k = 0; k < activeCount; k++) {
+                // Find an AVAILABLE slot
+                ParkingSlot slot = slots.stream()
+                        .filter(s -> s.getStatus() == SlotStatus.AVAILABLE)
+                        .findFirst()
+                        .orElse(slots.get(random.nextInt(slots.size())));
+                
+                // Update slot status to OCCUPIED
+                slot.setStatus(SlotStatus.OCCUPIED);
+                parkingSlotRepository.save(slot);
+                
+                LocalDateTime entryTime = LocalDateTime.now().minusHours(1 + random.nextInt(5));
+                String ticketCode = "TKT-ACT-" + String.format("%04d", random.nextInt(10000));
+                String plateNumber = "51A-" + String.format("%05d", 10000 + random.nextInt(90000));
+                
+                ParkingSession activeSession = ParkingSession.builder()
+                        .ticketCode(ticketCode)
+                        .plateNumber(plateNumber)
+                        .vehicleType(slot.getVehicleType())
+                        .slot(slot)
+                        .entryGate("Gate " + (1 + random.nextInt(3)))
+                        .checkInAt(entryTime)
+                        .fee(0.0)
+                        .status("ACTIVE")
+                        .build();
+                parkingSessionRepository.save(activeSession);
+            }
+            System.out.println("Seeded 5 active parking sessions (occupied slots).");
         }
     }
 
