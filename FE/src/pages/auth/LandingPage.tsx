@@ -69,6 +69,19 @@ const LandingIcon = ({ name, className = 'w-6 h-6' }: { name: string; className?
         <path d="M22 11h-6" />
       </>
     ),
+    clock: (
+      <>
+        <circle cx="12" cy="12" r="9" />
+        <path d="M12 7v5l3 2" />
+      </>
+    ),
+    bike: (
+      <>
+        <circle cx="5.5" cy="17.5" r="3.5" />
+        <circle cx="18.5" cy="17.5" r="3.5" />
+        <path d="m8 17.5 4-8 3 8M9.5 12h6M12 9.5l-2-2" />
+      </>
+    ),
   };
 
   return (
@@ -127,6 +140,13 @@ const stats = [
   { value: '4 vai trò', label: 'Phân quyền' },
 ];
 
+const parkingInformation = [
+  { icon: 'clock', title: 'Giờ hoạt động', value: '24/7', detail: 'Mở cửa tất cả các ngày trong tuần' },
+  { icon: 'bike', title: 'Loại xe hỗ trợ', value: 'Ô tô & xe máy', detail: 'Có khu vực đỗ riêng cho từng loại xe' },
+  { icon: 'parking', title: 'Slot còn trống', value: '128 vị trí', detail: 'Số liệu minh họa, sẵn sàng kết nối API realtime' },
+  { icon: 'creditCard', title: 'Bảng giá', value: 'Từ 5.000đ/giờ', detail: 'Mức phí phụ thuộc loại xe và thời gian gửi' },
+];
+
 const LandingPage = () => {
   return (
     <main
@@ -166,7 +186,12 @@ const LandingPage = () => {
       </nav>
 
       {/* ── Hero ── */}
-      <section className="relative max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pt-20 pb-16 text-center">
+      <section
+        className="relative mx-auto px-4 sm:px-6 lg:px-8 pt-20 pb-16 text-center overflow-hidden sm:mt-6 sm:rounded-3xl bg-cover bg-center"
+        style={{
+          backgroundImage: "linear-gradient(90deg, rgba(15,23,42,.94), rgba(15,23,42,.72)), url('https://images.unsplash.com/photo-1590674899484-d5640e854abe?w=1920&auto=format&fit=crop&q=80')",
+        }}
+      >
         {/* Glow blobs */}
         <div
           aria-hidden="true"
@@ -231,6 +256,27 @@ const LandingPage = () => {
         </div>
       </section>
 
+      {/* Public parking information - UC01 */}
+      <section id="parking-information" className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-16">
+        <div className="text-center mb-10">
+          <p className="text-sm font-semibold uppercase tracking-wider text-blue-400">Thông tin dành cho tài xế</p>
+          <h2 className="mt-2 text-3xl font-bold text-white">Thông tin bãi xe</h2>
+          <p className="mt-3 text-slate-400">Không cần đăng nhập để xem giờ hoạt động, loại xe, chỗ trống và mức phí.</p>
+        </div>
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-5">
+          {parkingInformation.map((item) => (
+            <article key={item.title} className="rounded-2xl border border-white/10 bg-white/5 p-6 backdrop-blur transition hover:border-blue-400/40 hover:bg-white/10">
+              <div className="mb-4 flex h-11 w-11 items-center justify-center rounded-xl border border-blue-400/20 bg-blue-500/15">
+                <LandingIcon name={item.icon} className="h-5 w-5 text-blue-400" />
+              </div>
+              <p className="text-sm text-slate-400">{item.title}</p>
+              <h3 className="mt-1 text-xl font-bold text-white">{item.value}</h3>
+              <p className="mt-2 text-sm leading-relaxed text-slate-400">{item.detail}</p>
+            </article>
+          ))}
+        </div>
+      </section>
+
       {/* ── Stats ── */}
       <section className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pb-16">
         <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
@@ -285,7 +331,7 @@ const LandingPage = () => {
                 'radial-gradient(ellipse at center, rgba(59,130,246,0.15) 0%, transparent 70%)',
             }}
           />
-          
+
           <div className="relative text-center lg:text-left flex-1 w-full">
             <h2 className="text-3xl sm:text-4xl font-bold text-white">
               Sẵn sàng tối ưu vận hành bãi xe?
