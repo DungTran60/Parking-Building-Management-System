@@ -177,7 +177,7 @@ export function SlotsPage() {
             <Select name="vehicleTypeId" defaultValue={editingSlot?.vehicleTypeId ?? vehicleTypes[0]?.id}>
               {vehicleTypes.map((type) => (
                 <option key={type.id} value={type.id}>
-                  {type.name} ({type.size})
+                  {type.name} ({type.code})
                 </option>
               ))}
             </Select>

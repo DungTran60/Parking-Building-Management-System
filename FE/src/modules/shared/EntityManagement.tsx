@@ -19,6 +19,10 @@ export type FieldConfig<T> = {
   type?: "text" | "number" | "select" | "color";
   options?: { label: string; value: string }[];
   render?: (value: T[keyof T], row: T) => ReactNode;
+  /** Whether the field is required when creating/updating */
+  required?: boolean;
+  /** Whether the field is read-only in the create/edit form */
+  readOnly?: boolean;
 };
 
 export function EntityManagement<T extends { id: string }>({

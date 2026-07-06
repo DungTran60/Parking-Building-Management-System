@@ -1,4 +1,5 @@
 import {
+  AlertTriangle,
   BarChart3,
   Bot,
   Building2,
@@ -43,6 +44,7 @@ export const NAV_ITEMS: NavItem[] = [
   { label: "Lượt gửi hiện tại", path: "/app/current-session", permission: "currentSession:view", icon: MapPin },
   { label: "Thanh toán", path: "/app/payments", permission: "payments:create", icon: WalletCards },
   { label: "Phản hồi sự cố", path: "/app/feedback", permission: "feedback:create", icon: MessageSquareWarning },
+  { label: "Quản lý sự cố", path: "/app/incidents", permission: "incidents:manage", icon: AlertTriangle },
   { label: "Báo cáo", path: "/app/reports", permission: "reports:view", icon: BarChart3 },
   { label: "AI Optimization", path: "/app/ai-optimization", permission: "ai:view", icon: Bot },
   { label: "User", path: "/app/users", permission: "users:manage", icon: Users },

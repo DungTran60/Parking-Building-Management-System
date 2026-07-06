@@ -3,6 +3,7 @@ import type { ReactNode } from "react";
 import App from "@/App";
 import { AiOptimizationPage } from "@/pages/manager/AiOptimizationPage";
 import { BuildingsPage } from "@/pages/manager/BuildingPage";
+import { IncidentPage } from "@/pages/manager/IncidentPage";
 import { CheckInPage } from "@/pages/staff/CheckInPage";
 import { CheckOutPage } from "@/pages/staff/CheckOutPage";
 import { CurrentSessionPage } from "@/pages/user/CurrentSessionPage";
@@ -64,6 +65,7 @@ export const router = createBrowserRouter([
       { path: "current-session", ...protectedChild("currentSession:view", <CurrentSessionPage />) },
       { path: "payments", ...protectedChild("payments:create", <PaymentPage />) },
       { path: "feedback", ...protectedChild("feedback:create", <FeedbackPage />) },
+      { path: "incidents", ...protectedChild("incidents:manage", <IncidentPage />) },
       { path: "reports", ...protectedChild("reports:view", <ReportsPage />) },
       { path: "ai-optimization", ...protectedChild("ai:view", <AiOptimizationPage />) },
       { path: "users", ...protectedChild("users:manage", <UsersPage />) },
