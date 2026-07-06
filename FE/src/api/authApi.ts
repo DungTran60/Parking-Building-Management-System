@@ -1,4 +1,4 @@
-import { httpClient } from "./httpClient";
+import { httpClient } from "@/api/httpClient";
 
 export interface LoginRequest {
   username: string;
@@ -7,10 +7,8 @@ export interface LoginRequest {
 
 export interface LoginResponse {
   token: string;
-  tokenType?: string;
-  userId?: number | string;
-  username?: string;
-  role?: string;
+  username: string;
+  role: string;
 }
 
 export interface RegisterRequest {
@@ -21,13 +19,20 @@ export interface RegisterRequest {
   phoneNumber: string;
 }
 
+export interface RegisterResponse {
+  id: number | string;
+  username: string;
+  roleName?: string;
+}
+
 export const authApi = {
   login: async (payload: LoginRequest): Promise<LoginResponse> => {
     const response = await httpClient.post<LoginResponse>("/auth/login", payload);
     return response.data;
   },
 
-  register: async (payload: RegisterRequest): Promise<void> => {
-    await httpClient.post("/auth/register", payload);
+  register: async (payload: RegisterRequest): Promise<RegisterResponse> => {
+    const response = await httpClient.post<RegisterResponse>("/auth/register", payload);
+    return response.data;
   }
 };

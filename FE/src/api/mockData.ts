@@ -22,11 +22,11 @@ export const hourly = [
 export const vehiclePie = [{ name: "Xe máy", value: 48 }, { name: "Ô tô", value: 31 }, { name: "Xe điện", value: 12 }, { name: "Khác", value: 9 }];
 export const colors = ["#2563eb", "#16a34a", "#0891b2", "#f59e0b"];
 export const vehicleTypes: VehicleType[] = [
-  { id: "1", code: "MOTORBIKE", name: "Xe máy",   status: "ACTIVE" },
-  { id: "2", code: "CAR",       name: "Ô tô",      status: "ACTIVE" },
-  { id: "3", code: "EV",        name: "Xe điện",   status: "ACTIVE" },
-  { id: "4", code: "TRUCK",     name: "Xe tải",    status: "ACTIVE" },
-  { id: "5", code: "COACH",     name: "Xe khách",  status: "ACTIVE" }
+  { id: "1", code: "MOTORBIKE", name: "Xe máy", status: "ACTIVE" },
+  { id: "2", code: "CAR", name: "Ô tô", status: "ACTIVE" },
+  { id: "3", code: "EV", name: "Xe điện", status: "ACTIVE" },
+  { id: "4", code: "TRUCK", name: "Xe tải", status: "ACTIVE" },
+  { id: "5", code: "COACH", name: "Xe khách", status: "ACTIVE" }
 ];
 export const buildings: Building[] = [
   { id: "b1", name: "Central Parking Tower", address: "12 Nguyen Hue, Q1", floors: 8, status: "ACTIVE", capacity: 980 },
@@ -112,11 +112,11 @@ export const payments: PaymentRecord[] = [
 export const feedbackTickets: FeedbackTicket[] = [];
 
 export const users: User[] = [
-  { id: "u1", username: "sysadmin", email: "admin@parking.vn", phone: "0901000001", role: "SYSTEM_ADMIN", status: "ACTIVE" },
-  { id: "u2", username: "manager.hcm", email: "manager@parking.vn", phone: "0901000002", role: "PARKING_MANAGER", status: "ACTIVE" },
-  { id: "u3", username: "staff.gate1", email: "staff1@parking.vn", phone: "0901000003", role: "PARKING_STAFF", status: "ACTIVE" },
-  { id: "u4", username: "driver.lan", email: "driver@parking.vn", phone: "0901000004", role: "PARKING_USER", status: "INACTIVE" },
-  { id: "u5", username: "driver.minh", email: "minh@parking.vn", phone: "0901000005", role: "PARKING_USER", status: "ACTIVE" }
+  { id: "u1", username: "admin", email: "admin@parking.vn", phone: "0901000001", role: "SYSTEM_ADMIN", status: "ACTIVE" },
+  { id: "u2", username: "manager", email: "manager@parking.vn", phone: "0901000002", role: "PARKING_MANAGER", status: "ACTIVE" },
+  { id: "u3", username: "staff", email: "staff1@parking.vn", phone: "0901000003", role: "PARKING_STAFF", status: "ACTIVE" },
+  { id: "u4", username: "driver1", email: "driver1@parking.vn", phone: "0901000004", role: "PARKING_USER", status: "INACTIVE" },
+  { id: "u5", username: "driver2", email: "driver2@parking.vn", phone: "0901000005", role: "PARKING_USER", status: "ACTIVE" }
 ];
 
 export interface MockLoginAccount {
@@ -132,3 +132,23 @@ export const mockLoginAccounts: MockLoginAccount[] = [
   { userId: "u4", password: "Driver@123" },
   { userId: "u5", password: "Driver@123" }
 ];
+
+export type PaymentMode = "CASH" | "CASHLESS" | "HYBRID";
+
+export interface SystemSettings {
+  systemName: string;
+  openingTime: string;
+  closingTime: string;
+  paymentMode: PaymentMode;
+  autoBlockOverdueSlots: boolean;
+  updatedAt: string;
+}
+
+export const systemSettings: SystemSettings = {
+  systemName: "Parking Building Management",
+  openingTime: "06:00",
+  closingTime: "23:00",
+  paymentMode: "HYBRID",
+  autoBlockOverdueSlots: true,
+  updatedAt: "2026-07-06T09:00:00+07:00"
+};

@@ -26,7 +26,7 @@ export const incidentApi = {
   },
 
   /** Lấy tất cả sự cố, tùy chọn lọc theo status hoặc type */
-  getAll: async (params?: { status?: IncidentStatus; type?: IncidentType }): Promise<Incident[]> => {
+  getAll: async (params?: { status?: IncidentStatus; type?: IncidentType; assignee?: "me" }): Promise<Incident[]> => {
     const response = await httpClient.get<Incident[]>("/incidents", { params });
     return response.data;
   },
