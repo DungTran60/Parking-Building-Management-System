@@ -5,6 +5,25 @@ export type SlotStatus = "AVAILABLE" | "OCCUPIED" | "RESERVED" | "MAINTENANCE" |
 export type SessionStatus = "ACTIVE" | "COMPLETED" | "UNPAID" | "LOST_TICKET" | "EXPIRED";
 export type ReservationStatus = "PENDING" | "CONFIRMED" | "CANCELLED";
 export type ExceptionType = "LOST_TICKET" | "WRONG_PLATE" | "WRONG_ZONE" | "OVERTIME" | "UNPAID";
+export type IncidentType = "LOST_TICKET" | "WRONG_PLATE" | "WRONG_ZONE" | "OVERTIME" | "UNPAID" | "VEHICLE_DAMAGE" | "FACILITY_ISSUE";
+export type IncidentStatus = "OPEN" | "IN_PROGRESS" | "RESOLVED" | "CLOSED";
+
+export interface Incident {
+  id: number;
+  reporterId: number;
+  reporterName: string;
+  sessionId?: number;
+  ticketCode?: string;
+  slotId?: number;
+  slotCode?: string;
+  type: IncidentType;
+  description: string;
+  resolution?: string;
+  status: IncidentStatus;
+  reportedAt: string;
+  resolvedAt?: string;
+  updatedAt: string;
+}
 export type PaymentMethod = "QR_CODE" | "BANK_CARD" | "CASH";
 export type PaymentStatus = "PENDING" | "PAID" | "FAILED";
 export type FeedbackType = "LOST_TICKET" | "WRONG_FEE" | "FIND_VEHICLE" | "OCCUPIED_SLOT" | "FACILITY_ISSUE";

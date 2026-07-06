@@ -22,11 +22,11 @@ export const hourly = [
 export const vehiclePie = [{ name: "Xe máy", value: 48 }, { name: "Ô tô", value: 31 }, { name: "Xe điện", value: 12 }, { name: "Khác", value: 9 }];
 export const colors = ["#2563eb", "#16a34a", "#0891b2", "#f59e0b"];
 export const vehicleTypes: VehicleType[] = [
-  { id: "motorbike", name: "Xe máy", size: "0.8m x 2m", capacityUnit: 1, color: "#2563eb" },
-  { id: "car", name: "Ô tô", size: "2.5m x 5m", capacityUnit: 3, color: "#16a34a" },
-  { id: "ev", name: "Xe điện", size: "2.5m x 5m", capacityUnit: 3, color: "#0891b2" },
-  { id: "truck", name: "Xe tải", size: "3m x 8m", capacityUnit: 5, color: "#f59e0b" },
-  { id: "coach", name: "Xe khách", size: "3m x 12m", capacityUnit: 8, color: "#dc2626" }
+  { id: "1", code: "MOTORBIKE", name: "Xe máy",   status: "ACTIVE" },
+  { id: "2", code: "CAR",       name: "Ô tô",      status: "ACTIVE" },
+  { id: "3", code: "EV",        name: "Xe điện",   status: "ACTIVE" },
+  { id: "4", code: "TRUCK",     name: "Xe tải",    status: "ACTIVE" },
+  { id: "5", code: "COACH",     name: "Xe khách",  status: "ACTIVE" }
 ];
 export const buildings: Building[] = [
   { id: "b1", name: "Central Parking Tower", address: "12 Nguyen Hue, Q1", floors: 8, status: "ACTIVE", capacity: 980 },

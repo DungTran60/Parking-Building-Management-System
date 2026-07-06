@@ -20,15 +20,18 @@ export const ROLE_PERMISSIONS: Record<Role, Permission[]> = {
     "vehicleTypes:manage",
     "slots:manage",
     "pricing:manage",
+    "sessions:manage",
     "reports:view",
-    "ai:view"
+    "ai:view",
+    "incidents:manage"
   ],
   PARKING_STAFF: [
     "dashboard:view",
     "slots:manage",
     "sessions:manage",
     "checkin:create",
-    "checkout:create"
+    "checkout:create",
+    "incidents:manage"
   ],
   PARKING_USER: [
     "parkingInfo:view",

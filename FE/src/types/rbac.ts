@@ -7,6 +7,8 @@ export type Permission =
   | "currentSession:view"
   | "payments:create"
   | "feedback:create"
+  | "feedback:manage"
+  | "incidents:manage"
   | "vehicleTypes:manage"
   | "floors:manage"
   | "slots:manage"
