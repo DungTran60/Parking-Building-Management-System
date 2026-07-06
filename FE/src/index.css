@@ -21,3 +21,41 @@ select,
 textarea {
   font: inherit;
 }
+
+@keyframes auth-modal-slide-in-right {
+  from {
+    opacity: 0;
+    transform: translateX(72px) scale(0.98);
+  }
+  to {
+    opacity: 1;
+    transform: translateX(0) scale(1);
+  }
+}
+
+@keyframes auth-modal-slide-out-left {
+  from {
+    opacity: 1;
+    transform: translateX(0) scale(1);
+  }
+  to {
+    opacity: 0;
+    transform: translateX(-72px) scale(0.98);
+  }
+}
+
+.auth-modal-slide-in-right {
+  animation: auth-modal-slide-in-right 360ms ease-out both;
+}
+
+.auth-modal-slide-out-left {
+  animation: auth-modal-slide-out-left 280ms ease-in both;
+  pointer-events: none;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .auth-modal-slide-in-right,
+  .auth-modal-slide-out-left {
+    animation-duration: 1ms;
+  }
+}

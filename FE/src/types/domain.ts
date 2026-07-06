@@ -12,6 +12,9 @@ export interface Incident {
   id: number;
   reporterId: number;
   reporterName: string;
+  assigneeId?: number;
+  assigneeName?: string;
+  processingAt?: string;
   sessionId?: number;
   ticketCode?: string;
   slotId?: number;
@@ -39,6 +42,7 @@ export interface Building {
 
 export type VehicleTypeStatus = "ACTIVE" | "INACTIVE";
 
+
 export interface VehicleType {
   id: string;
   code: string;
@@ -48,6 +52,7 @@ export interface VehicleType {
   createdAt?: string;
   updatedAt?: string;
 }
+
 
 export interface Floor {
   id: string;
