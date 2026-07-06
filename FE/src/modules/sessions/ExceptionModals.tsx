@@ -20,8 +20,8 @@ export function ExceptionModal({ type, onClose }: { type: ExceptionType | null; 
           <AlertTriangle size={20} />
           <span className="text-sm">Ghi nhận biên bản, phụ phí và người duyệt cho tình huống ngoại lệ.</span>
         </div>
-        <Field label="Biển số / mã vé"><Input required /></Field>
-        <Field label="Lý do xử lý"><Input required /></Field>
+        <Field label="Biển số / mã vé"><Input required placeholder="Ví dụ: 51G-12345 hoặc QR-..." /></Field>
+        <Field label="Lý do xử lý"><Input required placeholder="Nhập lý do xử lý" /></Field>
         <Field label="Phụ phí"><Input type="number" defaultValue={0} /></Field>
         <div className="flex justify-end gap-3">
           <Button type="button" variant="secondary" onClick={onClose}>Hủy</Button>

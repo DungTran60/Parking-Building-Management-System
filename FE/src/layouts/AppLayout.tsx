@@ -1,5 +1,6 @@
+import { useEffect, useRef, useState } from "react";
 import type { ReactNode } from "react";
-import { LogOut, Menu, ParkingCircle } from "lucide-react";
+import { ChevronDown, LogOut, Menu, ParkingCircle, Settings, UserRound } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { Sidebar } from "@/components/layout/Sidebar";
 import { Button } from "@/components/common/Button";
@@ -11,8 +12,32 @@ export function AppLayout({ children }: { children: ReactNode }) {
   const navigate = useNavigate();
   const { role, userName, logout } = useAuthStore();
   const toggleSidebar = useUiStore((state) => state.toggleSidebar);
+  const [userMenuOpen, setUserMenuOpen] = useState(false);
+  const userMenuRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    const closeUserMenu = (event: MouseEvent) => {
+      if (!userMenuRef.current?.contains(event.target as Node)) setUserMenuOpen(false);
+    };
+    const closeUserMenuOnEscape = (event: KeyboardEvent) => {
+      if (event.key === "Escape") setUserMenuOpen(false);
+    };
+
+    document.addEventListener("mousedown", closeUserMenu);
+    document.addEventListener("keydown", closeUserMenuOnEscape);
+    return () => {
+      document.removeEventListener("mousedown", closeUserMenu);
+      document.removeEventListener("keydown", closeUserMenuOnEscape);
+    };
+  }, []);
+
+  const navigateFromUserMenu = (path: string) => {
+    setUserMenuOpen(false);
+    navigate(path);
+  };
 
   const handleLogout = () => {
+    setUserMenuOpen(false);
     logout();
     navigate("/login", { replace: true });
   };
@@ -31,15 +56,41 @@ export function AppLayout({ children }: { children: ReactNode }) {
               <span className="font-semibold text-slate-900">Parking Building Management</span>
             </div>
           </div>
-          <div className="flex items-center gap-3">
-            <div className="hidden text-right text-sm md:block">
-              <p className="font-medium text-slate-900">{userName}</p>
-              <p className="text-slate-500">{ROLE_LABELS[role]}</p>
-            </div>
-            <Button variant="secondary" onClick={handleLogout} aria-label="Đăng xuất">
-              <LogOut size={17} />
-              <span className="hidden sm:inline">Đăng xuất</span>
-            </Button>
+          <div ref={userMenuRef} className="relative">
+            <button
+              type="button"
+              onClick={() => setUserMenuOpen((open) => !open)}
+              className="flex items-center gap-2 rounded-lg px-2 py-1.5 text-left transition hover:bg-slate-100"
+              aria-haspopup="menu"
+              aria-expanded={userMenuOpen}
+            >
+              <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-blue-100 text-primary">
+                <UserRound size={20} />
+              </span>
+              <span className="hidden min-w-0 sm:block">
+                <span className="block truncate text-sm font-semibold text-slate-900">{userName}</span>
+                <span className="block truncate text-xs text-slate-500">{ROLE_LABELS[role]}</span>
+              </span>
+              <ChevronDown className={`text-slate-500 transition-transform ${userMenuOpen ? "rotate-180" : ""}`} size={16} />
+            </button>
+
+            {userMenuOpen && (
+              <div role="menu" className="absolute right-0 mt-2 w-52 overflow-hidden rounded-lg border border-border bg-white py-1 shadow-lg">
+                <button type="button" role="menuitem" onClick={() => navigateFromUserMenu("/app/profile")} className="flex w-full items-center gap-2 px-4 py-2.5 text-sm text-slate-700 hover:bg-slate-50">
+                  <UserRound size={17} />
+                  Hồ sơ
+                </button>
+                {/* <button type="button" role="menuitem" onClick={() => navigateFromUserMenu("/app/settings")} className="flex w-full items-center gap-2 px-4 py-2.5 text-sm text-slate-700 hover:bg-slate-50">
+                  <Settings size={17} />
+                  Cài đặt
+                </button> */}
+                <div className="my-1 border-t border-border" />
+                <button type="button" role="menuitem" onClick={handleLogout} className="flex w-full items-center gap-2 px-4 py-2.5 text-sm text-red-600 hover:bg-red-50">
+                  <LogOut size={17} />
+                  Đăng xuất
+                </button>
+              </div>
+            )}
           </div>
         </header>
         <main className="p-4 md:p-6">{children}</main>
