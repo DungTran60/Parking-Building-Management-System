@@ -7,7 +7,7 @@ interface AuthState {
   userName: string;
   isAuthenticated: boolean;
   setRole: (role: Role) => void;
-  login: (user: User, remember: boolean) => void;
+  login: (user: Pick<User, "username" | "role">, token: string, remember: boolean) => void;
   logout: () => void;
 }
 
@@ -35,7 +35,7 @@ export const useAuthStore = create<AuthState>((set) => ({
   userName: storedUser?.userName ?? "",
   isAuthenticated: storedUser?.isAuthenticated ?? false,
   setRole: (role) => set({ role }),
-  login: (user, remember) => {
+  login: (user, token, remember) => {
     const authData = {
       role: user.role,
       userName: user.username,
@@ -45,12 +45,16 @@ export const useAuthStore = create<AuthState>((set) => ({
     const otherStorage = remember ? sessionStorage : localStorage;
 
     otherStorage.removeItem(AUTH_STORAGE_KEY);
+    otherStorage.removeItem("token");
     selectedStorage.setItem(AUTH_STORAGE_KEY, JSON.stringify(authData));
+    selectedStorage.setItem("token", token);
     set(authData);
   },
   logout: () => {
     localStorage.removeItem(AUTH_STORAGE_KEY);
     sessionStorage.removeItem(AUTH_STORAGE_KEY);
+    localStorage.removeItem("token");
+    sessionStorage.removeItem("token");
     set({ role: "SYSTEM_ADMIN", userName: "", isAuthenticated: false });
   }
 }));
