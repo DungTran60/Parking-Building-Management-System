@@ -1,245 +1,264 @@
-import { useState } from "react";
-import { Calculator } from "lucide-react";
+import { useCallback, useEffect, useState, type FormEvent } from "react";
+import { Calculator, Clock3, Pencil, Plus, Power, ReceiptText, RefreshCw, ShieldAlert, Tags } from "lucide-react";
 import { Button } from "@/components/common/Button";
 import { Card, CardContent, CardHeader } from "@/components/common/Card";
 import { Field, Input, Select } from "@/components/forms/FormField";
-import { EntityManagement } from "@/modules/shared/EntityManagement";
-import { calculateFee } from "@/services/mockRepository";
+import { Modal } from "@/components/common/Modal";
+import { PageHeader } from "@/components/layout/PageHeader";
+import { pricingApi, type FinalFeeResult, type Pricing, type PricingTimeUnit } from "@/api/pricingApi";
+import { vehicleTypeApi } from "@/api/vehicleTypeApi";
+import type { VehicleType } from "@/types/domain";
+import { getApiErrorMessage } from "@/utils/apiError";
 import { currency } from "@/utils/format";
-import { vehicleTypes } from "@/api/mockData";
-import type { PricingPolicy } from "@/types/domain";
-import { httpClient } from "@/api/httpClient";
 
-interface OvernightFeeResponse {
-  basePrice: number;
-  overnightFee: number;
-  numberOfNights: number;
-  total: number;
-}
+type Tab = "pricing" | "simulation";
 
-interface LostTicketFeeResponse {
-  vehicleType: string;
-  lostTicketFee: number;
-  total: number;
-}
+const timeUnitLabel: Record<PricingTimeUnit, string> = {
+  HOURLY: "Theo giờ",
+  DAILY: "Theo ngày",
+  MONTHLY: "Theo tháng"
+};
+
+const timeUnitShortLabel: Record<PricingTimeUnit, string> = {
+  HOURLY: "giờ",
+  DAILY: "ngày",
+  MONTHLY: "tháng"
+};
 
 export function PricingPage() {
-  const [fee, setFee] = useState<number | null>(null);
-  
-  // Overnight calculator states
-  const [calcResult, setCalcResult] = useState<OvernightFeeResponse | null>(null);
-  const [calcError, setCalcError] = useState<string | null>(null);
-  const [loading, setLoading] = useState(false);
+  const [tab, setTab] = useState<Tab>("pricing");
+  const [policies, setPolicies] = useState<Pricing[]>([]);
+  const [vehicleTypes, setVehicleTypes] = useState<VehicleType[]>([]);
+  const [formOpen, setFormOpen] = useState(false);
+  const [editing, setEditing] = useState<Pricing | null>(null);
+  const [result, setResult] = useState<FinalFeeResult | null>(null);
+  const [simulationError, setSimulationError] = useState("");
+  const [loadError, setLoadError] = useState("");
+  const [saveError, setSaveError] = useState("");
+  const [loading, setLoading] = useState(true);
+  const [saving, setSaving] = useState(false);
+  const [simulating, setSimulating] = useState(false);
+  const [togglingId, setTogglingId] = useState<string | null>(null);
 
-  // Lost ticket calculator states
-  const [lostTicketResult, setLostTicketResult] = useState<LostTicketFeeResponse | null>(null);
-  const [lostTicketError, setLostTicketError] = useState<string | null>(null);
-  const [lostTicketLoading, setLostTicketLoading] = useState(false);
+  const loadData = useCallback(async () => {
+    setLoading(true);
+    setLoadError("");
+    try {
+      const [pricingData, vehicleTypeData] = await Promise.all([
+        pricingApi.getAll(),
+        vehicleTypeApi.getAll()
+      ]);
+      setPolicies(pricingData);
+      setVehicleTypes(vehicleTypeData.filter((item) => item.status === "ACTIVE"));
+    } catch (error: unknown) {
+      setLoadError(getApiErrorMessage(error, "Không thể tải bảng giá. Vui lòng thử lại."));
+    } finally {
+      setLoading(false);
+    }
+  }, []);
+
+  useEffect(() => {
+    void loadData();
+  }, [loadData]);
+
+  const openCreate = () => {
+    setEditing(null);
+    setSaveError("");
+    setFormOpen(true);
+  };
+
+  const openEdit = (policy: Pricing) => {
+    setEditing(policy);
+    setSaveError("");
+    setFormOpen(true);
+  };
+
+  const closeForm = () => {
+    if (saving) return;
+    setFormOpen(false);
+    setEditing(null);
+    setSaveError("");
+  };
+
+  const savePolicy = async (event: FormEvent<HTMLFormElement>) => {
+    event.preventDefault();
+    const form = new FormData(event.currentTarget);
+    setSaving(true);
+    setSaveError("");
+    try {
+      const payload = {
+        vehicleTypeId: String(form.get("vehicleTypeId")),
+        timeUnit: String(form.get("timeUnit")) as PricingTimeUnit,
+        price: Number(form.get("price")),
+        overnightFee: Number(form.get("overnightFee")),
+        lostTicketFee: Number(form.get("lostTicketFee")),
+        description: String(form.get("description") ?? "").trim() || undefined,
+        active: form.get("active") === "on"
+      };
+      const saved = editing
+        ? await pricingApi.update(editing.id, payload)
+        : await pricingApi.create(payload);
+      setPolicies((current) => editing
+        ? current.map((policy) => policy.id === saved.id ? saved : policy)
+        : [saved, ...current]);
+      setFormOpen(false);
+      setEditing(null);
+    } catch (error: unknown) {
+      setSaveError(getApiErrorMessage(error, "Không thể lưu bảng giá. Vui lòng thử lại."));
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  const togglePolicy = async (policy: Pricing) => {
+    setSaveError("");
+    setTogglingId(policy.id);
+    try {
+      const updated = await pricingApi.toggle(policy.id);
+      setPolicies((current) => current.map((item) => item.id === updated.id ? updated : item));
+    } catch (error: unknown) {
+      setSaveError(getApiErrorMessage(error, "Không thể thay đổi trạng thái bảng giá."));
+    } finally {
+      setTogglingId(null);
+    }
+  };
+
+  const simulateFee = async (event: FormEvent<HTMLFormElement>) => {
+    event.preventDefault();
+    setSimulationError("");
+    const form = new FormData(event.currentTarget);
+    const checkIn = String(form.get("checkIn"));
+    const checkOut = String(form.get("checkOut"));
+
+    if (!checkIn || !checkOut || new Date(checkOut) <= new Date(checkIn)) {
+      setResult(null);
+      setSimulationError("Thời gian ra phải sau thời gian vào.");
+      return;
+    }
+
+    try {
+      setSimulating(true);
+      setResult(await pricingApi.calculateFinalFee({
+        checkIn,
+        checkOut,
+        vehicleType: String(form.get("vehicleType")),
+        lostTicket: form.get("lostTicket") === "on"
+      }));
+    } catch (error: unknown) {
+      setResult(null);
+      setSimulationError(getApiErrorMessage(error, "Không thể tính phí. Vui lòng thử lại."));
+    } finally {
+      setSimulating(false);
+    }
+  };
 
   return (
-    <div className="grid gap-6">
-      <EntityManagement<PricingPolicy>
-        title="Bảng giá"
-        description="Quản lý chính sách tính phí theo loại xe và các phụ phí ngoại lệ."
-        resource="pricingPolicies"
-        fields={[
-          { key: "vehicleTypeId", label: "Loại xe", type: "select", options: vehicleTypes.map((item) => ({ label: item.name, value: item.id })) },
-          { key: "firstHour", label: "Giờ đầu", type: "number" },
-          { key: "nextHour", label: "Giờ tiếp theo", type: "number" },
-          { key: "dayPrice", label: "Theo ngày", type: "number" },
-          { key: "overnightFee", label: "Overnight Fee (VND)", type: "number" },
-          { key: "lostTicketFee", label: "Lost Ticket Fee (VND)", type: "number" },
-          { key: "wrongZoneFee", label: "Sai khu vực", type: "number" },
-          { key: "overtimeFee", label: "Quá giờ", type: "number" }
-        ]}
+    <>
+      <PageHeader
+        title="Bảng giá & tính phí"
+        description="Quản lý chính sách giá và mô phỏng chi phí gửi xe trong một quy trình thống nhất."
+        action={<Button onClick={openCreate}><Plus size={17} /> Tạo bảng giá</Button>}
       />
-      
-      <Card>
-        <CardHeader title="Mô phỏng tính phí" />
-        <CardContent>
-          <form
-            className="grid gap-4 md:grid-cols-4"
-            onSubmit={async (event) => {
-              event.preventDefault();
-              const data = new FormData(event.currentTarget);
-              setFee(await calculateFee(String(data.get("vehicleTypeId")), Number(data.get("hours")), { lostTicket: data.get("lostTicket") === "on", wrongZone: data.get("wrongZone") === "on", overtime: data.get("overtime") === "on" }));
-            }}
-          >
-            <Field label="Loại xe">
-              <Select name="vehicleTypeId">{vehicleTypes.map((type) => <option key={type.id} value={type.id}>{type.name}</option>)}</Select>
-            </Field>
-            <Field label="Số giờ">
-              <Input name="hours" type="number" defaultValue={3} min={1} />
-            </Field>
-            <label className="flex items-center gap-2 text-sm"><input name="lostTicket" type="checkbox" /> Mất vé</label>
-            <label className="flex items-center gap-2 text-sm"><input name="wrongZone" type="checkbox" /> Sai khu vực</label>
-            <label className="flex items-center gap-2 text-sm"><input name="overtime" type="checkbox" /> Quá giờ</label>
-            <Button className="md:col-span-1"><Calculator size={17} /> Tính phí</Button>
-            {fee !== null && <div className="rounded-md bg-blue-50 p-3 font-semibold text-blue-700 md:col-span-2">{currency(fee)}</div>}
-          </form>
-        </CardContent>
-      </Card>
 
-      <Card>
-        <CardHeader title="Parking Calculator" />
-        <CardContent>
-          <form
-            className="grid gap-4 md:grid-cols-4 items-end"
-            onSubmit={async (event) => {
-              event.preventDefault();
-              setCalcError(null);
-              setCalcResult(null);
-              setLoading(true);
-              const data = new FormData(event.currentTarget);
-              const checkIn = data.get("checkIn") as string;
-              const checkOut = data.get("checkOut") as string;
-              const vehicleType = data.get("vehicleType") as string;
+      <div className="mb-6 inline-flex rounded-lg border border-border bg-white p-1 shadow-sm">
+        <button type="button" onClick={() => setTab("pricing")} className={tab === "pricing" ? "rounded-md bg-primary px-4 py-2 text-sm font-medium text-white" : "rounded-md px-4 py-2 text-sm font-medium text-slate-600 hover:bg-slate-50"}>
+          <Tags className="mr-2 inline" size={16} />Bảng giá
+        </button>
+        <button type="button" onClick={() => setTab("simulation")} className={tab === "simulation" ? "rounded-md bg-primary px-4 py-2 text-sm font-medium text-white" : "rounded-md px-4 py-2 text-sm font-medium text-slate-600 hover:bg-slate-50"}>
+          <Calculator className="mr-2 inline" size={16} />Mô phỏng tính phí
+        </button>
+      </div>
 
-              if (!checkIn || !checkOut || !vehicleType) {
-                setCalcError("Vui lòng điền đầy đủ thông tin");
-                setLoading(false);
-                return;
-              }
+      {tab === "pricing" ? (
+        <div className="grid gap-4 lg:grid-cols-2">
+          {loading && <p className="text-sm text-slate-500 lg:col-span-2">Đang tải bảng giá...</p>}
+          {!loading && loadError && <div role="alert" className="rounded-lg border border-red-200 bg-red-50 p-4 text-sm text-red-700 lg:col-span-2"><p>{loadError}</p><Button variant="secondary" className="mt-3" onClick={() => void loadData()}><RefreshCw size={16} /> Thử lại</Button></div>}
+          {!loading && !loadError && saveError && !formOpen && <div role="alert" className="rounded-lg border border-red-200 bg-red-50 p-4 text-sm text-red-700 lg:col-span-2">{saveError}</div>}
+          {!loading && !loadError && policies.length === 0 && <div className="rounded-lg border border-dashed border-slate-300 py-14 text-center lg:col-span-2"><Tags className="mx-auto text-slate-300" size={40} /><p className="mt-3 text-sm font-medium text-slate-700">Chưa có bảng giá</p><Button className="mt-4" onClick={openCreate}><Plus size={16} /> Tạo bảng giá đầu tiên</Button></div>}
+          {!loading && !loadError && policies.map((policy) => {
+            return (
+              <Card key={policy.id}>
+                <CardHeader title={`${policy.vehicleTypeName} · ${timeUnitLabel[policy.timeUnit]}`} action={<div className="flex gap-2"><Button variant="ghost" className="h-9 px-3" disabled={togglingId === policy.id} onClick={() => void togglePolicy(policy)} title={policy.active ? "Ngừng áp dụng" : "Kích hoạt"}><Power size={16} /> {policy.active ? "Đang áp dụng" : "Đã tắt"}</Button><Button variant="ghost" className="h-9 px-3" onClick={() => openEdit(policy)}><Pencil size={16} /> Chỉnh sửa</Button></div>} />
+                <CardContent className="grid gap-5 sm:grid-cols-2">
+                  <PriceGroup title="Phí cơ bản" icon={<Clock3 size={17} />} items={[
+                    [`Đơn giá/${timeUnitShortLabel[policy.timeUnit]}`, policy.price]
+                  ]} />
+                  <PriceGroup title="Phụ phí" icon={<ShieldAlert size={17} />} items={[
+                    ["Qua đêm", policy.overnightFee],
+                    ["Mất vé", policy.lostTicketFee]
+                  ]} />
+                </CardContent>
+              </Card>
+            );
+          })}
+        </div>
+      ) : (
+        <div className="grid items-start gap-6 xl:grid-cols-[minmax(0,1.4fr)_minmax(300px,0.6fr)]">
+          <Card>
+            <CardHeader title="Thông tin lượt gửi xe" />
+            <CardContent>
+              <form className="grid gap-4 sm:grid-cols-2" onSubmit={simulateFee}>
+                <Field label="Loại xe">
+                  <Select name="vehicleType">{policies.filter((policy) => policy.active && policy.timeUnit === "HOURLY").map((policy) => <option key={policy.id} value={policy.vehicleTypeId}>{policy.vehicleTypeName}</option>)}</Select>
+                </Field>
+                <div className="hidden sm:block" />
+                <Field label="Thời gian vào"><Input name="checkIn" type="datetime-local" required /></Field>
+                <Field label="Thời gian ra"><Input name="checkOut" type="datetime-local" required /></Field>
+                <fieldset className="sm:col-span-2">
+                  <legend className="mb-2 text-sm font-medium text-slate-700">Phụ phí phát sinh</legend>
+                  <div className="grid gap-2 sm:grid-cols-3">
+                    <ExtraOption name="lostTicket" label="Mất vé" />
+                  </div>
+                </fieldset>
+                {simulationError && <p className="rounded-md bg-red-50 p-3 text-sm text-red-700 sm:col-span-2">{simulationError}</p>}
+                <div className="flex justify-end sm:col-span-2"><Button type="submit" disabled={simulating || policies.every((policy) => !policy.active || policy.timeUnit !== "HOURLY")}><Calculator size={17} /> {simulating ? "Đang tính..." : "Tính phí"}</Button></div>
+              </form>
+            </CardContent>
+          </Card>
 
-              try {
-                const response = await httpClient.get<OvernightFeeResponse>("/pricing/calculate", {
-                  params: { checkIn, checkOut, vehicleType }
-                });
-                setCalcResult(response.data);
-              } catch (err: any) {
-                const errMsg = err.response?.data?.error || err.response?.data?.message || err.message || "Đã xảy ra lỗi khi tính phí";
-                setCalcError(errMsg);
-              } finally {
-                setLoading(false);
-              }
-            }}
-          >
-            <Field label="Check In">
-              <Input name="checkIn" type="datetime-local" required />
-            </Field>
-            <Field label="Check Out">
-              <Input name="checkOut" type="datetime-local" required />
-            </Field>
-            <Field label="Vehicle Type">
-              <Select name="vehicleType">
-                {vehicleTypes.map((type) => (
-                  <option key={type.id} value={type.id}>
-                    {type.name}
-                  </option>
-                ))}
-              </Select>
-            </Field>
-            <Button type="submit" disabled={loading} className="md:col-span-1">
-              <Calculator size={17} /> Calculate
-            </Button>
-            {calcError && (
-              <div className="rounded-md bg-red-50 p-3 font-semibold text-red-700 md:col-span-4">
-                {calcError}
-              </div>
-            )}
-            {calcResult && (
-              <div className="rounded-md bg-blue-50 p-4 text-blue-800 md:col-span-4 grid gap-4 sm:grid-cols-4">
-                <div>
-                  <div className="text-xs uppercase text-blue-500 font-medium">Base Fee</div>
-                  <div className="text-lg font-bold">{currency(calcResult.basePrice)}</div>
-                </div>
-                <div>
-                  <div className="text-xs uppercase text-blue-500 font-medium">Overnight Fee</div>
-                  <div className="text-lg font-bold">{currency(calcResult.overnightFee)}</div>
-                </div>
-                <div>
-                  <div className="text-xs uppercase text-blue-500 font-medium">Number Of Nights</div>
-                  <div className="text-lg font-bold">{calcResult.numberOfNights}</div>
-                </div>
-                <div>
-                  <div className="text-xs uppercase text-blue-500 font-medium">Total Fee</div>
-                  <div className="text-lg font-bold text-blue-900">{currency(calcResult.total)}</div>
-                </div>
-              </div>
-            )}
-          </form>
-        </CardContent>
-      </Card>
+          <Card className="xl:sticky xl:top-20">
+            <CardHeader title="Kết quả tính phí" />
+            <CardContent>
+              {result ? <div className="grid gap-4">
+                <ResultRow label="Phí cơ bản" value={currency(result.basePrice)} />
+                <ResultRow label="Phí qua đêm" value={currency(result.overnightFee)} />
+                <ResultRow label="Phí mất vé" value={currency(result.lostTicketFee)} />
+                <div className="border-t border-border pt-4"><div className="flex items-center justify-between"><span className="font-semibold text-slate-800">Tổng cộng</span><span className="text-xl font-bold text-primary">{currency(result.total)}</span></div></div>
+              </div> : <div className="py-10 text-center"><ReceiptText className="mx-auto text-slate-300" size={40} /><p className="mt-3 text-sm text-slate-500">Nhập thông tin để xem chi tiết chi phí.</p></div>}
+            </CardContent>
+          </Card>
+        </div>
+      )}
 
-      <Card>
-        <CardHeader title="Lost Ticket Calculator" />
-        <CardContent>
-          <form
-            className="grid gap-4 md:grid-cols-4 items-end"
-            onSubmit={async (event) => {
-              event.preventDefault();
-              setLostTicketError(null);
-              setLostTicketResult(null);
-              setLostTicketLoading(true);
-              const data = new FormData(event.currentTarget);
-              const vehicleType = data.get("vehicleType") as string;
-              const lostTicket = data.get("lostTicket") === "on";
-
-              if (!vehicleType) {
-                setLostTicketError("Vui lòng chọn loại xe");
-                setLostTicketLoading(false);
-                return;
-              }
-
-              if (!lostTicket) {
-                setLostTicketError("Vui lòng tích chọn Mất vé");
-                setLostTicketLoading(false);
-                return;
-              }
-
-              try {
-                const response = await httpClient.get<LostTicketFeeResponse>("/pricing/lost-ticket", {
-                  params: { vehicleType }
-                });
-                setLostTicketResult(response.data);
-              } catch (err: any) {
-                const errMsg = err.response?.data?.error || err.response?.data?.message || err.message || "Đã xảy ra lỗi khi tính phí mất vé";
-                setLostTicketError(errMsg);
-              } finally {
-                setLostTicketLoading(false);
-              }
-            }}
-          >
-            <Field label="Vehicle Type">
-              <Select name="vehicleType">
-                {vehicleTypes.map((type) => (
-                  <option key={type.id} value={type.id}>
-                    {type.name}
-                  </option>
-                ))}
-              </Select>
-            </Field>
-            <label className="flex items-center gap-2 text-sm pb-3">
-              <input name="lostTicket" type="checkbox" defaultChecked /> Mất vé
-            </label>
-            <div className="md:col-span-1"></div>
-            <Button type="submit" disabled={lostTicketLoading} className="md:col-span-1">
-              <Calculator size={17} /> Calculate
-            </Button>
-            {lostTicketError && (
-              <div className="rounded-md bg-red-50 p-3 font-semibold text-red-700 md:col-span-4">
-                {lostTicketError}
-              </div>
-            )}
-            {lostTicketResult && (
-              <div className="rounded-md bg-blue-50 p-4 text-blue-800 md:col-span-4 grid gap-4 sm:grid-cols-3">
-                <div>
-                  <div className="text-xs uppercase text-blue-500 font-medium">Vehicle Type</div>
-                  <div className="text-lg font-bold">{lostTicketResult.vehicleType}</div>
-                </div>
-                <div>
-                  <div className="text-xs uppercase text-blue-500 font-medium">Lost Ticket Fee</div>
-                  <div className="text-lg font-bold">{currency(lostTicketResult.lostTicketFee)}</div>
-                </div>
-                <div>
-                  <div className="text-xs uppercase text-blue-500 font-medium">Total Fee</div>
-                  <div className="text-lg font-bold text-blue-900">{currency(lostTicketResult.total)}</div>
-                </div>
-              </div>
-            )}
-          </form>
-        </CardContent>
-      </Card>
-    </div>
+      <Modal open={formOpen} title={editing ? "Cập nhật bảng giá" : "Tạo bảng giá"} onClose={closeForm}>
+        <form key={editing?.id ?? "create-pricing"} className="grid gap-4 sm:grid-cols-2" onSubmit={savePolicy}>
+          <Field label="Loại xe"><Select name="vehicleTypeId" defaultValue={editing?.vehicleTypeId ?? vehicleTypes[0]?.id ?? ""} required disabled={saving}>{vehicleTypes.map((type) => <option key={type.id} value={type.id}>{type.name}</option>)}</Select></Field>
+          <Field label="Đơn vị tính"><Select name="timeUnit" defaultValue={editing?.timeUnit ?? "HOURLY"} required disabled={saving}>{(Object.keys(timeUnitLabel) as PricingTimeUnit[]).map((unit) => <option key={unit} value={unit}>{timeUnitLabel[unit]}</option>)}</Select></Field>
+          <PriceInput name="price" label="Đơn giá" value={editing?.price ?? 1} min={1} disabled={saving} />
+          <PriceInput name="overnightFee" label="Qua đêm" value={editing?.overnightFee ?? 0} disabled={saving} />
+          <PriceInput name="lostTicketFee" label="Mất vé" value={editing?.lostTicketFee ?? 0} disabled={saving} />
+          <Field label="Mô tả"><Input name="description" defaultValue={editing?.description ?? ""} maxLength={255} disabled={saving} /></Field>
+          <label className="flex items-center gap-2 text-sm text-slate-700 sm:col-span-2"><input name="active" type="checkbox" defaultChecked={editing?.active ?? true} disabled={saving} /> Áp dụng bảng giá này</label>
+          {saveError && <div role="alert" className="rounded-lg border border-red-200 bg-red-50 px-3 py-2.5 text-sm text-red-700 sm:col-span-2">{saveError}</div>}
+          <div className="flex justify-end gap-3 sm:col-span-2"><Button type="button" variant="secondary" onClick={closeForm} disabled={saving}>Hủy</Button><Button type="submit" disabled={saving || vehicleTypes.length === 0}>{saving ? "Đang lưu..." : editing ? "Lưu thay đổi" : "Tạo bảng giá"}</Button></div>
+        </form>
+      </Modal>
+    </>
   );
+}
+
+function PriceGroup({ title, icon, items }: { title: string; icon: React.ReactNode; items: [string, number][] }) {
+  return <section><h3 className="mb-3 flex items-center gap-2 text-sm font-semibold text-slate-800"><span className="text-primary">{icon}</span>{title}</h3><dl className="grid gap-2">{items.map(([label, value]) => <div key={label} className="flex items-center justify-between gap-3 rounded-md bg-slate-50 px-3 py-2"><dt className="text-sm text-slate-500">{label}</dt><dd className="text-sm font-semibold text-slate-800">{currency(value)}</dd></div>)}</dl></section>;
+}
+
+function PriceInput({ name, label, value, min = 0, disabled = false }: { name: string; label: string; value: number; min?: number; disabled?: boolean }) {
+  return <Field label={label}><Input name={name} type="number" min={min} step="0.01" defaultValue={value} required disabled={disabled} /></Field>;
+}
+
+function ExtraOption({ name, label }: { name: string; label: string }) {
+  return <label className="flex items-center gap-2 rounded-md border border-border p-3 text-sm text-slate-700 hover:bg-slate-50"><input name={name} type="checkbox" className="h-4 w-4 rounded border-slate-300 text-primary" />{label}</label>;
+}
+
+function ResultRow({ label, value }: { label: string; value: string }) {
+  return <div className="flex items-center justify-between gap-3"><span className="text-sm text-slate-500">{label}</span><span className="font-semibold text-slate-800">{value}</span></div>;
 }
