@@ -35,9 +35,7 @@ public class ReservationServiceImpl implements ReservationService {
         }
 
         // 2. Tìm loại xe
-        VehicleType vehicleType = vehicleTypeRepository.findById(dto.getVehicleTypeId())
-                .orElseThrow(() -> new ResourceNotFoundException(
-                        "Vehicle type not found: " + dto.getVehicleTypeId()));
+        VehicleType vehicleType = resolveVehicleType(dto.getVehicleTypeId());
 
         // 3. Tìm slot
         ParkingSlot slot = parkingSlotRepository.findById(dto.getSlotId())
@@ -154,7 +152,7 @@ public class ReservationServiceImpl implements ReservationService {
         return ReservationResponseDto.builder()
                 .id(r.getId())
                 .plateNumber(r.getPlateNumber())
-                .vehicleTypeId(r.getVehicleType().getId())
+                .vehicleTypeId(String.valueOf(r.getVehicleType().getId()))
                 .vehicleTypeName(r.getVehicleType().getName())
                 .slotId(r.getSlot().getId())
                 .slotCode(r.getSlot().getCode())
@@ -164,5 +162,22 @@ public class ReservationServiceImpl implements ReservationService {
                 .createdAt(r.getCreatedAt())
                 .updatedAt(r.getUpdatedAt())
                 .build();
+    }
+
+    /**
+     * Resolve VehicleType từ string reference (numeric ID hoặc code string).
+     */
+    private VehicleType resolveVehicleType(String vehicleTypeRef) {
+        try {
+            Long numericId = Long.parseLong(vehicleTypeRef.trim());
+            return vehicleTypeRepository.findById(numericId)
+                    .orElseThrow(() -> new ResourceNotFoundException(
+                            "Vehicle type not found with ID: " + numericId));
+        } catch (NumberFormatException e) {
+            return vehicleTypeRepository.findByCode(vehicleTypeRef.trim().toUpperCase())
+                    .or(() -> vehicleTypeRepository.findByCode(vehicleTypeRef.trim()))
+                    .orElseThrow(() -> new ResourceNotFoundException(
+                            "Vehicle type not found: " + vehicleTypeRef));
+        }
     }
 }

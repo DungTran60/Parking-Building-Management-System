@@ -63,21 +63,18 @@ public class DataInitializer implements CommandLineRunner {
             building = buildingRepository.findAll().get(0);
         }
 
-        // Seed VehicleTypes
-        if (vehicleTypeRepository.count() == 0) {
-            vehicleTypeRepository.save(VehicleType.builder().id("motorbike").name("Xe máy").size("0.8m x 2m").capacityUnit(1).color("#2563eb").hourlyRate(5000.0).build());
-            vehicleTypeRepository.save(VehicleType.builder().id("car").name("Ô tô").size("2.5m x 5m").capacityUnit(3).color("#16a34a").hourlyRate(25000.0).build());
-            vehicleTypeRepository.save(VehicleType.builder().id("ev").name("Xe điện").size("2.5m x 5m").capacityUnit(3).color("#0891b2").hourlyRate(30000.0).build());
-            vehicleTypeRepository.save(VehicleType.builder().id("truck").name("Xe tải").size("3m x 8m").capacityUnit(5).color("#f59e0b").hourlyRate(45000.0).build());
-            vehicleTypeRepository.save(VehicleType.builder().id("coach").name("Xe khách").size("3m x 12m").capacityUnit(8).color("#dc2626").hourlyRate(60000.0).build());
-            System.out.println("Seeded vehicle types");
-        }
+        // Seed VehicleTypes (by code to avoid duplicates)
+        seedVehicleType("MOTORBIKE", "Xe máy", "Phương tiện 2 bánh", "0.8m x 2m", 1, "#2563eb", 5000.0);
+        seedVehicleType("CAR",       "Ô tô",   "Xe ô tô thông thường", "2.5m x 5m", 3, "#16a34a", 25000.0);
+        seedVehicleType("EV",        "Xe điện","Ô tô điện", "2.5m x 5m", 3, "#0891b2", 30000.0);
+        seedVehicleType("TRUCK",     "Xe tải", "Xe tải hạng nặng", "3m x 8m", 5, "#f59e0b", 45000.0);
+        seedVehicleType("COACH",     "Xe khách","Xe khách / xe buýt", "3m x 12m", 8, "#dc2626", 60000.0);
 
-        VehicleType motorbike = vehicleTypeRepository.findById("motorbike").orElse(null);
-        VehicleType car = vehicleTypeRepository.findById("car").orElse(null);
-        VehicleType ev = vehicleTypeRepository.findById("ev").orElse(null);
-        VehicleType truck = vehicleTypeRepository.findById("truck").orElse(null);
-        VehicleType coach = vehicleTypeRepository.findById("coach").orElse(null);
+        VehicleType motorbike = vehicleTypeRepository.findByCode("MOTORBIKE").orElse(null);
+        VehicleType car       = vehicleTypeRepository.findByCode("CAR").orElse(null);
+        VehicleType ev        = vehicleTypeRepository.findByCode("EV").orElse(null);
+        VehicleType truck     = vehicleTypeRepository.findByCode("TRUCK").orElse(null);
+        VehicleType coach     = vehicleTypeRepository.findByCode("COACH").orElse(null);
 
         // Seed Floors
         if (floorRepository.count() == 0) {
@@ -111,6 +108,25 @@ public class DataInitializer implements CommandLineRunner {
             }
             parkingSlotRepository.saveAll(slotsToSave);
             System.out.println("Seeded " + slotsToSave.size() + " parking slots");
+        }
+    }
+
+    private void seedVehicleType(String code, String name, String description,
+                                  String size, int capacityUnit, String color, double hourlyRate) {
+        if (vehicleTypeRepository.findByCode(code).isEmpty()) {
+            vehicleTypeRepository.save(
+                VehicleType.builder()
+                    .code(code)
+                    .name(name)
+                    .description(description)
+                    .status(VehicleTypeStatus.ACTIVE)
+                    .size(size)
+                    .capacityUnit(capacityUnit)
+                    .color(color)
+                    .hourlyRate(hourlyRate)
+                    .build()
+            );
+            System.out.println("Seeded vehicle type: " + code);
         }
     }
 }

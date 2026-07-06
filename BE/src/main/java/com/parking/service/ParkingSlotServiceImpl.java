@@ -38,7 +38,8 @@ public class ParkingSlotServiceImpl implements ParkingSlotService {
     public List<ParkingSlotResponseDto> getAvailableSlots(String vehicleTypeId) {
         List<ParkingSlot> slots;
         if (vehicleTypeId != null && !vehicleTypeId.trim().isEmpty()) {
-            slots = parkingSlotRepository.findByStatusAndVehicleTypeId(SlotStatus.AVAILABLE, vehicleTypeId);
+            Long vtId = resolveVehicleTypeId(vehicleTypeId);
+            slots = parkingSlotRepository.findByStatusAndVehicleTypeId(SlotStatus.AVAILABLE, vtId);
         } else {
             slots = parkingSlotRepository.findByStatus(SlotStatus.AVAILABLE);
         }
@@ -62,8 +63,7 @@ public class ParkingSlotServiceImpl implements ParkingSlotService {
     public ParkingSlotResponseDto createSlot(ParkingSlotRequestDto request) {
         Floor floor = floorRepository.findById(request.getFloorId())
                 .orElseThrow(() -> new ResourceNotFoundException("Floor not found with id: " + request.getFloorId()));
-        VehicleType vehicleType = vehicleTypeRepository.findById(request.getVehicleTypeId())
-                .orElseThrow(() -> new ResourceNotFoundException("VehicleType not found with id: " + request.getVehicleTypeId()));
+        VehicleType vehicleType = resolveVehicleType(request.getVehicleTypeId());
 
         ParkingSlot slot = ParkingSlot.builder()
                 .code(request.getCode())
@@ -90,8 +90,7 @@ public class ParkingSlotServiceImpl implements ParkingSlotService {
             slot.setFloor(floor);
         }
         if (request.getVehicleTypeId() != null) {
-            VehicleType vehicleType = vehicleTypeRepository.findById(request.getVehicleTypeId())
-                    .orElseThrow(() -> new ResourceNotFoundException("VehicleType not found with id: " + request.getVehicleTypeId()));
+            VehicleType vehicleType = resolveVehicleType(request.getVehicleTypeId());
             slot.setVehicleType(vehicleType);
         }
         if (request.getStatus() != null) {
@@ -115,9 +114,27 @@ public class ParkingSlotServiceImpl implements ParkingSlotService {
                 .id(String.valueOf(slot.getId()))
                 .code(slot.getCode())
                 .floorId(String.valueOf(slot.getFloor().getId()))
-                .vehicleTypeId(slot.getVehicleType().getId())
+                .vehicleTypeId(String.valueOf(slot.getVehicleType().getId()))
                 .status(slot.getStatus())
                 .updatedAt(slot.getUpdatedAt())
                 .build();
+    }
+
+    private VehicleType resolveVehicleType(String vehicleTypeRef) {
+        try {
+            Long numericId = Long.parseLong(vehicleTypeRef.trim());
+            return vehicleTypeRepository.findById(numericId)
+                    .orElseThrow(() -> new ResourceNotFoundException(
+                            "Vehicle type not found with ID: " + numericId));
+        } catch (NumberFormatException e) {
+            return vehicleTypeRepository.findByCode(vehicleTypeRef.trim().toUpperCase())
+                    .or(() -> vehicleTypeRepository.findByCode(vehicleTypeRef.trim()))
+                    .orElseThrow(() -> new ResourceNotFoundException(
+                            "Vehicle type not found: " + vehicleTypeRef));
+        }
+    }
+
+    private Long resolveVehicleTypeId(String vehicleTypeRef) {
+        return resolveVehicleType(vehicleTypeRef).getId();
     }
 }

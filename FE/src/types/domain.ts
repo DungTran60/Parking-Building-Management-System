@@ -18,12 +18,16 @@ export interface Building {
   capacity: number;
 }
 
+export type VehicleTypeStatus = "ACTIVE" | "INACTIVE";
+
 export interface VehicleType {
   id: string;
+  code: string;
   name: string;
-  size: string;
-  capacityUnit: number;
-  color: string;
+  description?: string;
+  status: VehicleTypeStatus;
+  createdAt?: string;
+  updatedAt?: string;
 }
 
 export interface Floor {

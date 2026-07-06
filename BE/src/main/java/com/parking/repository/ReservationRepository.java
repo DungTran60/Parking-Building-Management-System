@@ -56,4 +56,7 @@ public interface ReservationRepository extends JpaRepository<Reservation, Long> 
             @Param("startAt")    LocalDateTime startAt,
             @Param("endAt")      LocalDateTime endAt
     );
+
+    /** Kiểm tra VehicleType có đang được dùng trong Reservation không */
+    boolean existsByVehicleTypeId(Long vehicleTypeId);
 }

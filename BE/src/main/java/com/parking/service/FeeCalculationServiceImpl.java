@@ -44,10 +44,10 @@ public class FeeCalculationServiceImpl implements FeeCalculationService {
                         "Không tìm thấy lượt gửi xe đang hoạt động với mã: " + query));
 
         LocalDateTime now = LocalDateTime.now();
-        String vehicleTypeId = session.getVehicleType().getId();
+        VehicleType vehicleType = session.getVehicleType();
 
         // Lấy đơn giá theo giờ
-        RateResult rate = resolveHourlyRate(vehicleTypeId, session.getVehicleType());
+        RateResult rate = resolveHourlyRate(vehicleType.getId(), vehicleType);
 
         // Tính số giờ
         double hours = computeHours(session.getCheckInAt(), now);
@@ -60,8 +60,8 @@ public class FeeCalculationServiceImpl implements FeeCalculationService {
         return FeeCalculationResponseDto.builder()
                 .ticketCode(session.getTicketCode())
                 .plateNumber(session.getPlateNumber())
-                .vehicleTypeId(vehicleTypeId)
-                .vehicleTypeName(session.getVehicleType().getName())
+                .vehicleTypeId(String.valueOf(vehicleType.getId()))
+                .vehicleTypeName(vehicleType.getName())
                 .checkInAt(session.getCheckInAt())
                 .calculatedAt(now)
                 .hours(hours)
@@ -76,14 +76,11 @@ public class FeeCalculationServiceImpl implements FeeCalculationService {
     ───────────────────────────────────────────────────── */
     @Override
     @Transactional(readOnly = true)
-    public BigDecimal calculateFee(String vehicleTypeId,
+    public BigDecimal calculateFee(String vehicleTypeRef,
                                    LocalDateTime checkInAt,
                                    LocalDateTime checkOutAt) {
-        VehicleType vehicleType = vehicleTypeRepository.findById(vehicleTypeId)
-                .orElseThrow(() -> new ResourceNotFoundException(
-                        "Vehicle type not found: " + vehicleTypeId));
-
-        RateResult rate = resolveHourlyRate(vehicleTypeId, vehicleType);
+        VehicleType vehicleType = resolveVehicleType(vehicleTypeRef);
+        RateResult rate = resolveHourlyRate(vehicleType.getId(), vehicleType);
         double hours = computeHours(checkInAt, checkOutAt);
 
         return rate.hourlyRate
@@ -99,7 +96,7 @@ public class FeeCalculationServiceImpl implements FeeCalculationService {
      * Lấy đơn giá theo giờ.
      * Ưu tiên: bảng Pricing (HOURLY, active=true) → hourlyRate của VehicleType → mặc định 5.000 VND
      */
-    private RateResult resolveHourlyRate(String vehicleTypeId, VehicleType vehicleType) {
+    private RateResult resolveHourlyRate(Long vehicleTypeId, VehicleType vehicleType) {
         // 1. Bảng Pricing
         Optional<Pricing> pricingOpt = pricingRepository
                 .findByVehicleTypeIdAndTimeUnit(vehicleTypeId, PricingTimeUnit.HOURLY);
@@ -117,6 +114,24 @@ public class FeeCalculationServiceImpl implements FeeCalculationService {
 
         // 3. Fallback cứng
         return new RateResult(DEFAULT_HOURLY_RATE, "SYSTEM_DEFAULT");
+    }
+
+    /**
+     * Resolve VehicleType từ string reference (ID số hoặc code).
+     * Fallback về Nếu là code (ví dụ "car", "CAR").
+     */
+    private VehicleType resolveVehicleType(String vehicleTypeRef) {
+        try {
+            Long numericId = Long.parseLong(vehicleTypeRef.trim());
+            return vehicleTypeRepository.findById(numericId)
+                    .orElseThrow(() -> new ResourceNotFoundException(
+                            "Vehicle type not found: " + numericId));
+        } catch (NumberFormatException e) {
+            return vehicleTypeRepository.findByCode(vehicleTypeRef.trim().toUpperCase())
+                    .or(() -> vehicleTypeRepository.findByCode(vehicleTypeRef.trim()))
+                    .orElseThrow(() -> new ResourceNotFoundException(
+                            "Vehicle type not found: " + vehicleTypeRef));
+        }
     }
 
     /**

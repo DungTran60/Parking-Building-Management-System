@@ -12,20 +12,23 @@ import java.util.Optional;
 public interface PricingRepository extends JpaRepository<Pricing, Long> {
 
     /** Tìm tất cả bảng giá theo loại phương tiện */
-    List<Pricing> findByVehicleTypeId(String vehicleTypeId);
+    List<Pricing> findByVehicleTypeId(Long vehicleTypeId);
 
     /** Tìm tất cả bảng giá đang áp dụng */
     List<Pricing> findByActiveTrue();
 
     /** Tìm tất cả bảng giá đang áp dụng theo loại phương tiện */
-    List<Pricing> findByVehicleTypeIdAndActiveTrue(String vehicleTypeId);
+    List<Pricing> findByVehicleTypeIdAndActiveTrue(Long vehicleTypeId);
 
     /** Kiểm tra tồn tại bảng giá cho cặp (loại xe, đơn vị thời gian) */
-    boolean existsByVehicleTypeIdAndTimeUnit(String vehicleTypeId, PricingTimeUnit timeUnit);
+    boolean existsByVehicleTypeIdAndTimeUnit(Long vehicleTypeId, PricingTimeUnit timeUnit);
 
     /** Kiểm tra trùng lặp khi update – loại trừ bản ghi đang chỉnh sửa */
-    boolean existsByVehicleTypeIdAndTimeUnitAndIdNot(String vehicleTypeId, PricingTimeUnit timeUnit, Long id);
+    boolean existsByVehicleTypeIdAndTimeUnitAndIdNot(Long vehicleTypeId, PricingTimeUnit timeUnit, Long id);
 
     /** Tìm bảng giá cụ thể theo loại xe và đơn vị thời gian */
-    Optional<Pricing> findByVehicleTypeIdAndTimeUnit(String vehicleTypeId, PricingTimeUnit timeUnit);
+    Optional<Pricing> findByVehicleTypeIdAndTimeUnit(Long vehicleTypeId, PricingTimeUnit timeUnit);
+
+    /** Kiểm tra VehicleType có đang được dùng bởi bảng giá không */
+    boolean existsByVehicleTypeId(Long vehicleTypeId);
 }
