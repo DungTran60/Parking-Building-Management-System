@@ -1,14 +1,10 @@
 import React, { useState } from 'react';
-import { Link } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
+import LandingPage from '@/pages/auth/LandingPage';
+import { registerUser } from '@/services/authService';
 
 const Icon = ({ name, className = 'w-5 h-5' }: { name: string; className?: string }) => {
     const paths: Record<string, React.ReactNode> = {
-        parking: (
-            <>
-                <path d="M9 18V6h4.5a3.5 3.5 0 0 1 0 7H9" />
-                <path d="M9 13h4.5" />
-            </>
-        ),
         userPlus: (
             <>
                 <path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2" />
@@ -38,33 +34,10 @@ const Icon = ({ name, className = 'w-5 h-5' }: { name: string; className?: strin
                 <path d="M7 11V7a5 5 0 0 1 10 0v4" />
             </>
         ),
-        car: (
+        x: (
             <>
-                <path d="M19 17h2c.6 0 1-.4 1-1v-3c0-.9-.7-1.7-1.5-1.9L18.4 6c-.3-.6-.9-1-1.6-1H7.2c-.7 0-1.3.4-1.6 1l-2.1 5.1C2.7 11.3 2 12.1 2 13v3c0 .6.4 1 1 1h2" />
-                <circle cx="7" cy="17" r="2" />
-                <circle cx="17" cy="17" r="2" />
-                <path d="M5 11h14" />
-            </>
-        ),
-        shield: (
-            <>
-                <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10" />
-                <path d="m9 12 2 2 4-4" />
-            </>
-        ),
-        calendar: (
-            <>
-                <path d="M8 2v4" />
-                <path d="M16 2v4" />
-                <rect width="18" height="18" x="3" y="4" rx="2" />
-                <path d="M3 10h18" />
-            </>
-        ),
-        check: <path d="m20 6-11 11-5-5" />,
-        arrowLeft: (
-            <>
-                <path d="m12 19-7-7 7-7" />
-                <path d="M19 12H5" />
+                <path d="M18 6 6 18" />
+                <path d="m6 6 12 12" />
             </>
         ),
     };
@@ -77,91 +50,57 @@ const Icon = ({ name, className = 'w-5 h-5' }: { name: string; className?: strin
 };
 
 const RegisterPage = () => {
-    const handleSubmit = (event: React.FormEvent<HTMLFormElement>) => {
+    const navigate = useNavigate();
+    const [fullName, setFullName] = useState('');
+    const [phoneNumber, setPhoneNumber] = useState('');
+    const [email, setEmail] = useState('');
+    const [username, setUsername] = useState('');
+    const [password, setPassword] = useState('');
+    const [confirmPassword, setConfirmPassword] = useState('');
+    const [error, setError] = useState('');
+    const [isSubmitting, setIsSubmitting] = useState(false);
+    const [isTransitioning, setIsTransitioning] = useState(false);
+
+    const handleSubmit = async (event: React.FormEvent<HTMLFormElement>) => {
         event.preventDefault();
-        alert('Đăng ký thành công! (Demo)');
+        setError('');
+
+        if (password !== confirmPassword) {
+            setError('Mật khẩu xác nhận không khớp.');
+            return;
+        }
+
+        setIsSubmitting(true);
+        try {
+            await registerUser({ username, password, fullName, email, phoneNumber });
+            setIsTransitioning(true);
+            await new Promise((resolve) => window.setTimeout(resolve, 280));
+            navigate('/login', { replace: true, state: { registrationSuccess: true } });
+        } catch (submitError) {
+            setError(submitError instanceof Error ? submitError.message : 'Đăng ký thất bại. Vui lòng thử lại.');
+        } finally {
+            setIsSubmitting(false);
+        }
     };
 
     return (
-        <main
-            className="min-h-screen w-full overflow-y-auto bg-cover bg-center"
-            style={{
-                backgroundImage:
-                    "linear-gradient(90deg, rgba(15, 23, 42, 0.92) 0%, rgba(15, 23, 42, 0.78) 46%, rgba(15, 23, 42, 0.5) 100%), url('https://images.unsplash.com/photo-1573348722427-f1d6819fdf98?w=1920&auto=format&fit=crop&q=80')",
-            }}
-        >
-            <div className="min-h-screen grid grid-cols-1 lg:grid-cols-2">
-                <section className="hidden lg:flex flex-col justify-between px-12 py-10 text-white">
-                    <div className="flex items-center gap-3">
-                        <div className="w-11 h-11 rounded-xl bg-blue-500 flex items-center justify-center shadow-lg">
-                            <Icon name="parking" className="w-7 h-7" />
-                        </div>
-                        <div>
-                            <h1 className="text-xl font-bold">Parking BMS</h1>
-                            <p className="text-xs text-blue-100">Smart Parking Building Management</p>
-                        </div>
-                    </div>
-
-                    <div className="max-w-xl">
-                        <span className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full bg-white/10 border border-white/15 text-xs text-blue-100 mb-5">
-                            <Icon name="userPlus" className="w-3.5 h-3.5" />
-                            Tạo tài khoản truy cập hệ thống
-                        </span>
-                        <h2 className="text-4xl font-bold leading-tight">Bắt đầu sử dụng Parking BMS theo đúng vai trò của bạn.</h2>
-                        <p className="text-slate-200 mt-4 leading-7">
-                            Tài khoản Driver có thể gửi xe và đặt chỗ. Tài khoản Staff/Manager cần được quản trị viên xác minh trước khi kích hoạt đầy đủ quyền.
-                        </p>
-                        <div className="space-y-3 mt-8">
-                            <div className="flex items-center gap-3 rounded-xl bg-white/10 border border-white/15 p-4">
-                                <div className="w-9 h-9 rounded-lg bg-blue-500/80 flex items-center justify-center">
-                                    <Icon name="check" className="w-5 h-5" />
-                                </div>
-                                <div>
-                                    <p className="font-semibold">Đăng ký nhanh</p>
-                                    <p className="text-xs text-slate-300 mt-1">Tạo hồ sơ người dùng và phương tiện trong một luồng.</p>
-                                </div>
-                            </div>
-                            <div className="flex items-center gap-3 rounded-xl bg-white/10 border border-white/15 p-4">
-                                <div className="w-9 h-9 rounded-lg bg-green-500/80 flex items-center justify-center">
-                                    <Icon name="calendar" className="w-5 h-5" />
-                                </div>
-                                <div>
-                                    <p className="font-semibold">Sẵn sàng đặt chỗ</p>
-                                    <p className="text-xs text-slate-300 mt-1">Theo dõi slot trống và đặt chỗ trước nếu bãi hỗ trợ.</p>
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-
-                    <p className="text-xs text-slate-300">© 2026 Parking BMS - Hệ thống quản lý tòa nhà gửi xe</p>
-                </section>
-
-                <section className="flex items-center justify-center px-4 py-8 sm:px-6 lg:px-12">
+        <div className="relative min-h-screen">
+            <div aria-hidden="true" className="max-h-screen overflow-hidden"><LandingPage /></div>
+            <main className="fixed inset-0 z-[100] w-full overflow-y-auto bg-slate-950/70 backdrop-blur-sm">
+                <div className="flex min-h-screen items-center justify-center px-4 py-8 sm:px-6">
                     <div className="w-full max-w-xl">
-                        <div className="lg:hidden text-center mb-6 text-white">
-                            <div className="inline-flex items-center gap-3">
-                                <div className="w-11 h-11 rounded-xl bg-blue-500 flex items-center justify-center shadow-lg">
-                                    <Icon name="parking" className="w-7 h-7" />
-                                </div>
-                                <div className="text-left">
-                                    <h1 className="text-xl font-bold">Parking BMS</h1>
-                                    <p className="text-xs text-blue-100">Quản lý bãi xe thông minh</p>
-                                </div>
-                            </div>
-                        </div>
-
-                        <div className="rounded-xl shadow-2xl border border-white/60 bg-white/90 backdrop-blur p-6 sm:p-8 relative">
+                        <div role="dialog" aria-modal="true" aria-labelledby="register-dialog-title" className={`relative rounded-3xl border border-white/60 bg-white/95 p-6 shadow-2xl backdrop-blur sm:p-8 ${isTransitioning ? 'auth-modal-slide-out-left' : ''}`}>
                             <Link
                                 to="/"
-                                className="absolute top-4 right-4 sm:top-6 sm:right-6 text-slate-500 hover:text-slate-800 transition flex items-center gap-1 text-sm font-medium bg-slate-100 hover:bg-slate-200 px-3 py-1.5 rounded-lg"
+                                aria-label="Đóng cửa sổ đăng ký"
+                                title="Đóng"
+                                className="absolute top-4 right-4 flex h-9 w-9 items-center justify-center rounded-full bg-slate-100 text-slate-500 transition hover:bg-slate-200 hover:text-slate-800"
                             >
-                                <Icon name="arrowLeft" className="w-4 h-4" />
-                                Trang chủ
+                                <Icon name="x" className="w-5 h-5" />
                             </Link>
 
                             <div className="mb-6 mt-2">
-                                <p className="text-xs uppercase tracking-wide text-blue-600 font-semibold">Create account</p>
-                                <h2 className="text-2xl font-bold text-slate-800 mt-1">Đăng ký tài khoản</h2>
+                                <h2 id="register-dialog-title" className="text-2xl font-bold text-slate-800 mt-1">Đăng ký tài khoản</h2>
                                 <p className="text-sm text-slate-500 mt-2">Nhập thông tin để tạo tài khoản sử dụng Parking BMS.</p>
                             </div>
 
@@ -173,7 +112,7 @@ const RegisterPage = () => {
                                             <div className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400">
                                                 <Icon name="user" className="w-[18px] h-[18px]" />
                                             </div>
-                                            <input id="fullName" className="w-full bg-white border border-slate-200 focus:border-blue-500 focus:ring-2 focus:ring-blue-100 rounded-lg py-3 pl-10 pr-3 text-sm text-slate-800 placeholder-slate-400 focus:outline-none transition" placeholder="Nguyễn Văn A" required />
+                                            <input id="fullName" name="fullName" value={fullName} onChange={(event) => setFullName(event.target.value)} autoComplete="name" className="w-full bg-white border border-slate-200 focus:border-blue-500 focus:ring-2 focus:ring-blue-100 rounded-lg py-3 pl-10 pr-3 text-sm text-slate-800 placeholder-slate-400 focus:outline-none transition" placeholder="Nguyễn Văn A" required />
                                         </div>
                                     </div>
                                     <div>
@@ -182,7 +121,7 @@ const RegisterPage = () => {
                                             <div className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400">
                                                 <Icon name="phone" className="w-[18px] h-[18px]" />
                                             </div>
-                                            <input id="phone" className="w-full bg-white border border-slate-200 focus:border-blue-500 focus:ring-2 focus:ring-blue-100 rounded-lg py-3 pl-10 pr-3 text-sm text-slate-800 placeholder-slate-400 focus:outline-none transition" placeholder="09xx xxx xxx" required />
+                                            <input id="phone" name="phoneNumber" type="tel" value={phoneNumber} onChange={(event) => setPhoneNumber(event.target.value)} autoComplete="tel" className="w-full bg-white border border-slate-200 focus:border-blue-500 focus:ring-2 focus:ring-blue-100 rounded-lg py-3 pl-10 pr-3 text-sm text-slate-800 placeholder-slate-400 focus:outline-none transition" placeholder="09xx xxx xxx" required />
                                         </div>
                                     </div>
                                 </div>
@@ -194,16 +133,16 @@ const RegisterPage = () => {
                                             <div className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400">
                                                 <Icon name="mail" className="w-[18px] h-[18px]" />
                                             </div>
-                                            <input id="email" type="email" className="w-full bg-white border border-slate-200 focus:border-blue-500 focus:ring-2 focus:ring-blue-100 rounded-lg py-3 pl-10 pr-3 text-sm text-slate-800 placeholder-slate-400 focus:outline-none transition" placeholder="name@email.com" required />
+                                            <input id="email" name="email" type="email" value={email} onChange={(event) => setEmail(event.target.value)} autoComplete="email" className="w-full bg-white border border-slate-200 focus:border-blue-500 focus:ring-2 focus:ring-blue-100 rounded-lg py-3 pl-10 pr-3 text-sm text-slate-800 placeholder-slate-400 focus:outline-none transition" placeholder="name@email.com" required />
                                         </div>
                                     </div>
                                     <div>
-                                        <label className="block text-sm font-medium text-slate-700 mb-2" htmlFor="plate">Biển số xe</label>
+                                        <label className="block text-sm font-medium text-slate-700 mb-2" htmlFor="username">Tên đăng nhập</label>
                                         <div className="relative">
                                             <div className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400">
-                                                <Icon name="car" className="w-[18px] h-[18px]" />
+                                                <Icon name="user" className="w-[18px] h-[18px]" />
                                             </div>
-                                            <input id="plate" className="w-full bg-white border border-slate-200 focus:border-blue-500 focus:ring-2 focus:ring-blue-100 rounded-lg py-3 pl-10 pr-3 text-sm text-slate-800 placeholder-slate-400 focus:outline-none transition uppercase" placeholder="29A-123.45" />
+                                            <input id="username" name="username" value={username} onChange={(event) => setUsername(event.target.value)} autoComplete="username" minLength={3} maxLength={50} className="w-full bg-white border border-slate-200 focus:border-blue-500 focus:ring-2 focus:ring-blue-100 rounded-lg py-3 pl-10 pr-3 text-sm text-slate-800 placeholder-slate-400 focus:outline-none transition" placeholder="newdriver" required />
                                         </div>
                                     </div>
                                 </div>
@@ -215,7 +154,7 @@ const RegisterPage = () => {
                                             <div className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400">
                                                 <Icon name="lock" className="w-[18px] h-[18px]" />
                                             </div>
-                                            <input id="password" type="password" className="w-full bg-white border border-slate-200 focus:border-blue-500 focus:ring-2 focus:ring-blue-100 rounded-lg py-3 pl-10 pr-3 text-sm text-slate-800 placeholder-slate-400 focus:outline-none transition" placeholder="Tối thiểu 8 ký tự" required />
+                                            <input id="password" name="password" type="password" value={password} onChange={(event) => setPassword(event.target.value)} autoComplete="new-password" minLength={6} className="w-full bg-white border border-slate-200 focus:border-blue-500 focus:ring-2 focus:ring-blue-100 rounded-lg py-3 pl-10 pr-3 text-sm text-slate-800 placeholder-slate-400 focus:outline-none transition" placeholder="Tối thiểu 6 ký tự" required />
                                         </div>
                                     </div>
                                     <div>
@@ -224,7 +163,7 @@ const RegisterPage = () => {
                                             <div className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400">
                                                 <Icon name="lock" className="w-[18px] h-[18px]" />
                                             </div>
-                                            <input id="confirmPassword" type="password" className="w-full bg-white border border-slate-200 focus:border-blue-500 focus:ring-2 focus:ring-blue-100 rounded-lg py-3 pl-10 pr-3 text-sm text-slate-800 placeholder-slate-400 focus:outline-none transition" placeholder="Nhập lại mật khẩu" required />
+                                            <input id="confirmPassword" name="confirmPassword" type="password" value={confirmPassword} onChange={(event) => setConfirmPassword(event.target.value)} autoComplete="new-password" minLength={6} className="w-full bg-white border border-slate-200 focus:border-blue-500 focus:ring-2 focus:ring-blue-100 rounded-lg py-3 pl-10 pr-3 text-sm text-slate-800 placeholder-slate-400 focus:outline-none transition" placeholder="Nhập lại mật khẩu" required />
                                         </div>
                                     </div>
                                 </div>
@@ -234,9 +173,15 @@ const RegisterPage = () => {
                                     <span>Tôi đồng ý với điều khoản sử dụng và chính sách bảo mật của Parking BMS.</span>
                                 </label>
 
-                                <button type="submit" className="w-full bg-blue-600 hover:bg-blue-700 text-white font-semibold py-3 rounded-lg transition shadow-lg shadow-blue-500/20 flex items-center justify-center gap-2">
+                                {error && (
+                                    <div role="alert" className="rounded-lg border border-red-200 bg-red-50 px-3 py-2.5 text-sm text-red-700">
+                                        {error}
+                                    </div>
+                                )}
+
+                                <button type="submit" disabled={isSubmitting} className="w-full bg-blue-600 hover:bg-blue-700 disabled:cursor-not-allowed disabled:opacity-60 text-white font-semibold py-3 rounded-lg transition shadow-lg shadow-blue-500/20 flex items-center justify-center gap-2">
                                     <Icon name="userPlus" className="w-[18px] h-[18px]" />
-                                    Tạo tài khoản
+                                    {isSubmitting ? 'Đang tạo tài khoản...' : 'Tạo tài khoản'}
                                 </button>
                             </form>
 
@@ -245,9 +190,9 @@ const RegisterPage = () => {
                             </p>
                         </div>
                     </div>
-                </section>
-            </div>
-        </main>
+                </div>
+            </main>
+        </div>
     );
 };
 

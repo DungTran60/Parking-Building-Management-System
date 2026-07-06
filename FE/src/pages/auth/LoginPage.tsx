@@ -1,10 +1,11 @@
 import React, { useState } from 'react';
-import { Link, useNavigate } from 'react-router-dom';
-import { authenticateMockUser } from '@/services/mockRepository';
+import { Link, useLocation, useNavigate } from 'react-router-dom';
+import { loginUser } from '@/services/authService';
 import { useAuthStore } from '@/stores/authStore';
 import type { Role } from '@/types/rbac';
+import LandingPage from '@/pages/auth/LandingPage';
 
-export type IconName = 'parking' | 'shield' | 'user' | 'lock' | 'eye' | 'eyeOff' | 'login' | 'car' | 'building' | 'creditCard' | 'chart' | 'camera' | 'arrowLeft';
+export type IconName = 'user' | 'lock' | 'eye' | 'eyeOff' | 'login' | 'check' | 'x';
 
 interface IconProps {
   name: IconName;
@@ -13,18 +14,6 @@ interface IconProps {
 
 const Icon = ({ name, className = 'w-5 h-5' }: IconProps) => {
   const paths = {
-    parking: (
-      <>
-        <path d="M9 18V6h4.5a3.5 3.5 0 0 1 0 7H9" />
-        <path d="M9 13h4.5" />
-      </>
-    ),
-    shield: (
-      <>
-        <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10" />
-        <path d="m9 12 2 2 4-4" />
-      </>
-    ),
     user: (
       <>
         <path d="M19 21v-2a4 4 0 0 0-4-4H9a4 4 0 0 0-4 4v2" />
@@ -58,47 +47,11 @@ const Icon = ({ name, className = 'w-5 h-5' }: IconProps) => {
         <path d="M15 12H3" />
       </>
     ),
-    car: (
+    check: <path d="m20 6-11 11-5-5" />,
+    x: (
       <>
-        <path d="M19 17h2c.6 0 1-.4 1-1v-3c0-.9-.7-1.7-1.5-1.9L18.4 6c-.3-.6-.9-1-1.6-1H7.2c-.7 0-1.3.4-1.6 1l-2.1 5.1C2.7 11.3 2 12.1 2 13v3c0 .6.4 1 1 1h2" />
-        <circle cx="7" cy="17" r="2" />
-        <circle cx="17" cy="17" r="2" />
-        <path d="M5 11h14" />
-      </>
-    ),
-    building: (
-      <>
-        <path d="M6 22V4a2 2 0 0 1 2-2h8a2 2 0 0 1 2 2v18" />
-        <path d="M10 6h4" />
-        <path d="M10 10h4" />
-        <path d="M10 14h4" />
-        <path d="M10 18h4" />
-      </>
-    ),
-    creditCard: (
-      <>
-        <rect width="20" height="14" x="2" y="5" rx="2" />
-        <path d="M2 10h20" />
-      </>
-    ),
-    chart: (
-      <>
-        <path d="M3 3v18h18" />
-        <path d="M18 17V9" />
-        <path d="M13 17V5" />
-        <path d="M8 17v-3" />
-      </>
-    ),
-    camera: (
-      <>
-        <path d="M14.5 4h-5L7 7H4a2 2 0 0 0-2 2v9a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2V9a2 2 0 0 0-2-2h-3l-2.5-3Z" />
-        <circle cx="12" cy="13" r="3" />
-      </>
-    ),
-    arrowLeft: (
-      <>
-        <path d="m12 19-7-7 7-7" />
-        <path d="M19 12H5" />
+        <path d="M18 6 6 18" />
+        <path d="m6 6 12 12" />
       </>
     ),
   };
@@ -110,16 +63,10 @@ const Icon = ({ name, className = 'w-5 h-5' }: IconProps) => {
   );
 };
 
-interface RoleCardProps {
-  role: string;
-  description: string;
-  icon: IconName;
-  active: boolean;
-  onClick: () => void;
-}
-
 const LoginPage = () => {
   const navigate = useNavigate();
+  const location = useLocation();
+  const registrationSuccess = Boolean((location.state as { registrationSuccess?: boolean } | null)?.registrationSuccess);
   const login = useAuthStore((state) => state.login);
   const [showPassword, setShowPassword] = useState(false);
   const [identifier, setIdentifier] = useState('');
@@ -141,112 +88,47 @@ const LoginPage = () => {
     setIsSubmitting(true);
 
     try {
-      const result = await authenticateMockUser(identifier, password);
-      if (!result.success) {
-        setError(
-          result.reason === 'INACTIVE_ACCOUNT'
-            ? 'Tài khoản đã bị vô hiệu hóa. Vui lòng liên hệ quản trị viên.'
-            : 'Tên đăng nhập/email hoặc mật khẩu không chính xác.'
-        );
-        return;
-      }
-
-      login(result.user, remember);
+      const result = await loginUser(identifier, password);
+      login(result.user, result.token, remember);
       navigate(roleHome[result.user.role], { replace: true });
+    } catch (submitError) {
+      setError(submitError instanceof Error ? submitError.message : 'Đăng nhập thất bại. Vui lòng thử lại.');
     } finally {
       setIsSubmitting(false);
     }
   };
 
   return (
-    <main
-      className="min-h-screen w-full overflow-y-auto bg-cover bg-center"
-      style={{
-        backgroundImage:
-          "linear-gradient(90deg, rgba(15, 23, 42, 0.92) 0%, rgba(15, 23, 42, 0.78) 44%, rgba(15, 23, 42, 0.45) 100%), url('https://images.unsplash.com/photo-1590674899484-d5640e854abe?w=1920&auto=format&fit=crop&q=80')",
-      }}
-    >
-      <div className="min-h-screen grid grid-cols-1 lg:grid-cols-2">
-        <section className="hidden lg:flex flex-col justify-between px-12 py-10 text-white">
-          <div className="flex items-center gap-3">
-            <div className="w-11 h-11 rounded-xl bg-blue-500 flex items-center justify-center shadow-lg">
-              <Icon name="parking" className="w-7 h-7" />
-            </div>
-            <div>
-              <h1 className="text-xl font-bold">Parking BMS</h1>
-              <p className="text-xs text-blue-100">Smart Parking Building Management</p>
-            </div>
-          </div>
-
-          <div className="max-w-xl">
-            <span className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full bg-white/10 border border-white/15 text-xs text-blue-100 mb-5">
-              <Icon name="shield" className="w-3.5 h-3.5" />
-              Truy cập an toàn theo vai trò
-            </span>
-            <h2 className="text-4xl font-bold leading-tight">Quản lý vận hành bãi xe từ một màn hình đăng nhập.</h2>
-            <p className="text-slate-200 mt-4 leading-7">
-              Theo dõi slot trống, xử lý xe vào/ra, đặt chỗ, thanh toán và phân quyền cho từng nhóm người dùng trong cùng một hệ thống.
-            </p>
-            <div className="grid grid-cols-3 gap-3 mt-8">
-              <div className="rounded-xl bg-white/10 border border-white/15 p-4">
-                <p className="text-2xl font-bold">24</p>
-                <p className="text-xs text-slate-300 mt-1">bãi xe</p>
-              </div>
-              <div className="rounded-xl bg-white/10 border border-white/15 p-4">
-                <p className="text-2xl font-bold">8,459</p>
-                <p className="text-xs text-slate-300 mt-1">slot hoạt động</p>
-              </div>
-              <div className="rounded-xl bg-white/10 border border-white/15 p-4">
-                <p className="text-2xl font-bold">99.8%</p>
-                <p className="text-xs text-slate-300 mt-1">uptime</p>
-              </div>
-            </div>
-          </div>
-
-          <div className="grid grid-cols-3 gap-3 max-w-xl">
-            <div className="flex items-center gap-3 rounded-xl bg-white/10 border border-white/15 p-3">
-              <Icon name="camera" className="w-[18px] h-[18px]" />
-              <span className="text-xs">Nhận diện biển số</span>
-            </div>
-            <div className="flex items-center gap-3 rounded-xl bg-white/10 border border-white/15 p-3">
-              <Icon name="creditCard" className="w-[18px] h-[18px]" />
-              <span className="text-xs">Thanh toán nhanh</span>
-            </div>
-            <div className="flex items-center gap-3 rounded-xl bg-white/10 border border-white/15 p-3">
-              <Icon name="chart" className="w-[18px] h-[18px]" />
-              <span className="text-xs">Báo cáo realtime</span>
-            </div>
-          </div>
-        </section>
-
-        <section className="flex items-center justify-center px-4 py-8 sm:px-6 lg:px-12">
-          <div className="w-full max-w-md">
-            <div className="lg:hidden text-center mb-6 text-white">
-              <div className="inline-flex items-center gap-3">
-                <div className="w-11 h-11 rounded-xl bg-blue-500 flex items-center justify-center shadow-lg">
-                  <Icon name="parking" className="w-7 h-7" />
-                </div>
-                <div className="text-left">
-                  <h1 className="text-xl font-bold">Parking BMS</h1>
-                  <p className="text-xs text-blue-100">Quản lý bãi xe thông minh</p>
-                </div>
-              </div>
-            </div>
-
-            <div className="rounded-xl shadow-2xl border border-white/60 bg-white/90 backdrop-blur p-6 sm:p-8 relative">
-              <Link 
-                to="/" 
-                className="absolute top-4 right-4 sm:top-6 sm:right-6 text-slate-500 hover:text-slate-800 transition flex items-center gap-1 text-sm font-medium bg-slate-100 hover:bg-slate-200 px-3 py-1.5 rounded-lg"
+    <div className="relative min-h-screen">
+      <div aria-hidden="true" className="max-h-screen overflow-hidden"><LandingPage /></div>
+      <main className="fixed inset-0 z-[100] w-full overflow-y-auto bg-slate-950/70 backdrop-blur-sm">
+        <div className="flex min-h-screen items-center justify-center px-4 py-8 sm:px-6">
+          <div className="w-full max-w-xl">
+            <div role="dialog" aria-modal="true" aria-labelledby="login-dialog-title" className={`relative rounded-3xl border border-white/60 bg-white/95 p-6 shadow-2xl backdrop-blur sm:p-8 ${registrationSuccess ? 'auth-modal-slide-in-right' : ''}`}>
+              <Link
+                to="/"
+                aria-label="Đóng cửa sổ đăng nhập"
+                title="Đóng"
+                className="absolute top-4 right-4 flex h-9 w-9 items-center justify-center rounded-full bg-slate-100 text-slate-500 transition hover:bg-slate-200 hover:text-slate-800"
               >
-                <Icon name="arrowLeft" className="w-4 h-4" />
-                Trang chủ
+                <Icon name="x" className="w-5 h-5" />
               </Link>
 
               <div className="mb-6 mt-2">
-                <p className="text-xs uppercase tracking-wide text-blue-600 font-semibold">Welcome back</p>
-                <h2 className="text-2xl font-bold text-slate-800 mt-1">Đăng nhập hệ thống</h2>
-                <p className="text-sm text-slate-500 mt-2">Sử dụng tài khoản được cấp để truy cập đúng vai trò.</p>
+                <h2 id="login-dialog-title" className="text-2xl font-bold text-slate-800 mt-1">Đăng nhập</h2>
               </div>
+
+              {registrationSuccess && (
+                <div role="status" className="mb-5 flex items-start gap-3 rounded-xl border border-emerald-200 bg-emerald-50 px-4 py-3 text-emerald-800">
+                  <span className="mt-0.5 flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-emerald-500 text-white">
+                    <Icon name="check" className="h-4 w-4" />
+                  </span>
+                  <div>
+                    <p className="text-sm font-semibold">Đăng ký thành công!</p>
+                    <p className="mt-0.5 text-sm text-emerald-700">Vui lòng đăng nhập để tiếp tục.</p>
+                  </div>
+                </div>
+              )}
 
               <form onSubmit={handleSubmit} className="space-y-4">
                 <div>
@@ -277,7 +159,7 @@ const LoginPage = () => {
                     <input type="checkbox" checked={remember} onChange={(event) => setRemember(event.target.checked)} className="w-4 h-4 accent-blue-600 mr-2" />
                     Ghi nhớ đăng nhập
                   </label>
-                  <a href="#" className="text-blue-600 hover:text-blue-700 font-medium">Quên mật khẩu?</a>
+                  {/* <a href="#" className="text-blue-600 hover:text-blue-700 font-medium">Quên mật khẩu?</a> */}
                 </div>
 
                 {error && (
@@ -291,25 +173,14 @@ const LoginPage = () => {
                   {isSubmitting ? 'Đang đăng nhập...' : 'Đăng nhập'}
                 </button>
               </form>
-
-              <div className="mt-5 rounded-lg border border-blue-100 bg-blue-50 p-3 text-xs text-slate-600">
-                <p className="font-semibold text-slate-700">Tài khoản demo</p>
-                <p className="mt-1">sysadmin / Admin@123</p>
-                <p>manager.hcm / Manager@123</p>
-                <p>staff.gate1 / Staff@123</p>
-                <p>driver.lan / Driver@123</p>
-              </div>
-
               <p className="text-center text-sm text-slate-500 mt-6">
                 Chưa có tài khoản? <Link to="/register" className="font-semibold text-blue-600 hover:text-blue-700">Đăng ký ngay</Link>
               </p>
             </div>
-
-            <p className="text-center text-slate-200 text-xs mt-6">© 2026 Parking BMS - Hệ thống quản lý tòa nhà gửi xe</p>
           </div>
-        </section>
-      </div>
-    </main>
+        </div>
+      </main>
+    </div>
   );
 };
 
