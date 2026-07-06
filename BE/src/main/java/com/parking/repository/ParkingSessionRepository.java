@@ -5,6 +5,8 @@ import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 import org.springframework.stereotype.Repository;
+import java.time.LocalDateTime;
+import java.util.List;
 import java.util.Optional;
 
 @Repository
@@ -33,4 +35,8 @@ public interface ParkingSessionRepository extends JpaRepository<ParkingSession, 
 
     /** Kiểm tra VehicleType có đang được dùng trong ParkingSession không */
     boolean existsByVehicleTypeId(Long vehicleTypeId);
+
+    List<ParkingSession> findByCheckInAtBetweenOrCheckOutAtBetween(
+            LocalDateTime start1, LocalDateTime end1,
+            LocalDateTime start2, LocalDateTime end2);
 }
