@@ -24,6 +24,13 @@ export const slotApi = {
     return response.data;
   },
 
+  getAvailable: async (vehicleTypeId?: string): Promise<SlotResponse[]> => {
+    const response = await httpClient.get<SlotResponse[]>("/slots/available", {
+      params: vehicleTypeId ? { vehicleTypeId } : undefined
+    });
+    return response.data;
+  },
+
   create: async (payload: SaveSlotRequest): Promise<SlotResponse> => {
     const response = await httpClient.post<SlotResponse>("/slots", payload);
     return response.data;
@@ -33,6 +40,9 @@ export const slotApi = {
     const response = await httpClient.put<SlotResponse>(`/slots/${slotId}`, payload);
     return response.data;
   },
+
+  updateStatus: async (slotId: number | string, status: SlotStatus): Promise<SlotResponse> =>
+    (await httpClient.patch<SlotResponse>(`/slots/${slotId}/status`, { status })).data,
 
   delete: async (slotId: number | string): Promise<void> => {
     await httpClient.delete(`/slots/${slotId}`);

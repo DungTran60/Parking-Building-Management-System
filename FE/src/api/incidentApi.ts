@@ -12,6 +12,10 @@ export interface ResolveIncidentRequest {
   resolution: string;
 }
 
+export interface AssignIncidentRequest {
+  assigneeId: number;
+}
+
 export const incidentApi = {
   /** Tạo sự cố mới */
   create: async (payload: CreateIncidentRequest): Promise<Incident> => {
@@ -34,6 +38,12 @@ export const incidentApi = {
   /** Cập nhật thông tin sự cố */
   update: async (id: number, payload: CreateIncidentRequest): Promise<Incident> => {
     const response = await httpClient.put<Incident>(`/incidents/${id}`, payload);
+    return response.data;
+  },
+
+  /** Phân công sự cố cho Staff */
+  assign: async (id: number, payload: AssignIncidentRequest): Promise<Incident> => {
+    const response = await httpClient.patch<Incident>(`/incidents/${id}/assign`, payload);
     return response.data;
   },
 
