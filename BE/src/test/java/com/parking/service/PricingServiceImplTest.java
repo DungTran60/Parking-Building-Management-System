@@ -2,10 +2,12 @@ package com.parking.service;
 
 import com.parking.dto.LostTicketFeeResponseDto;
 import com.parking.dto.OvernightFeeResponseDto;
+import com.parking.dto.PricingRequestDto;
 import com.parking.entity.Pricing;
 import com.parking.entity.PricingTimeUnit;
 import com.parking.entity.VehicleType;
 import com.parking.entity.VehicleTypeStatus;
+import com.parking.exception.ResourceConflictException;
 import com.parking.exception.ResourceNotFoundException;
 import com.parking.repository.PricingRepository;
 import com.parking.repository.VehicleTypeRepository;
@@ -185,5 +187,97 @@ class PricingServiceImplTest {
         assertEquals(vehicleTypeId, result.getVehicleType());
         assertEquals(BigDecimal.valueOf(100000), result.getLostTicketFee());
         assertEquals(BigDecimal.valueOf(100000), result.getTotal());
+    }
+
+    @Test
+    void testCreatePricing_ThrowsConflictOnDuplicate() {
+        PricingRequestDto dto = PricingRequestDto.builder()
+                .vehicleTypeId("1")
+                .timeUnit(PricingTimeUnit.HOURLY)
+                .price(BigDecimal.TEN)
+                .build();
+
+        when(vehicleTypeRepository.findById(1L)).thenReturn(Optional.of(mockCar));
+        when(pricingRepository.existsByVehicleTypeIdAndTimeUnit(1L, PricingTimeUnit.HOURLY)).thenReturn(true);
+
+        assertThrows(ResourceConflictException.class, () -> {
+            pricingService.createPricing(dto);
+        });
+    }
+
+    @Test
+    void testCreatePricing_AllowsOnlyHourlyPolicy() {
+        PricingRequestDto dto = PricingRequestDto.builder()
+                .vehicleTypeId("1")
+                .timeUnit(PricingTimeUnit.DAILY) // Not allowed
+                .price(BigDecimal.TEN)
+                .build();
+
+        assertThrows(IllegalArgumentException.class, () -> {
+            pricingService.createPricing(dto);
+        }, "Only HOURLY pricing policies are supported at the moment.");
+    }
+
+    @Test
+    void testCreatePricing_ThrowsOnNegativePrice() {
+        PricingRequestDto dto = PricingRequestDto.builder()
+                .vehicleTypeId("1")
+                .timeUnit(PricingTimeUnit.HOURLY)
+                .price(BigDecimal.valueOf(-100)) // Negative price
+                .build();
+
+        assertThrows(IllegalArgumentException.class, () -> {
+            pricingService.createPricing(dto);
+        }, "Price and fees cannot be negative.");
+    }
+
+    @Test
+    void testCreatePricing_AllowsZeroPrice() {
+        PricingRequestDto dto = PricingRequestDto.builder()
+                .vehicleTypeId("1")
+                .timeUnit(PricingTimeUnit.HOURLY)
+                .price(BigDecimal.ZERO) // Zero price
+                .active(true)
+                .build();
+        
+        when(vehicleTypeRepository.findById(1L)).thenReturn(Optional.of(mockCar));
+        when(pricingRepository.existsByVehicleTypeIdAndTimeUnit(1L, PricingTimeUnit.HOURLY)).thenReturn(false);
+        // Mock the save operation
+        when(pricingRepository.save(any(Pricing.class))).thenAnswer(invocation -> invocation.getArgument(0));
+
+
+        assertDoesNotThrow(() -> {
+            pricingService.createPricing(dto);
+        });
+        
+        verify(pricingRepository, times(1)).save(argThat(p -> p.getPrice().compareTo(BigDecimal.ZERO) == 0));
+    }
+
+    @Test
+    void testCalculateOvernightFee_InactivePolicy() {
+        String vehicleTypeId = "car";
+        LocalDateTime checkIn = LocalDateTime.of(2026, 7, 1, 20, 0);
+        LocalDateTime checkOut = LocalDateTime.of(2026, 7, 2, 8, 0); // 1 night
+
+        when(vehicleTypeRepository.findByCode("CAR")).thenReturn(Optional.of(mockCar));
+
+        // Mock an inactive pricing policy
+        Pricing inactivePricing = Pricing.builder()
+                .overnightFee(BigDecimal.valueOf(20000))
+                .active(false) // Inactive
+                .build();
+        when(pricingRepository.findByVehicleTypeIdAndTimeUnit(1L, PricingTimeUnit.HOURLY))
+                .thenReturn(Optional.of(inactivePricing));
+
+        when(feeCalculationService.calculateFee(vehicleTypeId, checkIn, checkOut))
+                .thenReturn(BigDecimal.valueOf(30000));
+        
+        OvernightFeeResponseDto result = pricingService.calculateOvernightFee(checkIn, checkOut, vehicleTypeId);
+
+        assertNotNull(result);
+        assertEquals(BigDecimal.valueOf(30000), result.getBasePrice());
+        assertEquals(BigDecimal.ZERO, result.getOvernightFee()); // Should be 0 as policy is inactive
+        assertEquals(1, result.getNumberOfNights());
+        assertEquals(BigDecimal.valueOf(30000), result.getTotal()); // 30000 + 1 * 0
     }
 }

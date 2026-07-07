@@ -19,8 +19,4 @@ public class BuildingRequestDto {
     @NotBlank(message = "Address is required")
     @Size(min = 5, max = 255, message = "Address must be between 5 and 255 characters")
     private String address;
-
-    @NotNull(message = "Total floors is required")
-    @Min(value = 1, message = "Total floors must be at least 1")
-    private Integer totalFloors;
 }

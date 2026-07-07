@@ -6,6 +6,7 @@ import com.parking.dto.IncidentResponseDto;
 import com.parking.entity.IncidentStatus;
 import com.parking.entity.IncidentType;
 
+import java.security.Principal;
 import java.util.List;
 
 public interface IncidentService {
@@ -16,20 +17,22 @@ public interface IncidentService {
     /** Lấy sự cố theo ID */
     IncidentResponseDto getIncident(Long id);
 
-    /** Lấy tất cả sự cố */
-    List<IncidentResponseDto> getAllIncidents();
-
-    /** Lọc theo trạng thái */
-    List<IncidentResponseDto> getIncidentsByStatus(IncidentStatus status);
-
-    /** Lọc theo loại */
-    List<IncidentResponseDto> getIncidentsByType(IncidentType type);
+    /** Lấy và lọc danh sách sự cố */
+    List<IncidentResponseDto> findIncidents(
+            IncidentStatus status,
+            IncidentType type,
+            String assignee,
+            Principal principal
+    );
 
     /** Cập nhật thông tin sự cố */
     IncidentResponseDto updateIncident(Long id, IncidentRequestDto dto);
 
+    /** Manager phân công sự cố cho nhân viên */
+    IncidentResponseDto assignIncident(Long id, com.parking.dto.IncidentAssignDto dto);
+
     /** Chuyển trạng thái sang IN_PROGRESS */
-    IncidentResponseDto startProcessing(Long id);
+    IncidentResponseDto startProcessing(Long id, java.security.Principal principal);
 
     /** Giải quyết sự cố: → RESOLVED */
     IncidentResponseDto resolveIncident(Long id, IncidentResolveDto dto);

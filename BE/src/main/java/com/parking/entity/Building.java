@@ -3,6 +3,8 @@ package com.parking.entity;
 import jakarta.persistence.*;
 import lombok.*;
 import java.time.LocalDateTime;
+import java.util.ArrayList;
+import java.util.List;
 
 @Entity
 @Table(name = "buildings")
@@ -23,8 +25,8 @@ public class Building {
     @Column(nullable = false, length = 255)
     private String address;
 
-    @Column(name = "total_floors", nullable = false)
-    private Integer totalFloors;
+    @OneToMany(mappedBy = "building", cascade = CascadeType.ALL, orphanRemoval = true, fetch = FetchType.LAZY)
+    private List<Floor> floors = new ArrayList<>();
 
     @Column(name = "created_at", nullable = false, updatable = false)
     private LocalDateTime createdAt;

@@ -1,15 +1,21 @@
 package com.parking.service;
 
+import com.parking.dto.IncidentAssignDto;
 import com.parking.dto.IncidentRequestDto;
 import com.parking.dto.IncidentResolveDto;
 import com.parking.dto.IncidentResponseDto;
 import com.parking.entity.*;
+import com.parking.exception.ResourceConflictException;
 import com.parking.exception.ResourceNotFoundException;
 import com.parking.repository.*;
+import com.parking.repository.spec.IncidentSpecification;
 import lombok.RequiredArgsConstructor;
+import org.springframework.data.domain.Sort;
+import org.springframework.data.jpa.domain.Specification;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.security.Principal;
 import java.time.LocalDateTime;
 import java.util.List;
 import java.util.stream.Collectors;
@@ -71,30 +77,28 @@ public class IncidentServiceImpl implements IncidentService {
     ───────────────────────────────────────────────────── */
     @Override
     @Transactional(readOnly = true)
-    public List<IncidentResponseDto> getAllIncidents() {
-        return incidentRepository.findAllByOrderByReportedAtDesc().stream()
-                .map(this::mapToResponse)
-                .collect(Collectors.toList());
-    }
+    public List<IncidentResponseDto> findIncidents(IncidentStatus status, IncidentType type, String assignee, Principal principal) {
+        Long assigneeId = null;
+        if (assignee != null) {
+            if ("me".equalsIgnoreCase(assignee)) {
+                User currentUser = findUserOrThrow(principal.getName());
+                assigneeId = currentUser.getId();
+            } else {
+                try {
+                    assigneeId = Long.parseLong(assignee);
+                } catch (NumberFormatException e) {
+                    throw new IllegalArgumentException("Invalid assignee ID format: " + assignee);
+                }
+            }
+        }
 
-    /* ─────────────────────────────────────────────────────
-       Lọc theo trạng thái
-    ───────────────────────────────────────────────────── */
-    @Override
-    @Transactional(readOnly = true)
-    public List<IncidentResponseDto> getIncidentsByStatus(IncidentStatus status) {
-        return incidentRepository.findByStatus(status).stream()
-                .map(this::mapToResponse)
-                .collect(Collectors.toList());
-    }
+        Specification<Incident> spec = Specification
+                .where(IncidentSpecification.hasStatus(status))
+                .and(IncidentSpecification.hasType(type))
+                .and(IncidentSpecification.hasAssignee(assigneeId));
 
-    /* ─────────────────────────────────────────────────────
-       Lọc theo loại
-    ───────────────────────────────────────────────────── */
-    @Override
-    @Transactional(readOnly = true)
-    public List<IncidentResponseDto> getIncidentsByType(IncidentType type) {
-        return incidentRepository.findByType(type).stream()
+        return incidentRepository.findAll(spec, Sort.by(Sort.Direction.DESC, "reportedAt"))
+                .stream()
                 .map(this::mapToResponse)
                 .collect(Collectors.toList());
     }
@@ -134,17 +138,59 @@ public class IncidentServiceImpl implements IncidentService {
     }
 
     /* ─────────────────────────────────────────────────────
+       Phân công: OPEN/IN_PROGRESS → IN_PROGRESS
+    ───────────────────────────────────────────────────── */
+    @Override
+    @Transactional
+    public IncidentResponseDto assignIncident(Long id, IncidentAssignDto dto) {
+        Incident incident = findOrThrow(id);
+
+        // Chỉ cho phép phân công khi sự cố đang mở hoặc đang xử lý
+        if (incident.getStatus() != IncidentStatus.OPEN && incident.getStatus() != IncidentStatus.IN_PROGRESS) {
+            throw new ResourceConflictException("Only OPEN or IN_PROGRESS incidents can be assigned. Current status: " + incident.getStatus());
+        }
+
+        User assignee = userRepository.findById(dto.getAssigneeId())
+                .orElseThrow(() -> new ResourceNotFoundException("Assignee user not found with ID: " + dto.getAssigneeId()));
+
+        // Kiểm tra người được gán có phải STAFF và đang hoạt động không
+        if (!"ROLE_STAFF".equals(assignee.getRole().getName())) {
+            throw new IllegalArgumentException("User " + assignee.getUsername() + " is not a STAFF member.");
+        }
+        if (assignee.getStatus() != Status.ACTIVE) {
+            throw new IllegalArgumentException("User " + assignee.getUsername() + " is not active.");
+        }
+
+        incident.setAssignee(assignee);
+        incident.setProcessingAt(LocalDateTime.now());
+        incident.setStatus(IncidentStatus.IN_PROGRESS); // Đảm bảo trạng thái là IN_PROGRESS
+
+        return mapToResponse(incidentRepository.save(incident));
+    }
+
+    /* ─────────────────────────────────────────────────────
        Bắt đầu xử lý: OPEN → IN_PROGRESS
     ───────────────────────────────────────────────────── */
     @Override
     @Transactional
-    public IncidentResponseDto startProcessing(Long id) {
+    public IncidentResponseDto startProcessing(Long id, Principal principal) {
         Incident incident = findOrThrow(id);
+        User assignee = findUserOrThrow(principal.getName());
+
+        // Chỉ xử lý sự cố đang ở trạng thái OPEN
         if (incident.getStatus() != IncidentStatus.OPEN) {
-            throw new IllegalArgumentException(
-                    "Only OPEN incidents can be moved to IN_PROGRESS. Current: " + incident.getStatus());
+            throw new ResourceConflictException("Only OPEN incidents can be processed. Current status: " + incident.getStatus());
         }
+
+        // Kiểm tra xem đã có người xử lý chưa
+        if (incident.getAssignee() != null) {
+            throw new ResourceConflictException("Incident is already being processed by " + incident.getAssignee().getUsername());
+        }
+
+        incident.setAssignee(assignee);
+        incident.setProcessingAt(LocalDateTime.now());
         incident.setStatus(IncidentStatus.IN_PROGRESS);
+
         return mapToResponse(incidentRepository.save(incident));
     }
 
@@ -155,11 +201,13 @@ public class IncidentServiceImpl implements IncidentService {
     @Transactional
     public IncidentResponseDto resolveIncident(Long id, IncidentResolveDto dto) {
         Incident incident = findOrThrow(id);
-        if (incident.getStatus() != IncidentStatus.IN_PROGRESS
-                && incident.getStatus() != IncidentStatus.OPEN) {
-            throw new IllegalArgumentException(
-                    "Incident must be OPEN or IN_PROGRESS to be resolved. Current: " + incident.getStatus());
+        
+        // Chỉ cho phép giải quyết khi sự cố đang được xử lý
+        if (incident.getStatus() != IncidentStatus.IN_PROGRESS) {
+            throw new ResourceConflictException(
+                    "Incident must be IN_PROGRESS to be resolved. Current status: " + incident.getStatus());
         }
+        
         incident.setResolution(dto.getResolution());
         incident.setStatus(IncidentStatus.RESOLVED);
         incident.setResolvedAt(LocalDateTime.now());
@@ -174,8 +222,8 @@ public class IncidentServiceImpl implements IncidentService {
     public IncidentResponseDto closeIncident(Long id) {
         Incident incident = findOrThrow(id);
         if (incident.getStatus() != IncidentStatus.RESOLVED) {
-            throw new IllegalArgumentException(
-                    "Only RESOLVED incidents can be closed. Current: " + incident.getStatus());
+            throw new ResourceConflictException(
+                    "Only RESOLVED incidents can be closed. Current status: " + incident.getStatus());
         }
         incident.setStatus(IncidentStatus.CLOSED);
         return mapToResponse(incidentRepository.save(incident));
@@ -211,6 +259,8 @@ public class IncidentServiceImpl implements IncidentService {
                 .id(i.getId())
                 .reporterId(i.getReporter().getId())
                 .reporterName(i.getReporter().getUsername())
+                .assigneeId(i.getAssignee() != null ? i.getAssignee().getId() : null)
+                .assigneeName(i.getAssignee() != null ? i.getAssignee().getUsername() : null)
                 .sessionId(i.getSession() != null ? i.getSession().getId() : null)
                 .ticketCode(i.getSession() != null ? i.getSession().getTicketCode() : null)
                 .slotId(i.getSlot() != null ? i.getSlot().getId() : null)
@@ -221,6 +271,7 @@ public class IncidentServiceImpl implements IncidentService {
                 .status(i.getStatus())
                 .reportedAt(i.getReportedAt())
                 .resolvedAt(i.getResolvedAt())
+                .processingAt(i.getProcessingAt())
                 .updatedAt(i.getUpdatedAt())
                 .build();
     }

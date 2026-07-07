@@ -17,6 +17,9 @@ public class IncidentResponseDto {
     private Long reporterId;
     private String reporterName;
 
+    private Long assigneeId;
+    private String assigneeName;
+
     private Long sessionId;
     private String ticketCode;
 
@@ -31,5 +34,6 @@ public class IncidentResponseDto {
 
     private LocalDateTime reportedAt;
     private LocalDateTime resolvedAt;
+    private LocalDateTime processingAt;
     private LocalDateTime updatedAt;
 }

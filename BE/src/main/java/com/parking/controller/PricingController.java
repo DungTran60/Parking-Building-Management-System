@@ -101,7 +101,7 @@ public class PricingController {
      * Xóa bảng giá. Chỉ ADMIN mới được phép.
      */
     @DeleteMapping("/{id}")
-    @PreAuthorize("hasRole('ADMIN')")
+    @PreAuthorize("hasAnyRole('ADMIN', 'MANAGER')")
     public ResponseEntity<Void> deletePricing(@PathVariable Long id) {
         pricingService.deletePricing(id);
         return ResponseEntity.noContent().build();

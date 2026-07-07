@@ -1,5 +1,6 @@
 package com.parking.repository;
 
+import com.parking.dto.RevenueByVehicleTypeDto;
 import com.parking.entity.ParkingSession;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;
@@ -39,4 +40,17 @@ public interface ParkingSessionRepository extends JpaRepository<ParkingSession, 
     List<ParkingSession> findByCheckInAtBetweenOrCheckOutAtBetween(
             LocalDateTime start1, LocalDateTime end1,
             LocalDateTime start2, LocalDateTime end2);
+
+    List<ParkingSession> findByStatusAndCheckOutAtBetween(String status, LocalDateTime start, LocalDateTime end);
+
+    long countByCheckOutAtIsNull();
+
+    @Query("SELECT new com.parking.dto.RevenueByVehicleTypeDto(ps.vehicleType.id, ps.vehicleType.name, SUM(ps.fee)) " +
+           "FROM ParkingSession ps " +
+           "WHERE ps.checkOutAt BETWEEN :startDate AND :endDate AND ps.status = 'COMPLETED' " +
+           "GROUP BY ps.vehicleType.id, ps.vehicleType.name")
+    List<RevenueByVehicleTypeDto> findRevenueByVehicleType(
+            @Param("startDate") LocalDateTime startDate,
+            @Param("endDate") LocalDateTime endDate
+    );
 }

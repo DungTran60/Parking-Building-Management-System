@@ -7,6 +7,7 @@ import com.parking.dto.PricingResponseDto;
 import com.parking.entity.Pricing;
 import com.parking.entity.PricingTimeUnit;
 import com.parking.entity.VehicleType;
+import com.parking.exception.ResourceConflictException;
 import com.parking.exception.ResourceNotFoundException;
 import com.parking.repository.PricingRepository;
 import com.parking.repository.VehicleTypeRepository;
@@ -33,13 +34,22 @@ public class PricingServiceImpl implements PricingService {
     @Override
     @Transactional
     public PricingResponseDto createPricing(PricingRequestDto dto) {
+        // Chỉ cho phép tạo chính sách theo giờ ở thời điểm hiện tại
+        if (dto.getTimeUnit() != PricingTimeUnit.HOURLY) {
+            throw new IllegalArgumentException("Only HOURLY pricing policies are supported at the moment.");
+        }
+
+        // Giá và các loại phí không được âm
+        if (dto.getPrice().compareTo(BigDecimal.ZERO) < 0 ||
+            (dto.getOvernightFee() != null && dto.getOvernightFee().compareTo(BigDecimal.ZERO) < 0) ||
+            (dto.getLostTicketFee() != null && dto.getLostTicketFee().compareTo(BigDecimal.ZERO) < 0)) {
+            throw new IllegalArgumentException("Price and fees cannot be negative.");
+        }
         VehicleType vehicleType = resolveVehicleType(dto.getVehicleTypeId());
 
         // Mỗi cặp (vehicleType, timeUnit) phải là duy nhất
         if (pricingRepository.existsByVehicleTypeIdAndTimeUnit(vehicleType.getId(), dto.getTimeUnit())) {
-            throw new IllegalArgumentException(
-                    "Pricing already exists for vehicle type '" + dto.getVehicleTypeId()
-                    + "' with time unit '" + dto.getTimeUnit() + "'");
+            throw new ResourceConflictException("Pricing already exists for this vehicle type and time unit.");
         }
 
         Pricing pricing = Pricing.builder()
@@ -119,12 +129,21 @@ public class PricingServiceImpl implements PricingService {
         Pricing pricing = findOrThrow(id);
         VehicleType vehicleType = resolveVehicleType(dto.getVehicleTypeId());
 
+        // Chỉ cho phép tạo chính sách theo giờ ở thời điểm hiện tại
+        if (dto.getTimeUnit() != PricingTimeUnit.HOURLY) {
+            throw new IllegalArgumentException("Only HOURLY pricing policies are supported at the moment.");
+        }
+
+        // Giá và các loại phí không được âm
+        if (dto.getPrice().compareTo(BigDecimal.ZERO) < 0 ||
+            (dto.getOvernightFee() != null && dto.getOvernightFee().compareTo(BigDecimal.ZERO) < 0) ||
+            (dto.getLostTicketFee() != null && dto.getLostTicketFee().compareTo(BigDecimal.ZERO) < 0)) {
+            throw new IllegalArgumentException("Price and fees cannot be negative.");
+        }
         // Kiểm tra trùng lặp với bản ghi KHÁC (loại trừ chính bản ghi đang sửa)
         if (pricingRepository.existsByVehicleTypeIdAndTimeUnitAndIdNot(
                 vehicleType.getId(), dto.getTimeUnit(), id)) {
-            throw new IllegalArgumentException(
-                    "Pricing already exists for vehicle type '" + dto.getVehicleTypeId()
-                    + "' with time unit '" + dto.getTimeUnit() + "'");
+            throw new ResourceConflictException("Pricing already exists for this vehicle type and time unit.");
         }
 
         pricing.setVehicleType(vehicleType);

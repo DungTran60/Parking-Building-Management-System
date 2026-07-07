@@ -1,5 +1,6 @@
 package com.parking.dto;
 
+import com.parking.dto.TrafficByHourAndVehicleTypeDto;
 import lombok.*;
 import java.util.List;
 
@@ -13,6 +14,7 @@ public class TrafficReportDto {
     private List<DateTrafficDto> trafficByDate;
     private List<HourTrafficDto> trafficByHour;
     private List<VehicleTypeTrafficDto> trafficByVehicleType;
+    private List<TrafficByHourAndVehicleTypeDto> trafficByHourAndVehicleType;
 
     @Data
     @NoArgsConstructor
@@ -30,7 +32,8 @@ public class TrafficReportDto {
     @Builder
     public static class HourTrafficDto {
         private Integer hour; // 0 - 23
-        private Long count;
+        private Long checkIns;
+        private Long checkOuts;
     }
 
     @Data
@@ -39,6 +42,7 @@ public class TrafficReportDto {
     @Builder
     public static class VehicleTypeTrafficDto {
         private String vehicleTypeName;
-        private Long count;
+        private Long checkIns;
+        private Long checkOuts;
     }
 }

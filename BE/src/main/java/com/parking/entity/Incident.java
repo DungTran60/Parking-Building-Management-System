@@ -31,6 +31,11 @@ public class Incident {
     @JoinColumn(name = "session_id")
     private ParkingSession session;
 
+    /** Nhân viên được giao xử lý sự cố */
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "assignee_id")
+    private User assignee;
+
     /** Slot liên quan (không bắt buộc) */
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "slot_id")
@@ -60,6 +65,9 @@ public class Incident {
 
     @Column(name = "resolved_at")
     private LocalDateTime resolvedAt;
+
+    @Column(name = "processing_at")
+    private LocalDateTime processingAt;
 
     @Column(name = "updated_at")
     private LocalDateTime updatedAt;

@@ -10,6 +10,8 @@ import java.util.List;
 public interface ParkingSlotRepository extends JpaRepository<ParkingSlot, Long> {
     List<ParkingSlot> findByStatus(SlotStatus status);
     List<ParkingSlot> findByStatusAndVehicleTypeId(SlotStatus status, Long vehicleTypeId);
+    ParkingSlot findByCode(String code);
+    boolean existsByCode(String code);
 
     /** Kiểm tra VehicleType có đang được dùng trong ParkingSlot không */
     boolean existsByVehicleTypeId(Long vehicleTypeId);
