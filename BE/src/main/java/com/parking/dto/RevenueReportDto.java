@@ -1,6 +1,7 @@
 package com.parking.dto;
 
 import lombok.*;
+import java.math.BigDecimal;
 import java.util.List;
 
 @Data
@@ -8,9 +9,10 @@ import java.util.List;
 @AllArgsConstructor
 @Builder
 public class RevenueReportDto {
-    private Double totalRevenue;
+    private BigDecimal totalRevenue;
     private List<DateRevenueDto> revenueByDate;
     private List<MethodRevenueDto> revenueByMethod;
+    private List<RevenueByVehicleTypeDto> revenueByVehicleType;
 
     @Data
     @NoArgsConstructor
@@ -18,7 +20,7 @@ public class RevenueReportDto {
     @Builder
     public static class DateRevenueDto {
         private String date; // yyyy-MM-dd
-        private Double amount;
+        private BigDecimal amount;
     }
 
     @Data
@@ -27,6 +29,6 @@ public class RevenueReportDto {
     @Builder
     public static class MethodRevenueDto {
         private String method;
-        private Double amount;
+        private BigDecimal amount;
     }
 }

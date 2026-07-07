@@ -1,5 +1,6 @@
 package com.parking.controller;
 
+import com.parking.dto.IncidentAssignDto;
 import com.parking.dto.IncidentRequestDto;
 import com.parking.dto.IncidentResolveDto;
 import com.parking.dto.IncidentResponseDto;
@@ -51,18 +52,12 @@ public class IncidentController {
      */
     @GetMapping
     @PreAuthorize("hasAnyRole('ADMIN', 'MANAGER', 'STAFF')")
-    public ResponseEntity<List<IncidentResponseDto>> getAllIncidents(
+    public ResponseEntity<List<IncidentResponseDto>> findIncidents(
             @RequestParam(required = false) IncidentStatus status,
-            @RequestParam(required = false) IncidentType type) {
-        List<IncidentResponseDto> result;
-        if (status != null) {
-            result = incidentService.getIncidentsByStatus(status);
-        } else if (type != null) {
-            result = incidentService.getIncidentsByType(type);
-        } else {
-            result = incidentService.getAllIncidents();
-        }
-        return ResponseEntity.ok(result);
+            @RequestParam(required = false) IncidentType type,
+            @RequestParam(required = false) String assignee,
+            Principal principal) {
+        return ResponseEntity.ok(incidentService.findIncidents(status, type, assignee, principal));
     }
 
     /**
@@ -78,13 +73,25 @@ public class IncidentController {
     }
 
     /**
+     * PATCH /api/incidents/{id}/assign
+     * Manager phân công sự cố cho nhân viên.
+     */
+    @PatchMapping("/{id}/assign")
+    @PreAuthorize("hasAnyRole('ADMIN', 'MANAGER')")
+    public ResponseEntity<IncidentResponseDto> assignIncident(
+            @PathVariable Long id,
+            @Valid @RequestBody IncidentAssignDto dto) {
+        return ResponseEntity.ok(incidentService.assignIncident(id, dto));
+    }
+
+    /**
      * PATCH /api/incidents/{id}/process
      * Bắt đầu xử lý: OPEN → IN_PROGRESS.
      */
     @PatchMapping("/{id}/process")
     @PreAuthorize("hasAnyRole('ADMIN', 'MANAGER', 'STAFF')")
-    public ResponseEntity<IncidentResponseDto> startProcessing(@PathVariable Long id) {
-        return ResponseEntity.ok(incidentService.startProcessing(id));
+    public ResponseEntity<IncidentResponseDto> startProcessing(@PathVariable Long id, Principal principal) {
+        return ResponseEntity.ok(incidentService.startProcessing(id, principal));
     }
 
     /**
@@ -92,7 +99,7 @@ public class IncidentController {
      * Giải quyết sự cố: → RESOLVED.
      */
     @PatchMapping("/{id}/resolve")
-    @PreAuthorize("hasAnyRole('ADMIN', 'MANAGER')")
+    @PreAuthorize("hasAnyRole('ADMIN', 'MANAGER', 'STAFF')")
     public ResponseEntity<IncidentResponseDto> resolveIncident(
             @PathVariable Long id,
             @Valid @RequestBody IncidentResolveDto dto) {

@@ -4,12 +4,13 @@ import com.parking.entity.Incident;
 import com.parking.entity.IncidentStatus;
 import com.parking.entity.IncidentType;
 import org.springframework.data.jpa.repository.JpaRepository;
+import org.springframework.data.jpa.repository.JpaSpecificationExecutor;
 import org.springframework.stereotype.Repository;
 
 import java.util.List;
 
 @Repository
-public interface IncidentRepository extends JpaRepository<Incident, Long> {
+public interface IncidentRepository extends JpaRepository<Incident, Long>, JpaSpecificationExecutor<Incident> {
 
     /** Tất cả sự cố theo trạng thái */
     List<Incident> findByStatus(IncidentStatus status);

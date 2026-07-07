@@ -2,6 +2,7 @@ package com.parking.entity;
 
 import jakarta.persistence.*;
 import lombok.*;
+import java.math.BigDecimal;
 import java.time.LocalDateTime;
 
 @Entity
@@ -40,8 +41,8 @@ public class ParkingSession {
     @Column(name = "check_out_at")
     private LocalDateTime checkOutAt;
 
-    @Column(nullable = false)
-    private Double fee;
+    @Column(nullable = false, precision = 10, scale = 2)
+    private BigDecimal fee;
 
     @Column(nullable = false, length = 30)
     private String status; // "ACTIVE", "COMPLETED"

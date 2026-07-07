@@ -2,6 +2,8 @@ package com.parking.entity;
 
 import jakarta.persistence.*;
 import lombok.*;
+
+import java.math.BigDecimal;
 import java.time.LocalDateTime;
 
 @Entity
@@ -21,8 +23,8 @@ public class Payment {
     @JoinColumn(name = "session_id", nullable = false)
     private ParkingSession session;
 
-    @Column(nullable = false)
-    private Double amount;
+    @Column(nullable = false, precision = 10, scale = 2)
+    private BigDecimal amount;
 
     @Column(nullable = false, length = 50)
     private String method; // "QR_CODE", "BANK_CARD", "CASH"
