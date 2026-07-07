@@ -86,10 +86,12 @@ public class UserServiceImpl implements UserService {
 
         User savedUser = userRepository.save(user);
 
-        // Audit Log
-        String currentUsername = SecurityContextHolder.getContext().getAuthentication().getName();
-        User currentUser = userRepository.findByUsername(currentUsername).orElseThrow();
-        auditService.log("USER_CREATED", "USER", savedUser.getId(), currentUser.getId(), currentUsername);
+        // Public registration has no authenticated actor. In that case, record the
+        // newly registered user as the actor so the non-null audit columns remain valid.
+        var authentication = SecurityContextHolder.getContext().getAuthentication();
+        String currentUsername = authentication != null ? authentication.getName() : "anonymousUser";
+        User currentUser = userRepository.findByUsername(currentUsername).orElse(savedUser);
+        auditService.log("USER_CREATED", "USER", savedUser.getId(), currentUser.getId(), currentUser.getUsername());
 
         return mapToResponseDto(savedUser);
     }
