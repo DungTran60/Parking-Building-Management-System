@@ -18,9 +18,9 @@ import java.util.List;
  *
  * GET    /api/vehicle-types         - list all (authenticated)
  * GET    /api/vehicle-types/{id}    - get by id (authenticated)
- * POST   /api/vehicle-types         - create (admin only)
- * PUT    /api/vehicle-types/{id}    - update (admin only)
- * DELETE /api/vehicle-types/{id}    - delete (admin only)
+ * POST   /api/vehicle-types         - create (admin or manager)
+ * PUT    /api/vehicle-types/{id}    - update (admin or manager)
+ * DELETE /api/vehicle-types/{id}    - delete (admin or manager)
  */
 @RestController
 @RequestMapping("/api/vehicle-types")
@@ -51,10 +51,10 @@ public class VehicleTypeController {
 
     /**
      * POST /api/vehicle-types
-     * Admin only
+     * Admin or Manager only
      */
     @PostMapping
-    @PreAuthorize("hasRole('ADMIN')")
+    @PreAuthorize("hasAnyRole('ADMIN', 'MANAGER')")
     public ResponseEntity<VehicleTypeResponseDto> createVehicleType(
             @Valid @RequestBody VehicleTypeRequestDto dto) {
         VehicleTypeResponseDto created = vehicleTypeService.createVehicleType(dto);
@@ -63,10 +63,10 @@ public class VehicleTypeController {
 
     /**
      * PUT /api/vehicle-types/{id}
-     * Admin only
+     * Admin or Manager only
      */
     @PutMapping("/{id}")
-    @PreAuthorize("hasRole('ADMIN')")
+    @PreAuthorize("hasAnyRole('ADMIN', 'MANAGER')")
     public ResponseEntity<VehicleTypeResponseDto> updateVehicleType(
             @PathVariable Long id,
             @Valid @RequestBody VehicleTypeRequestDto dto) {
@@ -75,10 +75,10 @@ public class VehicleTypeController {
 
     /**
      * DELETE /api/vehicle-types/{id}
-     * Admin only - returns 409 if vehicle type is in use
+     * Admin or Manager only - returns 409 if vehicle type is in use
      */
     @DeleteMapping("/{id}")
-    @PreAuthorize("hasRole('ADMIN')")
+    @PreAuthorize("hasAnyRole('ADMIN', 'MANAGER')")
     public ResponseEntity<Void> deleteVehicleType(@PathVariable Long id) {
         vehicleTypeService.deleteVehicleType(id);
         return ResponseEntity.noContent().build();
