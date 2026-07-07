@@ -25,6 +25,7 @@ public class Building {
     @Column(nullable = false, length = 255)
     private String address;
 
+    @Builder.Default
     @OneToMany(mappedBy = "building", cascade = CascadeType.ALL, orphanRemoval = true, fetch = FetchType.LAZY)
     private List<Floor> floors = new ArrayList<>();
 
