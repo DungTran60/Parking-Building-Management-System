@@ -13,4 +13,6 @@ public interface ParkingSlotRepository extends JpaRepository<ParkingSlot, Long> 
 
     /** Kiểm tra VehicleType có đang được dùng trong ParkingSlot không */
     boolean existsByVehicleTypeId(Long vehicleTypeId);
+
+    long countByFloorIdAndStatus(Long floorId, SlotStatus status);
 }
