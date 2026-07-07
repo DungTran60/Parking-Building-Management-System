@@ -2,8 +2,10 @@ package com.parking.controller;
 
 import com.parking.dto.LoginRequest;
 import com.parking.dto.LoginResponse;
+import com.parking.dto.RegisterRequest;
 import com.parking.dto.UserCreateDto;
 import com.parking.dto.UserResponseDto;
+import com.parking.entity.Status;
 import com.parking.security.JwtService;
 import com.parking.service.UserService;
 import jakarta.validation.Valid;
@@ -54,7 +56,16 @@ public class AuthController {
     }
 
     @PostMapping("/register")
-    public ResponseEntity<UserResponseDto> register(@Valid @RequestBody UserCreateDto dto) {
+    public ResponseEntity<UserResponseDto> register(@Valid @RequestBody RegisterRequest request) {
+        // Public self-registration must never accept a privileged role from the client.
+        UserCreateDto dto = UserCreateDto.builder()
+                .username(request.getUsername())
+                .password(request.getPassword())
+                .email(request.getEmail())
+                .phoneNumber(request.getPhoneNumber())
+                .roleName("DRIVER")
+                .status(Status.ACTIVE)
+                .build();
         UserResponseDto response = userService.createUser(dto);
         return new ResponseEntity<>(response, HttpStatus.CREATED);
     }
