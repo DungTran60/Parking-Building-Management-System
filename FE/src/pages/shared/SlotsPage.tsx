@@ -1,15 +1,19 @@
 import { useMemo, useState, type FormEvent } from "react";
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { CarFront, History, LayoutGrid, Lock, Pencil, Plus, Search, Unlock } from "lucide-react";
 import { Button } from "@/components/common/Button";
 import { Card, CardContent, CardHeader } from "@/components/common/Card";
 import { Field, Input, Select } from "@/components/forms/FormField";
 import { Modal } from "@/components/common/Modal";
 import { PageHeader } from "@/components/layout/PageHeader";
-import { floors, slots as mockSlots, vehicleTypes } from "@/api/mockData";
+import { floorApi } from "@/api/floorApi";
+import { slotApi } from "@/api/slotApi";
+import { vehicleTypeApi } from "@/api/vehicleTypeApi";
 import { hasPermission } from "@/constants/rbac";
 import { useAuthStore } from "@/stores/authStore";
 import { cn } from "@/utils/cn";
 import { dateTime } from "@/utils/format";
+import { getApiErrorMessage } from "@/utils/apiError";
 import type { ParkingSlot, SlotStatus } from "@/types/domain";
 
 const statusMeta: Record<SlotStatus, { label: string; card: string; dot: string }> = {
@@ -23,27 +27,47 @@ const statusMeta: Record<SlotStatus, { label: string; card: string; dot: string 
 const statuses = Object.keys(statusMeta) as SlotStatus[];
 
 export function SlotsPage() {
+  const queryClient = useQueryClient();
   const role = useAuthStore((state) => state.role);
   const canManage = hasPermission(role, "slots:manage");
   const canUpdateStatus = hasPermission(role, "slots:manage") || hasPermission(role, "slots:updateStatus");
-  const [data, setData] = useState<ParkingSlot[]>(() => mockSlots.map((slot) => ({ ...slot })));
+  const { data: slotRows = [], isLoading, isError, error, refetch } = useQuery({ queryKey: ["slots"], queryFn: slotApi.getAll });
+  const { data: floors = [] } = useQuery({ queryKey: ["floors"], queryFn: floorApi.getAll });
+  const { data: vehicleTypes = [] } = useQuery({ queryKey: ["vehicleTypes"], queryFn: () => vehicleTypeApi.getAll() });
+  const data: ParkingSlot[] = slotRows.map((slot) => ({
+    id: String(slot.id), code: slot.code, floorId: String(slot.floorId), vehicleTypeId: String(slot.vehicleTypeId),
+    status: slot.status, updatedAt: slot.updatedAt ?? new Date(0).toISOString()
+  }));
   const [status, setStatus] = useState<SlotStatus | "ALL">("ALL");
   const [floorId, setFloorId] = useState("ALL");
+  const [vehicleTypeId, setVehicleTypeId] = useState("ALL");
   const [query, setQuery] = useState("");
   const [history, setHistory] = useState<ParkingSlot | null>(null);
   const [formOpen, setFormOpen] = useState(false);
   const [editingSlot, setEditingSlot] = useState<ParkingSlot | null>(null);
   const [formError, setFormError] = useState<string | null>(null);
-  const [isSaving, setIsSaving] = useState(false);
+  const invalidateSlots = () => queryClient.invalidateQueries({ queryKey: ["slots"] });
+  const saveMutation = useMutation({
+    mutationFn: ({ id, payload }: { id?: string; payload: Parameters<typeof slotApi.create>[0] }) => id ? slotApi.update(id, payload) : slotApi.create(payload),
+    onSuccess: () => { void invalidateSlots(); setFormOpen(false); setEditingSlot(null); },
+    onError: (requestError) => setFormError(getApiErrorMessage(requestError, "Không thể lưu slot. Vui lòng thử lại."))
+  });
+  const statusMutation = useMutation({
+    mutationFn: ({ id, nextStatus }: { id: string; nextStatus: SlotStatus }) => slotApi.updateStatus(id, nextStatus),
+    onSuccess: () => void invalidateSlots(),
+    onError: (requestError) => setFormError(getApiErrorMessage(requestError, "Không thể cập nhật trạng thái slot."))
+  });
+  const isSaving = saveMutation.isPending;
 
   const rows = useMemo(() => {
     const normalizedQuery = query.trim().toLowerCase();
     return data.filter((slot) =>
       (status === "ALL" || slot.status === status) &&
       (floorId === "ALL" || slot.floorId === floorId) &&
+      (vehicleTypeId === "ALL" || slot.vehicleTypeId === vehicleTypeId) &&
       (!normalizedQuery || slot.code.toLowerCase().includes(normalizedQuery))
     );
-  }, [data, floorId, query, status]);
+  }, [data, floorId, query, status, vehicleTypeId]);
 
   const counts = useMemo(() => Object.fromEntries(
     statuses.map((item) => [item, data.filter((slot) => slot.status === item).length])
@@ -63,9 +87,7 @@ export function SlotsPage() {
     if (!window.confirm(message)) return;
 
     const nextStatus: SlotStatus = unlocking ? "AVAILABLE" : "BLOCKED";
-    setData((current) => current.map((item) => item.id === slot.id
-      ? { ...item, status: nextStatus, updatedAt: new Date().toISOString() }
-      : item));
+    statusMutation.mutate({ id: slot.id, nextStatus });
   };
 
   const openCreate = () => {
@@ -110,25 +132,11 @@ export function SlotsPage() {
       return;
     }
 
-    setIsSaving(true);
-    try {
-      const savedSlot: ParkingSlot = {
-        id: editingSlot?.id ?? crypto.randomUUID(),
-        code,
-        floorId: selectedFloorId,
-        vehicleTypeId,
-        status: nextStatus,
-        updatedAt: new Date().toISOString()
-      };
-      setData((current) => editingSlot
-        ? current.map((slot) => slot.id === editingSlot.id ? savedSlot : slot)
-        : [savedSlot, ...current]);
-      setFormOpen(false);
-      setEditingSlot(null);
-    } finally {
-      setIsSaving(false);
-    }
+    saveMutation.mutate({ id: editingSlot?.id, payload: { code, floorId: selectedFloorId, vehicleTypeId, status: nextStatus } });
   };
+
+  if (isLoading) return <><PageHeader title="Quản lý slot đỗ xe" description="Đang tải dữ liệu slot." /><Card><CardContent className="py-12 text-center text-sm text-slate-500">Đang tải...</CardContent></Card></>;
+  if (isError) return <><PageHeader title="Quản lý slot đỗ xe" description="Theo dõi trạng thái vị trí đỗ." /><Card><CardContent className="grid justify-items-center gap-3 py-12"><p className="text-sm text-red-600">{getApiErrorMessage(error, "Không thể tải danh sách slot.")}</p><Button variant="secondary" onClick={() => void refetch()}>Thử lại</Button></CardContent></Card></>;
 
   return (
     <>
@@ -137,6 +145,9 @@ export function SlotsPage() {
         description="Theo dõi nhanh tình trạng và kiểm soát khả năng sử dụng của từng vị trí đỗ."
         action={canManage ? <Button onClick={openCreate}><Plus size={17} /> Tạo slot</Button> : undefined}
       />
+      {formError && !formOpen && (
+        <div role="alert" className="mb-5 rounded-lg border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">{formError}</div>
+      )}
 
       <div className="mb-6 grid grid-cols-2 gap-3 md:grid-cols-3 xl:grid-cols-5">
         {statuses.map((item) => {
@@ -160,10 +171,14 @@ export function SlotsPage() {
             <Search className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" size={17} />
             <Input value={query} onChange={(event) => setQuery(event.target.value)} placeholder="Tìm theo mã slot..." className="w-full pl-9" />
           </div>
-          <div className="grid gap-3 sm:grid-cols-2 lg:flex">
+          <div className="grid gap-3 sm:grid-cols-3 lg:flex">
             <Select value={floorId} onChange={(event) => setFloorId(event.target.value)} aria-label="Lọc theo tầng">
               <option value="ALL">Tất cả tầng</option>
               {floors.map((floor) => <option key={floor.id} value={floor.id}>{floor.name} - {floor.zone}</option>)}
+            </Select>
+            <Select value={vehicleTypeId} onChange={(event) => setVehicleTypeId(event.target.value)} aria-label="Lọc theo loại xe">
+              <option value="ALL">Tất cả loại xe</option>
+              {vehicleTypes.map((type) => <option key={type.id} value={type.id}>{type.name}</option>)}
             </Select>
             <Select value={status} onChange={(event) => setStatus(event.target.value as SlotStatus | "ALL")} aria-label="Lọc theo trạng thái">
               <option value="ALL">Tất cả trạng thái</option>
@@ -213,7 +228,7 @@ export function SlotsPage() {
             <div className="py-14 text-center">
               <LayoutGrid className="mx-auto text-slate-300" size={42} />
               <p className="mt-3 text-sm font-medium text-slate-700">Không tìm thấy slot phù hợp</p>
-              <button type="button" onClick={() => { setStatus("ALL"); setFloorId("ALL"); setQuery(""); }} className="mt-2 text-sm font-medium text-primary">Xóa bộ lọc</button>
+              <button type="button" onClick={() => { setStatus("ALL"); setFloorId("ALL"); setVehicleTypeId("ALL"); setQuery(""); }} className="mt-2 text-sm font-medium text-primary">Xóa bộ lọc</button>
             </div>
           )}
         </CardContent>
