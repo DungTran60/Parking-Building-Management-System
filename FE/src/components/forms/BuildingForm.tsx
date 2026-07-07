@@ -1,10 +1,10 @@
 import React, { useState, useEffect } from "react";
-import { X, Building2, MapPin, Layers, Save } from "lucide-react";
-import type { Building } from "@/api/buildingApi";
+import { X, Building2, MapPin, Save } from "lucide-react";
+import type { Building, BuildingPayload } from "@/api/buildingApi";
 
 interface BuildingFormProps {
     building: Building | null;
-    onSubmit: (data: Omit<Building, "id" | "createdAt">) => void;
+    onSubmit: (data: BuildingPayload) => void;
     onClose: () => void;
     isSubmitting: boolean;
 }
@@ -17,18 +17,15 @@ export const BuildingForm: React.FC<BuildingFormProps> = ({
 }) => {
     const [buildingName, setBuildingName] = useState("");
     const [address, setAddress] = useState("");
-    const [totalFloors, setTotalFloors] = useState<number>(1);
     const [errors, setErrors] = useState<Record<string, string>>({});
 
     useEffect(() => {
         if (building) {
             setBuildingName(building.buildingName);
             setAddress(building.address);
-            setTotalFloors(building.totalFloors);
         } else {
             setBuildingName("");
             setAddress("");
-            setTotalFloors(1);
         }
         setErrors({});
     }, [building]);
@@ -47,10 +44,6 @@ export const BuildingForm: React.FC<BuildingFormProps> = ({
             newErrors.address = "Địa chỉ phải từ 5 đến 255 ký tự";
         }
 
-        if (totalFloors <= 0) {
-            newErrors.totalFloors = "Số tầng phải lớn hơn 0";
-        }
-
         setErrors(newErrors);
         return Object.keys(newErrors).length === 0;
     };
@@ -60,8 +53,7 @@ export const BuildingForm: React.FC<BuildingFormProps> = ({
         if (validate()) {
             onSubmit({
                 buildingName: buildingName.trim(),
-                address: address.trim(),
-                totalFloors
+                address: address.trim()
             });
         }
     };
@@ -122,26 +114,6 @@ export const BuildingForm: React.FC<BuildingFormProps> = ({
                                 }`}
                         />
                         {errors.address && <p className="mt-1 text-xs text-red-500">{errors.address}</p>}
-                    </div>
-
-                    {/* Total Floors */}
-                    <div>
-                        <label className="block text-sm font-medium text-slate-700 mb-1.5 flex items-center gap-1">
-                            <Layers className="h-4 w-4 text-slate-400" />
-                            Tổng số tầng
-                        </label>
-                        <input
-                            type="number"
-                            min={1}
-                            value={totalFloors}
-                            onChange={(e) => setTotalFloors(parseInt(e.target.value) || 0)}
-                            placeholder="Nhập số tầng..."
-                            className={`w-full rounded-lg border bg-white px-3 py-2 text-sm text-slate-800 placeholder-slate-400 focus:outline-none focus:ring-2 transition ${errors.totalFloors
-                                ? "border-red-300 focus:border-red-500 focus:ring-red-100"
-                                : "border-slate-200 focus:border-blue-500 focus:ring-blue-100"
-                                }`}
-                        />
-                        {errors.totalFloors && <p className="mt-1 text-xs text-red-500">{errors.totalFloors}</p>}
                     </div>
 
                     {/* Actions */}
