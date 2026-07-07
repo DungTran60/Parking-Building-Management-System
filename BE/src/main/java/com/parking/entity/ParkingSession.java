@@ -41,9 +41,16 @@ public class ParkingSession {
     @Column(name = "check_out_at")
     private LocalDateTime checkOutAt;
 
-    @Column(nullable = false, precision = 10, scale = 2)
-    private BigDecimal fee;
+    @Column(name = "fee", precision = 10, scale = 2)
+    private Double fee;
 
     @Column(nullable = false, length = 30)
     private String status; // "ACTIVE", "COMPLETED"
+
+    @OneToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "reservation_id")
+    private Reservation reservation;
+
+    @Column(columnDefinition = "TEXT")
+    private String notes;
 }

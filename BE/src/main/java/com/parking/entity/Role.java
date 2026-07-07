@@ -3,6 +3,8 @@ package com.parking.entity;
 import jakarta.persistence.*;
 import lombok.*;
 
+import java.util.Set;
+
 /**
  * Entity đại diện cho bảng roles trong database
  */
@@ -31,4 +33,12 @@ public class Role {
      */
     @Column(nullable = false, unique = true, length = 50)
     private String name;
+
+    @ManyToMany(fetch = FetchType.EAGER)
+    @JoinTable(
+            name = "role_permissions",
+            joinColumns = @JoinColumn(name = "role_id"),
+            inverseJoinColumns = @JoinColumn(name = "permission_id")
+    )
+    private Set<Permission> permissions;
 }

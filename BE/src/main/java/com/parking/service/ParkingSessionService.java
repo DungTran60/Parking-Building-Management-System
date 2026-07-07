@@ -4,11 +4,18 @@ import com.parking.dto.CheckInRequestDto;
 import com.parking.dto.LostTicketCheckoutRequestDto;
 import com.parking.dto.LostTicketFeeResponseDto;
 import com.parking.dto.ParkingSessionResponseDto;
+import com.parking.dto.SessionExceptionRequestDto;
+import com.parking.dto.SessionNoteRequestDto;
+import com.parking.dto.SessionStatusUpdateRequestDto;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
+import java.time.LocalDateTime;
 
 public interface ParkingSessionService {
     ParkingSessionResponseDto checkIn(CheckInRequestDto request);
     ParkingSessionResponseDto checkOut(String query);
-    ParkingSessionResponseDto getActiveSession();
+    Page<ParkingSessionResponseDto> findAll(String status, String query, Long vehicleTypeId, LocalDateTime from, LocalDateTime to, Pageable pageable);
+    ParkingSessionResponseDto findById(Long id);
 
     /**
      * Tính phí preview khi khách báo mất vé (chưa checkout).
@@ -30,4 +37,16 @@ public interface ParkingSessionService {
      * @return session đã checkout kèm tổng phí
      */
     ParkingSessionResponseDto lostTicketCheckout(LostTicketCheckoutRequestDto request);
+    
+    ParkingSessionResponseDto handleException(Long id, SessionExceptionRequestDto request);
+
+    ParkingSessionResponseDto updateStatus(Long id, SessionStatusUpdateRequestDto request);
+
+    ParkingSessionResponseDto reopenSession(Long id);
+
+    ParkingSessionResponseDto markAsUnpaid(Long id);
+
+    ParkingSessionResponseDto waiveFee(Long id);
+
+    ParkingSessionResponseDto addNote(Long id, SessionNoteRequestDto request);
 }

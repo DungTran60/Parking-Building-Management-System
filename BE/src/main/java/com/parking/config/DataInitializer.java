@@ -9,6 +9,7 @@ import org.springframework.stereotype.Component;
 
 import org.springframework.transaction.annotation.Transactional;
 
+import java.math.BigDecimal;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.util.*;
@@ -18,6 +19,7 @@ import java.util.*;
 public class DataInitializer implements CommandLineRunner {
 
     private final RoleRepository roleRepository;
+    private final PermissionRepository permissionRepository;
     private final UserRepository userRepository;
     private final BuildingRepository buildingRepository;
     private final VehicleTypeRepository vehicleTypeRepository;
@@ -31,13 +33,33 @@ public class DataInitializer implements CommandLineRunner {
     @Override
     @Transactional
     public void run(String... args) throws Exception {
-        // Seed Roles
-        List<String> roleNames = Arrays.asList("ADMIN", "MANAGER", "STAFF", "DRIVER");
-        for (String roleName : roleNames) {
-            if (roleRepository.findByName(roleName).isEmpty()) {
-                roleRepository.save(Role.builder().name(roleName).build());
+        // Seed Permissions
+        List<String> permissionNames = Arrays.asList(
+                "sessions:view",
+                "sessions:checkout",
+                "sessions:exception"
+        );
+        for (String permissionName : permissionNames) {
+            if (permissionRepository.findByName(permissionName).isEmpty()) {
+                permissionRepository.save(Permission.builder().name(permissionName).build());
             }
         }
+
+        // Seed Roles with Permissions
+        Permission view_session = permissionRepository.findByName("sessions:view").orElseThrow();
+        Permission checkout_session = permissionRepository.findByName("sessions:checkout").orElseThrow();
+        Permission exception_session = permissionRepository.findByName("sessions:exception").orElseThrow();
+
+        Set<Permission> driverPermissions = new HashSet<>(Collections.singletonList(view_session));
+        Set<Permission> staffPermissions = new HashSet<>(Arrays.asList(view_session, checkout_session, exception_session));
+        Set<Permission> managerPermissions = new HashSet<>(Arrays.asList(view_session, checkout_session, exception_session)); // Managers get all staff permissions
+        Set<Permission> adminPermissions = new HashSet<>(Arrays.asList(view_session, checkout_session, exception_session)); // Admins get all permissions
+
+        seedRole("DRIVER", driverPermissions);
+        seedRole("STAFF", staffPermissions);
+        seedRole("MANAGER", managerPermissions);
+        seedRole("ADMIN", adminPermissions);
+
 
         // Seed Admin User if not exists
         if (userRepository.findByUsername("admin").isEmpty()) {
@@ -62,7 +84,6 @@ public class DataInitializer implements CommandLineRunner {
             building = Building.builder()
                     .buildingName("Tòa nhà gửi xe trung tâm (Building A)")
                     .address("123 Nguyễn Huệ, Quận 1, TP. Hồ Chí Minh")
-                    .totalFloors(4)
                     .build();
             building = buildingRepository.save(building);
             System.out.println("Seeded default building");
@@ -176,7 +197,7 @@ public class DataInitializer implements CommandLineRunner {
             for (ParkingSession session : savedSessions) {
                 Payment payment = Payment.builder()
                         .session(session)
-                        .amount(session.getFee())
+                        .amount(BigDecimal.valueOf(session.getFee()))
                         .method(methods[random.nextInt(methods.length)])
                         .paymentTime(session.getCheckOutAt().plusMinutes(1 + random.nextInt(5)))
                         .build();
@@ -250,5 +271,17 @@ public class DataInitializer implements CommandLineRunner {
             );
             System.out.println("Seeded vehicle type: " + code);
         }
+    }
+
+    private void seedRole(String roleName, Set<Permission> permissions) {
+        Optional<Role> existingRole = roleRepository.findByName(roleName);
+        Role role;
+        if (existingRole.isEmpty()) {
+            role = Role.builder().name(roleName).permissions(permissions).build();
+        } else {
+            role = existingRole.get();
+            role.setPermissions(permissions);
+        }
+        roleRepository.save(role);
     }
 }
