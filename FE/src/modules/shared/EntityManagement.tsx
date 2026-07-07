@@ -19,7 +19,11 @@ export type FieldConfig<T> = {
   key: keyof T;
   label: string;
   type?: "text" | "number" | "select" | "color";
+  inputType?: "text" | "email" | "tel" | "password";
   placeholder?: string;
+  minLength?: number;
+  maxLength?: number;
+  createOnly?: boolean;
   options?: { label: string; value: string }[];
   render?: (value: T[keyof T], row: T) => ReactNode;
   required?: boolean;
@@ -70,7 +74,7 @@ export function EntityManagement<T extends { id: string }>({
 
   const columns = useMemo<ColumnDef<T>[]>(
     () => [
-      ...fields.map((field) => ({
+      ...fields.filter((field) => !field.createOnly).map((field) => ({
         accessorKey: field.key as string,
         header: field.label,
         cell: ({ row }: { row: { original: T } }) => {
@@ -124,7 +128,7 @@ export function EntityManagement<T extends { id: string }>({
     setSubmitError(null);
     const form = new FormData(event.currentTarget);
     const payload = Object.fromEntries(
-      fields.map((field) => {
+      fields.filter((field) => !(editing && field.createOnly)).map((field) => {
         const value = form.get(String(field.key));
         return [field.key, field.type === "number" ? Number(value) : value];
       })
@@ -174,7 +178,7 @@ export function EntityManagement<T extends { id: string }>({
       </Card>
       <Modal open={modalOpen} title={editing ? `Cập nhật ${title}` : `Tạo ${title}`} onClose={closeModal}>
         <form className="grid gap-4 sm:grid-cols-2" onSubmit={submit}>
-          {fields.map((field) => (
+          {fields.filter((field) => !(editing && field.createOnly)).map((field) => (
             <Field key={String(field.key)} label={field.label}>
               {field.type === "select" ? (
                 <Select name={String(field.key)} defaultValue={editing ? String(editing[field.key] ?? "") : field.options?.[0]?.value} required={field.required !== false}>
@@ -185,7 +189,7 @@ export function EntityManagement<T extends { id: string }>({
                   ))}
                 </Select>
               ) : (
-                <Input name={String(field.key)} type={field.type ?? "text"} placeholder={field.placeholder} defaultValue={editing ? String(editing[field.key] ?? "") : ""} required={field.required !== false} />
+                <Input name={String(field.key)} type={field.inputType ?? field.type ?? "text"} placeholder={field.placeholder} minLength={field.minLength} maxLength={field.maxLength} defaultValue={editing ? String(editing[field.key] ?? "") : ""} required={field.required !== false} />
               )}
             </Field>
           ))}
