@@ -90,6 +90,10 @@ export interface ParkingSession {
   plateNumber: string;
   vehicleTypeId: string;
   slotId: string;
+  slotCode?: string;
+  floorId?: string;
+  floorName?: string;
+  reservationId?: string;
   entryGate: string;
   checkInAt: string;
   checkOutAt?: string;

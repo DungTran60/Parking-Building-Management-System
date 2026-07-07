@@ -15,7 +15,6 @@ export const PERMISSION_LABELS: Record<Permission, string> = {
   "dashboard:view": "Xem tổng quan",
   "buildings:manage": "Quản lý tòa nhà",
   "parkingInfo:view": "Xem bãi đỗ xe",
-  "parkingEntry:create": "Tạo lượt gửi xe",
   "vehicleTypes:manage": "Quản lý loại xe",
   "floors:manage": "Quản lý tầng",
   "slots:manage": "Quản lý vị trí đỗ",
@@ -41,7 +40,7 @@ export const PERMISSION_LABELS: Record<Permission, string> = {
   "ai:view": "Sử dụng AI"
 };
 
-const RBAC_SCHEMA_VERSION = 2;
+const RBAC_SCHEMA_VERSION = 3;
 const ROLE_PERMISSIONS_STORAGE_KEY = `parking-bms-role-permissions-v${RBAC_SCHEMA_VERSION}`;
 const LEGACY_ROLE_PERMISSIONS_STORAGE_KEY = "parking-bms-role-permissions";
 
@@ -93,10 +92,13 @@ const getStoredRolePermissions = (): Record<Role, Permission[]> => {
 
   try {
     const parsedValue = JSON.parse(storedValue) as Partial<Record<Role, Permission[]>>;
+    const validPermissions = new Set(Object.keys(PERMISSION_LABELS) as Permission[]);
     return Object.fromEntries(
       (Object.keys(DEFAULT_ROLE_PERMISSIONS) as Role[]).map((role) => [
         role,
-        Array.isArray(parsedValue[role]) ? parsedValue[role] : DEFAULT_ROLE_PERMISSIONS[role]
+        Array.isArray(parsedValue[role])
+          ? Array.from(new Set(parsedValue[role].filter((permission) => validPermissions.has(permission))))
+          : DEFAULT_ROLE_PERMISSIONS[role]
       ])
     ) as Record<Role, Permission[]>;
   } catch {
