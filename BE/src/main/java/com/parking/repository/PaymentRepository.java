@@ -9,6 +9,7 @@ import java.util.List;
 @Repository
 public interface PaymentRepository extends JpaRepository<Payment, Long> {
     List<Payment> findAllByOrderByPaymentTimeDesc();
-    List<Payment> findByPaymentTimeBetween(LocalDateTime start, LocalDateTime end);
+    List<Payment> findByPaymentTimeGreaterThanEqualAndPaymentTimeLessThan(
+            LocalDateTime startInclusive, LocalDateTime endExclusive);
 }
 

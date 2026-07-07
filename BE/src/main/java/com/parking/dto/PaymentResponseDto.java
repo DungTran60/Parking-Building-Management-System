@@ -2,6 +2,7 @@ package com.parking.dto;
 
 import lombok.*;
 import java.time.LocalDateTime;
+import java.math.BigDecimal;
 
 @Data
 @NoArgsConstructor
@@ -10,7 +11,7 @@ import java.time.LocalDateTime;
 public class PaymentResponseDto {
     private String id;
     private String sessionId;
-    private Double amount;
+    private BigDecimal amount;
     private String method;
     private LocalDateTime paidAt; // mapped to paidAt in FE PaymentRecord
 }
