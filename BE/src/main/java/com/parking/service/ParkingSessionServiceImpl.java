@@ -4,18 +4,19 @@ import com.parking.dto.CheckInRequestDto;
 import com.parking.dto.LostTicketCheckoutRequestDto;
 import com.parking.dto.LostTicketFeeResponseDto;
 import com.parking.dto.ParkingSessionResponseDto;
-import com.parking.entity.ParkingSession;
-import com.parking.entity.ParkingSlot;
-import com.parking.entity.Pricing;
-import com.parking.entity.PricingTimeUnit;
-import com.parking.entity.SlotStatus;
-import com.parking.entity.VehicleType;
+import com.parking.dto.SessionExceptionRequestDto;
+import com.parking.dto.SessionNoteRequestDto;
+import com.parking.dto.SessionStatusUpdateRequestDto;
+import com.parking.entity.*;
+import com.parking.exception.BadRequestException;
+import com.parking.exception.ConflictException;
 import com.parking.exception.ResourceNotFoundException;
-import com.parking.repository.ParkingSessionRepository;
-import com.parking.repository.ParkingSlotRepository;
-import com.parking.repository.PricingRepository;
-import com.parking.repository.VehicleTypeRepository;
+import com.parking.repository.*;
+import com.parking.specification.ParkingSessionSpecification;
 import lombok.RequiredArgsConstructor;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
+import org.springframework.data.jpa.domain.Specification;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -34,7 +35,12 @@ public class ParkingSessionServiceImpl implements ParkingSessionService {
     private final ParkingSlotRepository    parkingSlotRepository;
     private final VehicleTypeRepository    vehicleTypeRepository;
     private final FeeCalculationService    feeCalculationService;
-    private final PricingRepository        pricingRepository;
+    private final PricingRepository             pricingRepository;
+    private final ReservationRepository         reservationRepository;
+    private final ParkingSessionSpecification   parkingSessionSpecification;
+    private final ParkingSessionExceptionRepository parkingSessionExceptionRepository;
+    private final AuthenticationService authenticationService;
+
 
     /* ─────────────────────────────────────────────────────
        Check-in
@@ -42,40 +48,126 @@ public class ParkingSessionServiceImpl implements ParkingSessionService {
     @Override
     @Transactional
     public ParkingSessionResponseDto checkIn(CheckInRequestDto request) {
-        // 1. Tìm loại xe
-        VehicleType vehicleType = resolveVehicleType(request.getVehicleTypeId());
+        // 1. Chuẩn hóa và xác thực đầu vào
+        String plateNumber = request.getPlateNumber().trim().toUpperCase();
+        validateActiveSession(plateNumber);
+        VehicleType vehicleType = validateVehicleType(request.getVehicleTypeId());
 
-        // 2. Tìm slot trống phù hợp
-        List<ParkingSlot> availableSlots = parkingSlotRepository
-                .findByStatusAndVehicleTypeId(SlotStatus.AVAILABLE, vehicleType.getId());
-        if (availableSlots.isEmpty()) {
-            throw new IllegalStateException(
-                    "Không còn slot đỗ xe trống phù hợp cho loại xe: " + vehicleType.getName());
+        // 2. Xử lý nghiệp vụ Đặt chỗ (Reservation) nếu có
+        Reservation reservation = handleReservation(request, plateNumber, vehicleType);
+
+        // 3. Xác định và khóa Slot đỗ xe
+        ParkingSlot selectedSlot = lockAndGetParkingSlot(request, vehicleType, reservation);
+
+        // 4. Tạo và lưu Session mới
+        ParkingSession session = createParkingSession(request, plateNumber, vehicleType, selectedSlot, reservation);
+
+        // 5. Cập nhật trạng thái Slot và Reservation
+        updateEntitiesOnCheckIn(selectedSlot, reservation);
+
+        return convertToDto(session);
+    }
+    private void validateActiveSession(String plateNumber) {
+        if (parkingSessionRepository.existsByPlateNumberAndStatus(plateNumber, "ACTIVE")) {
+            throw new ConflictException("Biển số xe " + plateNumber + " đã có một lượt gửi xe đang hoạt động.");
         }
-        ParkingSlot selectedSlot = availableSlots.get(0);
+    }
+    
+    private VehicleType validateVehicleType(String vehicleTypeId) {
+        VehicleType vehicleType = resolveVehicleType(vehicleTypeId);
+        if (vehicleType.getStatus() != VehicleTypeStatus.ACTIVE) {
+            throw new BadRequestException("Loại xe " + vehicleType.getName() + " không hợp lệ hoặc không được áp dụng.");
+        }
+        return vehicleType;
+    }
 
-        // 3. Cập nhật slot thành OCCUPIED
-        selectedSlot.setStatus(SlotStatus.OCCUPIED);
-        parkingSlotRepository.save(selectedSlot);
+    private Reservation handleReservation(CheckInRequestDto request, String plateNumber, VehicleType vehicleType) {
+        if (request.getReservationId() == null) {
+            return null;
+        }
 
-        // 4. Tạo mã QR vé gửi xe
-        String dateStr = LocalDateTime.now().format(DateTimeFormatter.ofPattern("yyMMdd-HHmmss"));
-        String ticketCode = "QR-" + dateStr + "-"
-                + UUID.randomUUID().toString().substring(0, 4).toUpperCase();
+        Reservation reservation = reservationRepository.findById(request.getReservationId())
+                .orElseThrow(() -> new ResourceNotFoundException("Không tìm thấy đặt chỗ với ID: " + request.getReservationId()));
 
-        // 5. Tạo session mới
+        if (!reservation.getPlateNumber().equalsIgnoreCase(plateNumber)) {
+            throw new ConflictException("Biển số xe không khớp với thông tin đặt chỗ.");
+        }
+        if (reservation.getVehicleType() != vehicleType) {
+            throw new ConflictException("Loại xe không khớp với thông tin đặt chỗ.");
+        }
+        if (reservation.getStatus() != ReservationStatus.CONFIRMED) {
+            throw new ConflictException("Trạng thái đặt chỗ không hợp lệ: " + reservation.getStatus());
+        }
+        if (reservation.getEndAt().isBefore(LocalDateTime.now())) {
+            throw new ConflictException("Đặt chỗ đã hết hạn.");
+        }
+
+        return reservation;
+    }
+
+    private ParkingSlot lockAndGetParkingSlot(CheckInRequestDto request, VehicleType vehicleType, Reservation reservation) {
+        if (reservation != null) {
+            return getSlotFromReservation(reservation);
+        }
+        if (request.getSlotId() != null) {
+            return findAndLockSlotById(request.getSlotId());
+        }
+        return findAndLockAvailableSlot(vehicleType);
+    }
+
+    private ParkingSlot getSlotFromReservation(Reservation reservation) {
+        ParkingSlot slot = parkingSlotRepository.findByIdWithLock(reservation.getSlot().getId())
+                .orElseThrow(() -> new ResourceNotFoundException("Slot đặt chỗ không tồn tại."));
+        if (slot.getStatus() == SlotStatus.OCCUPIED) {
+            throw new ConflictException("Slot đặt chỗ đã có xe khác chiếm.");
+        }
+        return slot;
+    }
+
+    private ParkingSlot findAndLockSlotById(Long slotId) {
+        ParkingSlot slot = parkingSlotRepository.findByIdWithLock(slotId)
+                .orElseThrow(() -> new ResourceNotFoundException("Không tìm thấy slot với ID: " + slotId));
+        if (slot.getStatus() != SlotStatus.AVAILABLE) {
+            throw new ConflictException("Slot đã được chọn không còn khả dụng.");
+        }
+        return slot;
+    }
+
+    private ParkingSlot findAndLockAvailableSlot(VehicleType vehicleType) {
+        return parkingSlotRepository.findFirstByStatusAndVehicleTypeIdOrderByFloorIdAscCodeAsc(SlotStatus.AVAILABLE, vehicleType.getId())
+                .orElseThrow(() -> new ConflictException("Không còn slot trống phù hợp cho loại xe này."));
+    }
+
+    private ParkingSession createParkingSession(CheckInRequestDto request, String plateNumber, VehicleType vehicleType, ParkingSlot slot, Reservation reservation) {
+        String ticketCode = generateTicketCode();
         ParkingSession session = ParkingSession.builder()
                 .ticketCode(ticketCode)
-                .plateNumber(request.getPlateNumber())
+                .plateNumber(plateNumber)
                 .vehicleType(vehicleType)
-                .slot(selectedSlot)
+                .slot(slot)
                 .entryGate(request.getEntryGate())
                 .checkInAt(LocalDateTime.now())
-                .fee(0.0)
                 .status("ACTIVE")
+                .reservation(reservation)
+                .fee(0.0)
                 .build();
+        return parkingSessionRepository.save(session);
+    }
 
-        return convertToDto(parkingSessionRepository.save(session));
+    private void updateEntitiesOnCheckIn(ParkingSlot slot, Reservation reservation) {
+        slot.setStatus(SlotStatus.OCCUPIED);
+        parkingSlotRepository.save(slot);
+
+        if (reservation != null) {
+            reservation.setStatus(ReservationStatus.CHECKED_IN);
+            reservationRepository.save(reservation);
+        }
+    }
+    
+    private String generateTicketCode() {
+        String dateStr = LocalDateTime.now().format(DateTimeFormatter.ofPattern("yyMMdd-HHmmss"));
+        String randomPart = UUID.randomUUID().toString().substring(0, 4).toUpperCase();
+        return "QR-" + dateStr + "-" + randomPart;
     }
 
     /* ─────────────────────────────────────────────────────
@@ -117,19 +209,24 @@ public class ParkingSessionServiceImpl implements ParkingSessionService {
     }
 
     /* ─────────────────────────────────────────────────────
-       Lấy session đang ACTIVE
+       Tìm kiếm và Lấy chi tiết Session
     ───────────────────────────────────────────────────── */
     @Override
     @Transactional(readOnly = true)
-    public ParkingSessionResponseDto getActiveSession() {
-        return parkingSessionRepository.findAll().stream()
-                .filter(s -> "ACTIVE".equals(s.getStatus()))
-                .map(this::convertToDto)
-                .findFirst()
-                .orElseThrow(() -> new ResourceNotFoundException(
-                        "Không tìm thấy lượt gửi xe nào đang hoạt động!"));
+    public Page<ParkingSessionResponseDto> findAll(
+            String status, String query, Long vehicleTypeId, LocalDateTime from, LocalDateTime to, Pageable pageable) {
+        Specification<ParkingSession> spec = parkingSessionSpecification.filterBy(status, query, vehicleTypeId, from, to);
+        return parkingSessionRepository.findAll(spec, pageable).map(this::convertToDto);
     }
 
+    @Override
+    @Transactional(readOnly = true)
+    public ParkingSessionResponseDto findById(Long id) {
+        return parkingSessionRepository.findById(id)
+                .map(this::convertToDto)
+                .orElseThrow(() -> new ResourceNotFoundException("Không tìm thấy session với ID: " + id));
+    }
+    
     /* ─────────────────────────────────────────────────────
        Preview phí mất vé (chưa checkout, chỉ xem trước)
     ───────────────────────────────────────────────────── */
@@ -211,10 +308,141 @@ public class ParkingSessionServiceImpl implements ParkingSessionService {
 
         return convertToDto(saved);
     }
+    
+    @Override
+    @Transactional
+    public ParkingSessionResponseDto handleException(Long id, SessionExceptionRequestDto request) {
+        ParkingSession session = parkingSessionRepository.findById(id)
+                .orElseThrow(() -> new ResourceNotFoundException("Session not found with id: " + id));
+
+        User currentUser = authenticationService.getCurrentUser();
+
+        ParkingSessionException exception = ParkingSessionException.builder()
+                .session(session)
+                .type(request.getType())
+                .reason(request.getReason())
+                .extraFee(request.getExtraFee())
+                .createdBy(currentUser)
+                .build();
+
+        parkingSessionExceptionRepository.save(exception);
+        
+        // Cập nhật phí nếu có
+        if (request.getExtraFee() != null && request.getExtraFee().compareTo(BigDecimal.ZERO) > 0) {
+            double currentFee = session.getFee() != null ? session.getFee() : 0.0;
+            session.setFee(currentFee + request.getExtraFee().doubleValue());
+            parkingSessionRepository.save(session);
+        }
+
+        return convertToDto(session);
+    }
+
+    @Override
+    @Transactional
+    public ParkingSessionResponseDto updateStatus(Long id, SessionStatusUpdateRequestDto request) {
+        ParkingSession session = parkingSessionRepository.findById(id)
+                .orElseThrow(() -> new ResourceNotFoundException("Session not found with id: " + id));
+
+        // Basic validation, can be expanded with a state machine pattern
+        String newStatus = request.getNewStatus().toUpperCase();
+        if (!List.of("ACTIVE", "COMPLETED", "UNPAID", "LOST_TICKET", "EXPIRED").contains(newStatus)) {
+            throw new BadRequestException("Invalid status: " + newStatus);
+        }
+
+        session.setStatus(newStatus);
+        parkingSessionRepository.save(session);
+        return convertToDto(session);
+    }
+
+    @Override
+    @Transactional
+    public ParkingSessionResponseDto reopenSession(Long id) {
+        ParkingSession session = parkingSessionRepository.findById(id)
+                .orElseThrow(() -> new ResourceNotFoundException("Session not found with id: " + id));
+
+        if ("ACTIVE".equals(session.getStatus())) {
+            throw new ConflictException("Session is already active.");
+        }
+
+        // Check if the slot is still available before reopening
+        ParkingSlot slot = session.getSlot();
+        if (slot.getStatus() == SlotStatus.OCCUPIED) {
+            throw new ConflictException("Slot " + slot.getCode() + " is now occupied by another vehicle.");
+        }
+
+        session.setStatus("ACTIVE");
+        session.setCheckOutAt(null);
+        session.setFee(0.0);
+        parkingSessionRepository.save(session);
+
+        // Re-occupy the slot
+        slot.setStatus(SlotStatus.OCCUPIED);
+        parkingSlotRepository.save(slot);
+
+        return convertToDto(session);
+    }
+
+    @Override
+    @Transactional
+    public ParkingSessionResponseDto markAsUnpaid(Long id) {
+        ParkingSession session = parkingSessionRepository.findById(id)
+                .orElseThrow(() -> new ResourceNotFoundException("Session not found with id: " + id));
+
+        if (!List.of("COMPLETED", "LOST_TICKET").contains(session.getStatus())) {
+            throw new BadRequestException("Only COMPLETED or LOST_TICKET sessions can be marked as unpaid.");
+        }
+
+        session.setStatus("UNPAID");
+        parkingSessionRepository.save(session);
+        return convertToDto(session);
+    }
+
+    @Override
+    @Transactional
+    public ParkingSessionResponseDto waiveFee(Long id) {
+        ParkingSession session = parkingSessionRepository.findById(id)
+                .orElseThrow(() -> new ResourceNotFoundException("Session not found with id: " + id));
+
+        session.setFee(0.0);
+        parkingSessionRepository.save(session);
+
+        addSystemNote(session, "Fee has been waived.");
+
+        return convertToDto(session);
+    }
+
+    @Override
+    @Transactional
+    public ParkingSessionResponseDto addNote(Long id, SessionNoteRequestDto request) {
+        ParkingSession session = parkingSessionRepository.findById(id)
+                .orElseThrow(() -> new ResourceNotFoundException("Session not found with id: " + id));
+        
+        User currentUser = authenticationService.getCurrentUser();
+        String newNote = String.format("[%s] by %s: %s",
+                LocalDateTime.now().format(DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm")),
+                currentUser.getUsername(),
+                request.getNote());
+
+        String existingNotes = session.getNotes() == null ? "" : session.getNotes() + "\n";
+        session.setNotes(existingNotes + newNote);
+
+        parkingSessionRepository.save(session);
+        return convertToDto(session);
+    }
 
     /* ─────────────────────────────────────────────────────
        Helpers
     ───────────────────────────────────────────────────── */
+    
+    private void addSystemNote(ParkingSession session, String note) {
+        String newNote = String.format("[%s] by SYSTEM: %s",
+                LocalDateTime.now().format(DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm")),
+                note);
+
+        String existingNotes = session.getNotes() == null ? "" : session.getNotes() + "\n";
+        session.setNotes(existingNotes + newNote);
+        parkingSessionRepository.save(session);
+    }
 
     /**
      * Tìm session ACTIVE theo biển số xe (không phân biệt hoa/thường).
@@ -241,17 +469,27 @@ public class ParkingSessionServiceImpl implements ParkingSessionService {
     }
 
     private ParkingSessionResponseDto convertToDto(ParkingSession session) {
+        ParkingSlot slot = session.getSlot();
+        Floor floor = slot.getFloor();
+        Reservation reservation = session.getReservation();
+
         return ParkingSessionResponseDto.builder()
                 .id(String.valueOf(session.getId()))
                 .ticketCode(session.getTicketCode())
                 .plateNumber(session.getPlateNumber())
                 .vehicleTypeId(String.valueOf(session.getVehicleType().getId()))
-                .slotId(String.valueOf(session.getSlot().getId()))
+                .vehicleTypeName(session.getVehicleType().getName())
+                .slotId(String.valueOf(slot.getId()))
+                .slotCode(slot.getCode())
+                .floorId(floor.getId())
+                .floorName(floor.getName())
+                .reservationId(reservation != null ? reservation.getId() : null)
                 .entryGate(session.getEntryGate())
                 .checkInAt(session.getCheckInAt())
                 .checkOutAt(session.getCheckOutAt())
                 .fee(session.getFee())
                 .status(session.getStatus())
+                .notes(session.getNotes())
                 .build();
     }
 

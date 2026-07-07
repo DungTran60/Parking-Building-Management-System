@@ -4,24 +4,32 @@ import com.parking.dto.CheckInRequestDto;
 import com.parking.dto.LostTicketCheckoutRequestDto;
 import com.parking.dto.LostTicketFeeResponseDto;
 import com.parking.dto.ParkingSessionResponseDto;
+import com.parking.dto.SessionExceptionRequestDto;
+import com.parking.dto.SessionNoteRequestDto;
+import com.parking.dto.SessionStatusUpdateRequestDto;
 import com.parking.service.ParkingSessionService;
 import jakarta.validation.Valid;
 import jakarta.validation.constraints.NotBlank;
 import lombok.RequiredArgsConstructor;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
+import org.springframework.format.annotation.DateTimeFormat;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.validation.annotation.Validated;
 import org.springframework.web.bind.annotation.*;
+import java.time.LocalDateTime;
 
 /**
  * REST controller cho Parking Session Management.
  *
  * Endpoints:
- *   POST   /api/sessions/checkin                   – check-in xe vào bãi
- *   POST   /api/sessions/checkout?query=           – check-out xe (bằng ticketCode hoặc plateNumber)
- *   GET    /api/sessions/active                    – lấy danh sách session đang ACTIVE
- *   GET    /api/sessions/lost-ticket-preview?plateNumber= – xem trước phí mất vé (chưa checkout)
- *   POST   /api/sessions/lost-ticket-checkout      – checkout xe mất vé (tính phí giờ + phụ phí)
+ *   GET    /api/sessions                           - Lấy danh sách sessions (filter, sort, page)
+ *   GET    /api/sessions/{id}                      - Lấy chi tiết một session
+ *   POST   /api/sessions/checkin                   – Check-in xe vào bãi
+ *   POST   /api/sessions/checkout?query=           – Check-out xe (bằng ticketCode hoặc plateNumber)
+ *   GET    /api/sessions/lost-ticket-preview?plateNumber= – Xem trước phí mất vé
+ *   POST   /api/sessions/lost-ticket-checkout      – Checkout xe mất vé
  */
 @RestController
 @RequestMapping("/api/sessions")
@@ -31,12 +39,24 @@ public class ParkingSessionController {
 
     private final ParkingSessionService parkingSessionService;
 
+    @GetMapping
+    @PreAuthorize("hasAuthority('sessions:view')")
+    public ResponseEntity<Page<ParkingSessionResponseDto>> findAll(
+            @RequestParam(required = false) String status,
+            @RequestParam(required = false) String query,
+            @RequestParam(required = false) Long vehicleTypeId,
+            @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE_TIME) LocalDateTime from,
+            @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE_TIME) LocalDateTime to,
+            Pageable pageable) {
+        return ResponseEntity.ok(parkingSessionService.findAll(status, query, vehicleTypeId, from, to, pageable));
+    }
+    
     /**
      * Check-in xe vào bãi.
      * Quyền: STAFF, MANAGER, ADMIN
      */
     @PostMapping("/checkin")
-    @PreAuthorize("hasAnyRole('ADMIN', 'MANAGER', 'STAFF')")
+    @PreAuthorize("hasAuthority('sessions:checkout')")
     public ResponseEntity<ParkingSessionResponseDto> checkIn(
             @Valid @RequestBody CheckInRequestDto request) {
         return ResponseEntity.ok(parkingSessionService.checkIn(request));
@@ -50,19 +70,15 @@ public class ParkingSessionController {
      *        /api/sessions/checkout?query=51G-88888
      */
     @PostMapping("/checkout")
-    @PreAuthorize("hasAnyRole('ADMIN', 'MANAGER', 'STAFF')")
+    @PreAuthorize("hasAuthority('sessions:checkout')")
     public ResponseEntity<ParkingSessionResponseDto> checkOut(@RequestParam String query) {
         return ResponseEntity.ok(parkingSessionService.checkOut(query));
     }
 
-    /**
-     * Lấy danh sách session đang ACTIVE.
-     * Quyền: authenticated users
-     */
-    @GetMapping("/active")
-    @PreAuthorize("isAuthenticated()")
-    public ResponseEntity<ParkingSessionResponseDto> getActiveSession() {
-        return ResponseEntity.ok(parkingSessionService.getActiveSession());
+    @GetMapping("/{id}")
+    @PreAuthorize("hasAuthority('sessions:view')")
+    public ResponseEntity<ParkingSessionResponseDto> findById(@PathVariable Long id) {
+        return ResponseEntity.ok(parkingSessionService.findById(id));
     }
 
     /**
@@ -73,7 +89,7 @@ public class ParkingSessionController {
      * Ví dụ: GET /api/sessions/lost-ticket-preview?plateNumber=51G-88888
      */
     @GetMapping("/lost-ticket-preview")
-    @PreAuthorize("hasAnyRole('ADMIN', 'MANAGER', 'STAFF')")
+    @PreAuthorize("hasAuthority('sessions:exception')")
     public ResponseEntity<LostTicketFeeResponseDto> previewLostTicketFee(
             @RequestParam @NotBlank(message = "Plate number is required") String plateNumber) {
         return ResponseEntity.ok(parkingSessionService.previewLostTicketFee(plateNumber));
@@ -87,9 +103,60 @@ public class ParkingSessionController {
      * Body: { "plateNumber": "51G-88888", "paymentMethod": "CASH" }
      */
     @PostMapping("/lost-ticket-checkout")
-    @PreAuthorize("hasAnyRole('ADMIN', 'MANAGER', 'STAFF')")
+    @PreAuthorize("hasAuthority('sessions:exception')")
     public ResponseEntity<ParkingSessionResponseDto> lostTicketCheckout(
             @Valid @RequestBody LostTicketCheckoutRequestDto request) {
         return ResponseEntity.ok(parkingSessionService.lostTicketCheckout(request));
+    }
+
+    /**
+     * Ghi nhận một sự cố / ngoại lệ cho một lượt gửi xe.
+     * Quyền: STAFF, MANAGER, ADMIN
+     */
+    @PostMapping("/{id}/exceptions")
+    @PreAuthorize("hasAuthority('sessions:exception')")
+    public ResponseEntity<ParkingSessionResponseDto> handleException(
+            @PathVariable Long id,
+            @Valid @RequestBody SessionExceptionRequestDto request) {
+        return ResponseEntity.ok(parkingSessionService.handleException(id, request));
+    }
+
+    @PatchMapping("/{id}/status")
+    @PreAuthorize("hasAuthority('sessions:manage')")
+    public ResponseEntity<ParkingSessionResponseDto> updateStatus(
+            @PathVariable Long id,
+            @Valid @RequestBody SessionStatusUpdateRequestDto request) {
+        // Implementation will be added in the service layer
+        return ResponseEntity.ok().build();
+    }
+
+    @PostMapping("/{id}/reopen")
+    @PreAuthorize("hasAuthority('sessions:manage')")
+    public ResponseEntity<ParkingSessionResponseDto> reopenSession(@PathVariable Long id) {
+        // Implementation will be added in the service layer
+        return ResponseEntity.ok().build();
+    }
+
+    @PostMapping("/{id}/mark-unpaid")
+    @PreAuthorize("hasAuthority('sessions:manage')")
+    public ResponseEntity<ParkingSessionResponseDto> markAsUnpaid(@PathVariable Long id) {
+        // Implementation will be added in the service layer
+        return ResponseEntity.ok().build();
+    }
+
+    @PostMapping("/{id}/waive-fee")
+    @PreAuthorize("hasAuthority('sessions:manage')")
+    public ResponseEntity<ParkingSessionResponseDto> waiveFee(@PathVariable Long id) {
+        // Implementation will be added in the service layer
+        return ResponseEntity.ok().build();
+    }
+
+    @PostMapping("/{id}/notes")
+    @PreAuthorize("hasAuthority('sessions:manage')")
+    public ResponseEntity<ParkingSessionResponseDto> addNote(
+            @PathVariable Long id,
+            @Valid @RequestBody SessionNoteRequestDto request) {
+        // Implementation will be added in the service layer
+        return ResponseEntity.ok().build();
     }
 }

@@ -14,6 +14,7 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.math.BigDecimal;
 import java.time.Duration;
 import java.time.LocalDateTime;
 import java.util.List;
@@ -52,7 +53,7 @@ public class PaymentServiceImpl implements PaymentService {
 
         Payment payment = Payment.builder()
                 .session(session)
-                .amount(session.getFee())
+                .amount(BigDecimal.valueOf(session.getFee()))
                 .method(request.getMethod())
                 .paymentTime(LocalDateTime.now())
                 .build();
@@ -73,7 +74,7 @@ public class PaymentServiceImpl implements PaymentService {
         return PaymentResponseDto.builder()
                 .id(String.valueOf(payment.getId()))
                 .sessionId(payment.getSession().getTicketCode() != null ? payment.getSession().getTicketCode() : String.valueOf(payment.getSession().getId()))
-                .amount(payment.getAmount())
+                .amount(payment.getAmount().doubleValue())
                 .method(payment.getMethod())
                 .paidAt(payment.getPaymentTime())
                 .build();
