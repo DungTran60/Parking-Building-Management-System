@@ -1,0 +1,218 @@
+import { useCallback, useEffect, useMemo, useState } from "react";
+import type { ColumnDef } from "@tanstack/react-table";
+import { AlertTriangle, RefreshCw, Search } from "lucide-react";
+import { sessionApi } from "@/api/sessionApi";
+import { Badge } from "@/components/common/Badge";
+import { Button } from "@/components/common/Button";
+import { Card, CardContent, CardHeader } from "@/components/common/Card";
+import { Field, Input, Select } from "@/components/forms/FormField";
+import { PageHeader } from "@/components/layout/PageHeader";
+import { DataTable } from "@/components/tables/DataTable";
+import { ExceptionModal } from "@/modules/sessions/ExceptionModals";
+import { hasPermission } from "@/constants/rbac";
+import { useAuthStore } from "@/stores/authStore";
+import type { ExceptionType, ParkingSession, SessionStatus } from "@/types/domain";
+import { getApiErrorMessage } from "@/utils/apiError";
+import { currency, dateTime } from "@/utils/format";
+
+type SessionStatusFilter = SessionStatus | "ALL";
+
+const SESSION_STATUS_OPTIONS: { value: SessionStatusFilter; label: string }[] = [
+  { value: "ALL", label: "Tất cả trạng thái" },
+  { value: "ACTIVE", label: "Đang gửi xe" },
+  { value: "COMPLETED", label: "Đã hoàn tất" },
+  { value: "UNPAID", label: "Chưa thanh toán" },
+  { value: "LOST_TICKET", label: "Mất vé" },
+  { value: "EXPIRED", label: "Hết hạn" }
+];
+
+const columns: ColumnDef<ParkingSession>[] = [
+  { accessorKey: "ticketCode", header: "Mã vé" },
+  { accessorKey: "plateNumber", header: "Biển số" },
+  {
+    id: "slot",
+    header: "Vị trí",
+    cell: ({ row }) => row.original.slotCode ?? `Slot ${row.original.slotId}`
+  },
+  { accessorKey: "entryGate", header: "Cổng vào" },
+  {
+    accessorKey: "checkInAt",
+    header: "Giờ vào",
+    cell: ({ row }) => dateTime(row.original.checkInAt)
+  },
+  {
+    accessorKey: "checkOutAt",
+    header: "Giờ ra",
+    cell: ({ row }) => row.original.checkOutAt ? dateTime(row.original.checkOutAt) : "—"
+  },
+  {
+    accessorKey: "fee",
+    header: "Phí",
+    cell: ({ row }) => currency(row.original.fee)
+  },
+  {
+    accessorKey: "status",
+    header: "Trạng thái",
+    cell: ({ row }) => <Badge value={row.original.status} />
+  }
+];
+
+export function SessionsPage() {
+  const role = useAuthStore((state) => state.role);
+  const canManageExceptions = role === "PARKING_STAFF" && hasPermission(role, "exceptions:manage");
+  const [sessions, setSessions] = useState<ParkingSession[]>([]);
+  const [query, setQuery] = useState("");
+  const [status, setStatus] = useState<SessionStatusFilter>("ACTIVE");
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState("");
+  const [exception, setException] = useState<ExceptionType | null>(null);
+
+  const loadSessions = useCallback(async (nextQuery: string, nextStatus: SessionStatusFilter) => {
+    setLoading(true);
+    setError("");
+    try {
+      const result = await sessionApi.list({
+        query: nextQuery,
+        status: nextStatus,
+        page: 0,
+        size: 50,
+        sort: "checkInAt,desc"
+      });
+      setSessions(result.content);
+    } catch (requestError: unknown) {
+      setSessions([]);
+      setError(getApiErrorMessage(requestError, "Không thể tải danh sách parking session. Vui lòng thử lại."));
+    } finally {
+      setLoading(false);
+    }
+  }, []);
+
+  useEffect(() => {
+    const timer = window.setTimeout(() => {
+      void loadSessions(query, status);
+    }, 250);
+
+    return () => {
+      window.clearTimeout(timer);
+    };
+  }, [loadSessions, query, status]);
+
+  const activeCount = useMemo(
+    () => sessions.filter((session) => session.status === "ACTIVE").length,
+    [sessions]
+  );
+
+  const exceptionActions = useMemo(
+    () => (["LOST_TICKET", "WRONG_PLATE", "WRONG_ZONE", "OVERTIME", "UNPAID"] as ExceptionType[]),
+    []
+  );
+
+  return (
+    <>
+      <PageHeader
+        title="Quản lý Parking Session"
+        description="Tra cứu xe đang gửi, theo dõi trạng thái session và chuẩn bị cho checkout hoặc xử lý ngoại lệ."
+      />
+
+      <Card>
+        <CardHeader
+          title="Danh sách session"
+          action={canManageExceptions && (
+            <Button variant="secondary" onClick={() => setException("LOST_TICKET")}>
+              <AlertTriangle size={17} />
+              Xử lý ngoại lệ
+            </Button>
+          )}
+        />
+
+        <CardContent className="grid gap-4">
+          <div className="grid gap-4 lg:grid-cols-[minmax(0,1.4fr)_220px_auto]">
+            <Field label="Tìm theo biển số / mã vé / vị trí">
+              <div className="relative">
+                <Search className="pointer-events-none absolute left-3 top-2.5 text-slate-400" size={17} />
+                <Input
+                  value={query}
+                  onChange={(event) => setQuery(event.target.value)}
+                  placeholder="VD: 51G-12345 hoặc QR-..."
+                  className="pl-9"
+                />
+              </div>
+            </Field>
+
+            <Field label="Trạng thái">
+              <Select value={status} onChange={(event) => setStatus(event.target.value as SessionStatusFilter)}>
+                {SESSION_STATUS_OPTIONS.map((option) => <option key={option.value} value={option.value}>{option.label}</option>)}
+              </Select>
+            </Field>
+
+            <div className="flex items-end">
+              <Button variant="secondary" onClick={() => void loadSessions(query, status)} disabled={loading} className="w-full">
+                <RefreshCw size={16} />
+                Làm mới
+              </Button>
+            </div>
+          </div>
+
+          <div className="grid gap-3 md:grid-cols-3">
+            <SessionMetric label="Tổng kết quả" value={String(sessions.length)} />
+            <SessionMetric label="Đang active" value={String(activeCount)} />
+            <SessionMetric label="Nguồn dữ liệu" value="API thật" tone="success" />
+          </div>
+
+          {error && (
+            <div role="alert" className="rounded-md border border-red-200 bg-red-50 p-3 text-sm text-red-700">
+              {error}
+            </div>
+          )}
+
+          {loading ? (
+            <p className="text-sm text-slate-500">Đang tải danh sách session...</p>
+          ) : sessions.length === 0 ? (
+            <div className="rounded-md border border-dashed border-slate-300 py-10 text-center text-sm text-slate-500">
+              Không tìm thấy parking session phù hợp với điều kiện hiện tại.
+            </div>
+          ) : (
+            <DataTable
+              data={sessions}
+              columns={columns}
+              showSearch={false}
+            />
+          )}
+        </CardContent>
+      </Card>
+
+      {canManageExceptions && (
+        <div className="mt-6 grid gap-3 md:grid-cols-5">
+          {exceptionActions.map((type) => (
+            <Button key={type} variant="secondary" onClick={() => setException(type)}>
+              {type}
+            </Button>
+          ))}
+        </div>
+      )}
+
+      {canManageExceptions && (
+        <ExceptionModal
+          type={exception}
+          onClose={() => setException(null)}
+          onSuccess={() => void loadSessions(query, status)}
+        />
+      )}
+    </>
+  );
+}
+
+function SessionMetric({ label, value, tone = "default" }: { label: string; value: string; tone?: "default" | "success" | "warning" }) {
+  const toneClass = {
+    default: "bg-slate-50 text-slate-900",
+    success: "bg-emerald-50 text-emerald-800",
+    warning: "bg-amber-50 text-amber-800"
+  }[tone];
+
+  return (
+    <div className={`rounded-md p-3 ${toneClass}`}>
+      <p className="text-xs font-medium uppercase tracking-wide opacity-70">{label}</p>
+      <p className="mt-1 text-lg font-semibold">{value}</p>
+    </div>
+  );
+}

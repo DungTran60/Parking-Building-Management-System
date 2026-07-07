@@ -51,7 +51,6 @@ const Icon = ({ name, className = 'w-5 h-5' }: { name: string; className?: strin
 
 const RegisterPage = () => {
     const navigate = useNavigate();
-    const [fullName, setFullName] = useState('');
     const [phoneNumber, setPhoneNumber] = useState('');
     const [email, setEmail] = useState('');
     const [username, setUsername] = useState('');
@@ -72,7 +71,7 @@ const RegisterPage = () => {
 
         setIsSubmitting(true);
         try {
-            await registerUser({ username, password, fullName, email, phoneNumber });
+            await registerUser({ username, password, email, phoneNumber });
             setIsTransitioning(true);
             await new Promise((resolve) => window.setTimeout(resolve, 280));
             navigate('/login', { replace: true, state: { registrationSuccess: true } });
@@ -105,17 +104,7 @@ const RegisterPage = () => {
                             </div>
 
                             <form onSubmit={handleSubmit} className="space-y-4">
-                                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                                    <div>
-                                        <label className="block text-sm font-medium text-slate-700 mb-2" htmlFor="fullName">Họ và tên</label>
-                                        <div className="relative">
-                                            <div className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400">
-                                                <Icon name="user" className="w-[18px] h-[18px]" />
-                                            </div>
-                                            <input id="fullName" name="fullName" value={fullName} onChange={(event) => setFullName(event.target.value)} autoComplete="name" className="w-full bg-white border border-slate-200 focus:border-blue-500 focus:ring-2 focus:ring-blue-100 rounded-lg py-3 pl-10 pr-3 text-sm text-slate-800 placeholder-slate-400 focus:outline-none transition" placeholder="Nguyễn Văn A" required />
-                                        </div>
-                                    </div>
-                                    <div>
+                                <div>
                                         <label className="block text-sm font-medium text-slate-700 mb-2" htmlFor="phone">Số điện thoại</label>
                                         <div className="relative">
                                             <div className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400">
@@ -123,7 +112,6 @@ const RegisterPage = () => {
                                             </div>
                                             <input id="phone" name="phoneNumber" type="tel" value={phoneNumber} onChange={(event) => setPhoneNumber(event.target.value)} autoComplete="tel" className="w-full bg-white border border-slate-200 focus:border-blue-500 focus:ring-2 focus:ring-blue-100 rounded-lg py-3 pl-10 pr-3 text-sm text-slate-800 placeholder-slate-400 focus:outline-none transition" placeholder="09xx xxx xxx" required />
                                         </div>
-                                    </div>
                                 </div>
 
                                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
@@ -154,7 +142,7 @@ const RegisterPage = () => {
                                             <div className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400">
                                                 <Icon name="lock" className="w-[18px] h-[18px]" />
                                             </div>
-                                            <input id="password" name="password" type="password" value={password} onChange={(event) => setPassword(event.target.value)} autoComplete="new-password" minLength={6} className="w-full bg-white border border-slate-200 focus:border-blue-500 focus:ring-2 focus:ring-blue-100 rounded-lg py-3 pl-10 pr-3 text-sm text-slate-800 placeholder-slate-400 focus:outline-none transition" placeholder="Tối thiểu 6 ký tự" required />
+                                            <input id="password" name="password" type="password" value={password} onChange={(event) => setPassword(event.target.value)} autoComplete="new-password" minLength={8} className="w-full bg-white border border-slate-200 focus:border-blue-500 focus:ring-2 focus:ring-blue-100 rounded-lg py-3 pl-10 pr-3 text-sm text-slate-800 placeholder-slate-400 focus:outline-none transition" placeholder="Tối thiểu 8 ký tự" required />
                                         </div>
                                     </div>
                                     <div>
@@ -163,7 +151,7 @@ const RegisterPage = () => {
                                             <div className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400">
                                                 <Icon name="lock" className="w-[18px] h-[18px]" />
                                             </div>
-                                            <input id="confirmPassword" name="confirmPassword" type="password" value={confirmPassword} onChange={(event) => setConfirmPassword(event.target.value)} autoComplete="new-password" minLength={6} className="w-full bg-white border border-slate-200 focus:border-blue-500 focus:ring-2 focus:ring-blue-100 rounded-lg py-3 pl-10 pr-3 text-sm text-slate-800 placeholder-slate-400 focus:outline-none transition" placeholder="Nhập lại mật khẩu" required />
+                                            <input id="confirmPassword" name="confirmPassword" type="password" value={confirmPassword} onChange={(event) => setConfirmPassword(event.target.value)} autoComplete="new-password" minLength={8} className="w-full bg-white border border-slate-200 focus:border-blue-500 focus:ring-2 focus:ring-blue-100 rounded-lg py-3 pl-10 pr-3 text-sm text-slate-800 placeholder-slate-400 focus:outline-none transition" placeholder="Nhập lại mật khẩu" required />
                                         </div>
                                     </div>
                                 </div>

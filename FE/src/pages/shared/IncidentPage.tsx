@@ -6,6 +6,7 @@ import { Button } from "@/components/common/Button";
 import { Modal } from "@/components/common/Modal";
 import { Field, Input, Select } from "@/components/forms/FormField";
 import { incidentApi } from "@/api/incidentApi";
+import { userApi, type UserResponse } from "@/api/userApi";
 import type { Incident, IncidentStatus, IncidentType } from "@/types/domain";
 import { useAuthStore } from "@/stores/authStore";
 import { getApiErrorMessage } from "@/utils/apiError";
@@ -44,6 +45,7 @@ export function IncidentPage() {
   const isManager = role === "PARKING_MANAGER";
   const isAdmin = role === "SYSTEM_ADMIN";
   const canCreate = isStaff;
+  const canAssign = isManager || isAdmin;
   const canProcess = isStaff;
   const canResolve = isStaff;
   const canClose = isManager || isAdmin;
@@ -53,6 +55,8 @@ export function IncidentPage() {
   const [error, setError] = useState("");
   const [filterStatus, setFilterStatus] = useState<IncidentStatus | "ALL">("ALL");
   const [actionId, setActionId] = useState<number | null>(null);
+  const [staffUsers, setStaffUsers] = useState<UserResponse[]>([]);
+  const [loadingStaff, setLoadingStaff] = useState(false);
 
   // Create modal
   const [showCreate, setShowCreate] = useState(false);
@@ -65,6 +69,11 @@ export function IncidentPage() {
   const [resolveId, setResolveId] = useState<number | null>(null);
   const [resolution, setResolution] = useState("");
   const [resolving, setResolving] = useState(false);
+
+  // Assign modal
+  const [assignId, setAssignId] = useState<number | null>(null);
+  const [assignStaffId, setAssignStaffId] = useState("");
+  const [assigning, setAssigning] = useState(false);
 
   /* ── Data fetch ──────────────────────────────────── */
   const fetchData = useCallback(async () => {
@@ -83,6 +92,19 @@ export function IncidentPage() {
   }, [filterStatus]);
 
   useEffect(() => { void fetchData(); }, [fetchData]);
+
+  const loadStaffUsers = useCallback(async () => {
+    if (staffUsers.length > 0 || loadingStaff) return;
+    setLoadingStaff(true);
+    try {
+      const users = await userApi.getActiveStaff();
+      setStaffUsers(users.filter((user) => user.roleName === "STAFF" && user.status === "ACTIVE"));
+    } catch (requestError: unknown) {
+      setError(getApiErrorMessage(requestError, "Không thể tải danh sách Staff để phân công."));
+    } finally {
+      setLoadingStaff(false);
+    }
+  }, [loadingStaff, staffUsers.length]);
 
   /* ── Actions ─────────────────────────────────────── */
   const handleCreate = async () => {
@@ -142,6 +164,27 @@ export function IncidentPage() {
     } finally { setActionId(null); }
   };
 
+  const handleAssign = async () => {
+    if (!assignId || !assignStaffId) return;
+    const staffId = Number(assignStaffId);
+    if (Number.isNaN(staffId)) return;
+
+    setAssigning(true);
+    setActionId(assignId);
+    setError("");
+    try {
+      const updated = await incidentApi.assign(assignId, { assigneeId: staffId });
+      setItems((prev) => prev.map((i) => (i.id === assignId ? updated : i)));
+      setAssignId(null);
+      setAssignStaffId("");
+    } catch (requestError: unknown) {
+      setError(getApiErrorMessage(requestError, "Không thể phân công sự cố."));
+    } finally {
+      setAssigning(false);
+      setActionId(null);
+    }
+  };
+
   const handleDelete = async (id: number) => {
     if (!window.confirm("Xóa sự cố này?")) return;
     setActionId(id);
@@ -159,7 +202,11 @@ export function IncidentPage() {
     <>
       <PageHeader
         title={isStaff ? "Quản lý và xử lý sự cố" : "Giám sát sự cố"}
-        description={isStaff ? "Ghi nhận, nhận xử lý và hoàn tất các sự cố phát sinh tại quầy." : "Theo dõi tiến độ và đóng các sự cố đã được Staff giải quyết."}
+        description={
+          isStaff
+            ? "Ghi nhận, nhận xử lý và hoàn tất các sự cố phát sinh tại quầy."
+            : "Theo dõi tiến độ, phân công Staff và đóng các sự cố đã được xử lý."
+        }
       />
 
       {error && <div role="alert" className="mb-4 rounded-lg border border-red-200 bg-red-50 p-4 text-sm text-red-700"><p>{error}</p>{items.length === 0 && <Button variant="secondary" className="mt-3" onClick={() => void fetchData()} disabled={loading}><RefreshCw size={16} /> Thử lại</Button>}</div>}
@@ -241,8 +288,22 @@ export function IncidentPage() {
                               disabled={actionId === item.id}
                               title="Bắt đầu xử lý"
                               className="rounded p-1 text-blue-500 hover:bg-blue-50 disabled:opacity-50"
+                              >
+                                <Play size={13} />
+                              </button>
+                          )}
+                          {canAssign && item.status === "OPEN" && (
+                            <button
+                              onClick={() => {
+                                setAssignId(item.id);
+                                setAssignStaffId(item.assigneeId ? String(item.assigneeId) : "");
+                                void loadStaffUsers();
+                              }}
+                              disabled={actionId === item.id}
+                              title="Phân công Staff"
+                              className="rounded p-1 text-purple-600 hover:bg-purple-50 disabled:opacity-50"
                             >
-                              <Play size={13} />
+                              <Plus size={13} />
                             </button>
                           )}
                           {canResolve && item.status === "IN_PROGRESS" && (
@@ -345,6 +406,47 @@ export function IncidentPage() {
             </Button>
             <Button onClick={handleResolve} disabled={!resolution.trim() || resolving}>
               {resolving ? "Đang lưu..." : "Xác nhận giải quyết"}
+            </Button>
+          </div>
+        </div>
+      </Modal>
+
+      {/* Modal: Phân công sự cố */}
+      <Modal
+        open={assignId !== null}
+        title="Phân công sự cố"
+        onClose={() => {
+          setAssignId(null);
+          setAssignStaffId("");
+        }}
+      >
+        <div className="grid gap-4">
+          <Field label="Staff xử lý">
+            <Select
+              value={assignStaffId}
+              onChange={(e) => setAssignStaffId(e.target.value)}
+              disabled={loadingStaff}
+            >
+              <option value="">{loadingStaff ? "Đang tải..." : "Chọn Staff"}</option>
+              {staffUsers.map((staff) => (
+                <option key={staff.id} value={staff.id}>
+                  {staff.username} - {staff.email}
+                </option>
+              ))}
+            </Select>
+          </Field>
+          <div className="flex justify-end gap-2 pt-2">
+            <Button
+              variant="secondary"
+              onClick={() => {
+                setAssignId(null);
+                setAssignStaffId("");
+              }}
+            >
+              Hủy
+            </Button>
+            <Button onClick={handleAssign} disabled={!assignStaffId || assigning || loadingStaff}>
+              {assigning ? "Đang phân công..." : "Xác nhận phân công"}
             </Button>
           </div>
         </div>

@@ -1,66 +1,131 @@
-import { useState, type FormEvent } from "react";
+﻿import { useMemo, useState, type FormEvent } from "react";
 import axios from "axios";
 import dayjs from "dayjs";
 import { Printer, ReceiptText, Search } from "lucide-react";
+import { paymentApi } from "@/api/paymentApi";
+import { sessionApi } from "@/api/sessionApi";
 import { Button } from "@/components/common/Button";
 import { Card, CardContent, CardHeader } from "@/components/common/Card";
 import { PageHeader } from "@/components/layout/PageHeader";
-import { Field, Input } from "@/components/forms/FormField";
-import { sessionApi, type CheckOutResponse } from "@/api/sessionApi";
+import { Field, Input, Select } from "@/components/forms/FormField";
+import type { ParkingSession, PaymentMethod, PaymentRecord } from "@/types/domain";
 import { currency, dateTime } from "@/utils/format";
 
+const PAYMENT_METHODS: { label: string; value: PaymentMethod }[] = [
+  { label: "QR Code", value: "QR_CODE" },
+  { label: "Thẻ ngân hàng", value: "BANK_CARD" },
+  { label: "Tiền mặt", value: "CASH" }
+];
+
 export function CheckOutPage() {
-  const [session, setSession] = useState<CheckOutResponse | null>(null);
+  const [session, setSession] = useState<ParkingSession | null>(null);
+  const [payment, setPayment] = useState<PaymentRecord | null>(null);
+  const [paymentMethod, setPaymentMethod] = useState<PaymentMethod>("CASH");
   const [searchError, setSearchError] = useState("");
-  const [isChecking, setIsChecking] = useState(false);
-  const hours = session
-    ? session.duration !== undefined
-      ? Number(session.duration).toFixed(1)
-      : Math.max(1, dayjs(session.checkOutAt).diff(dayjs(session.checkInAt), "hour", true)).toFixed(1)
-    : "0";
+  const [paymentError, setPaymentError] = useState("");
+  const [isSearching, setIsSearching] = useState(false);
+  const [isPaying, setIsPaying] = useState(false);
+
+  const durationHours = useMemo(() => {
+    if (!session) return "0.0";
+    const endAt = session.checkOutAt ?? new Date().toISOString();
+    return Math.max(1, dayjs(endAt).diff(dayjs(session.checkInAt), "hour", true)).toFixed(1);
+  }, [session]);
+
+  const displayFee = payment?.amount ?? session?.fee ?? 0;
+  const displayStatus = payment ? "COMPLETED" : session?.status ?? "ACTIVE";
 
   const submit = async (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault();
     const query = String(new FormData(event.currentTarget).get("query")).trim();
-    setIsChecking(true);
+    if (!query) return;
+
+    setIsSearching(true);
     setSearchError("");
+    setPaymentError("");
     setSession(null);
+    setPayment(null);
+
     try {
-      setSession(await sessionApi.checkOut(query));
+      const result = await sessionApi.list({
+        query,
+        status: "ACTIVE",
+        page: 0,
+        size: 1,
+        sort: "checkInAt,desc"
+      });
+
+      const found = result.content[0] ?? null;
+      if (!found) {
+        setSearchError("Không tìm thấy lượt gửi xe đang hoạt động phù hợp.");
+        return;
+      }
+
+      setSession(found);
     } catch (error) {
       if (axios.isAxiosError<{ message?: string; error?: string }>(error)) {
-        if (error.response?.status === 404) {
-          setSearchError("Không tìm thấy lượt gửi xe phù hợp.");
-        } else if (error.response?.status === 401 || error.response?.status === 403) {
+        if (error.response?.status === 401 || error.response?.status === 403) {
           setSearchError("Phiên đăng nhập không hợp lệ hoặc bạn không có quyền checkout.");
         } else {
-          setSearchError(error.response?.data?.message ?? error.response?.data?.error ?? "Không thể kiểm tra phí gửi xe.");
+          setSearchError(error.response?.data?.message ?? error.response?.data?.error ?? "Không thể tra cứu phiên gửi xe.");
         }
       } else {
         setSearchError("Đã xảy ra lỗi không xác định. Vui lòng thử lại.");
       }
     } finally {
-      setIsChecking(false);
+      setIsSearching(false);
     }
   };
 
+  const confirmPayment = async () => {
+    if (!session) return;
+    setIsPaying(true);
+    setPaymentError("");
+
+    try {
+      const record = await paymentApi.create({
+        sessionId: session.id,
+        method: paymentMethod
+      });
+      setPayment(record);
+      setSession((prev) => prev ? {
+        ...prev,
+        status: "COMPLETED",
+        checkOutAt: record.paidAt.toString(),
+        fee: Number(record.amount)
+      } : prev);
+    } catch (error) {
+      if (axios.isAxiosError<{ message?: string; error?: string }>(error)) {
+        setPaymentError(error.response?.data?.message ?? error.response?.data?.error ?? "Không thể xác nhận thanh toán.");
+      } else {
+        setPaymentError("Đã xảy ra lỗi không xác định khi thanh toán.");
+      }
+    } finally {
+      setIsPaying(false);
+    }
+  };
+
+  const printInvoice = () => window.print();
+
   return (
     <>
-      <PageHeader title="Parking Check-Out" description="Tìm theo biển số hoặc mã vé, tính phí tự động, thanh toán và in hóa đơn." />
+      <PageHeader title="Parking Check-Out" description="Tìm theo biển số hoặc mã vé, xác nhận thanh toán và in hóa đơn." />
       <div className="grid gap-6 lg:grid-cols-[420px_1fr]">
         <Card>
           <CardHeader title="Tìm lượt gửi xe" />
           <CardContent>
-            <form
-              className="grid gap-4"
-              onSubmit={submit}
-            >
-              <Field label="Biển số / mã vé"><Input name="query" placeholder="QR-... hoặc 51G-..." required /></Field>
-              <Button disabled={isChecking}><Search size={17} /> {isChecking ? "Đang kiểm tra..." : "Kiểm tra phí"}</Button>
+            <form className="grid gap-4" onSubmit={submit}>
+              <Field label="Biển số / mã vé">
+                <Input name="query" placeholder="QR-... hoặc 51G-..." required />
+              </Field>
+              <Button disabled={isSearching}>
+                <Search size={17} /> {isSearching ? "Đang kiểm tra..." : "Tra cứu"}
+              </Button>
               {searchError && <p role="alert" className="text-sm text-red-600">{searchError}</p>}
             </form>
           </CardContent>
         </Card>
+
         <Card>
           <CardHeader title="Thông tin thanh toán" />
           <CardContent>
@@ -70,14 +135,45 @@ export function CheckOutPage() {
                   <Info label="Biển số" value={session.plateNumber} />
                   <Info label="Mã vé" value={session.ticketCode} />
                   <Info label="Giờ vào" value={dateTime(session.checkInAt)} />
-                  <Info label="Giờ ra" value={dateTime(session.checkOutAt ?? new Date().toISOString())} />
-                  <Info label="Số giờ gửi" value={`${hours} giờ`} />
-                  <Info label="Phí cần thanh toán" value={currency(session.fee)} strong />
+                  <Info label="Giờ ra" value={session.checkOutAt ? dateTime(session.checkOutAt) : "Chưa thanh toán"} />
+                  <Info label="Số giờ gửi" value={`${durationHours} giờ`} />
+                  <Info label="Phí cần thanh toán" value={currency(displayFee)} strong />
+                  <Info label="Trạng thái" value={displayStatus} />
+                  <Info label="Slot" value={session.slotCode ?? `Slot ${session.slotId}`} />
                 </div>
-                <div className="flex flex-wrap gap-3">
-                  <Button><ReceiptText size={17} /> Xác nhận thanh toán</Button>
-                  <Button variant="secondary"><Printer size={17} /> In hóa đơn</Button>
+
+                <div className="grid gap-3 md:grid-cols-[1fr_auto] md:items-end">
+                  <Field label="Phương thức thanh toán">
+                    <Select value={paymentMethod} onChange={(event) => setPaymentMethod(event.target.value as PaymentMethod)}>
+                      {PAYMENT_METHODS.map((item) => (
+                        <option key={item.value} value={item.value}>
+                          {item.label}
+                        </option>
+                      ))}
+                    </Select>
+                  </Field>
+
+                  <div className="flex flex-wrap gap-3">
+                    <Button onClick={() => void confirmPayment()} disabled={isPaying}>
+                      <ReceiptText size={17} /> {isPaying ? "Đang xác nhận..." : "Xác nhận thanh toán"}
+                    </Button>
+                    <Button variant="secondary" onClick={printInvoice}>
+                      <Printer size={17} /> In hóa đơn
+                    </Button>
+                  </div>
                 </div>
+
+                {paymentError && <p role="alert" className="text-sm text-red-600">{paymentError}</p>}
+
+                {payment && (
+                  <div className="rounded-lg border border-emerald-200 bg-emerald-50 p-4 text-sm text-emerald-800">
+                    <p className="font-semibold">Thanh toán thành công</p>
+                    <p className="mt-1">Mã giao dịch: {payment.id}</p>
+                    <p>Phương thức: {payment.method}</p>
+                    <p>Số tiền: {currency(payment.amount)}</p>
+                    <p>Trạng thái session: COMPLETED</p>
+                  </div>
+                )}
               </div>
             ) : (
               <p className="text-sm text-slate-500">Kết quả checkout sẽ hiển thị tại đây.</p>

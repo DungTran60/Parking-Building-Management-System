@@ -10,8 +10,8 @@ export function VehicleTypesPage() {
       resource="vehicleTypes"
       api={vehicleTypeApi}
       fields={[
-        { key: "code", label: "Mã loại xe", placeholder: "Ví dụ: CAR" },
-        { key: "name", label: "Tên loại xe", placeholder: "Ví dụ: Ô tô" },
+        { key: "code", label: "Mã loại xe", placeholder: "Ví dụ: CAR", maxLength: 20 },
+        { key: "name", label: "Tên loại xe", placeholder: "Ví dụ: Ô tô", maxLength: 100 },
         { key: "description", label: "Mô tả", placeholder: "Ví dụ: Xe ô tô chở khách", required: false },
         {
           key: "status",
