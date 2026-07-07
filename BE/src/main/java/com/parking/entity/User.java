@@ -3,6 +3,8 @@ package com.parking.entity;
 import jakarta.persistence.*;
 import lombok.*;
 
+import java.time.LocalDateTime;
+
 /**
  * Entity đại diện cho bảng users trong database
  */
@@ -39,6 +41,19 @@ public class User {
      */
     @Column(nullable = false, length = 255)
     private String password;
+
+    @Column(nullable = false, unique = true, length = 100)
+    private String email;
+
+    @Column(name = "phone_number", length = 20)
+    private String phoneNumber;
+
+    @Enumerated(EnumType.STRING)
+    @Column(nullable = false, length = 20)
+    private Status status;
+
+    @Column(name = "updated_at")
+    private LocalDateTime updatedAt;
 
     /**
      * Khóa ngoại liên kết tới bảng roles

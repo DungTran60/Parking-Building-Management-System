@@ -2,6 +2,8 @@ package com.parking.service;
 
 import com.parking.dto.UserCreateDto;
 import com.parking.dto.UserResponseDto;
+import com.parking.dto.UserStatusResponseDto;
+import com.parking.dto.UserStatusUpdateDto;
 import com.parking.dto.UserUpdateDto;
 import org.springframework.security.core.userdetails.UserDetailsService;
 
@@ -43,6 +45,11 @@ public interface UserService extends UserDetailsService {
      * Xóa tài khoản người dùng.
      */
     void deleteUser(Long id);
+
+    /**
+     * Cập nhật trạng thái tài khoản người dùng.
+     */
+    UserStatusResponseDto updateUserStatus(Long id, UserStatusUpdateDto dto);
 
     /**
      * Lấy thông tin hồ sơ của người dùng hiện tại đang đăng nhập.

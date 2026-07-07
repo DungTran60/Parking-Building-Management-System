@@ -2,8 +2,10 @@ package com.parking.controller;
 
 import com.parking.dto.UserCreateDto;
 import com.parking.dto.UserResponseDto;
+import com.parking.dto.UserStatusUpdateDto;
 import com.parking.dto.UserUpdateDto;
 import com.parking.dto.UserProfileUpdateDto;
+import com.parking.dto.UserStatusResponseDto;
 import com.parking.service.UserService;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
@@ -81,6 +83,20 @@ public class UserController {
     public ResponseEntity<Void> deleteUser(@PathVariable Long id) {
         userService.deleteUser(id);
         return ResponseEntity.noContent().build();
+    }
+
+    /**
+     * API khóa/mở khóa tài khoản người dùng.
+     * Quyền truy cập: ADMIN
+     */
+    @PatchMapping("/{id}/status")
+    @PreAuthorize("hasRole('ADMIN')")
+    public ResponseEntity<UserStatusResponseDto> updateUserStatus(
+            @PathVariable Long id,
+            @Valid @RequestBody UserStatusUpdateDto dto
+    ) {
+        UserStatusResponseDto updatedUser = userService.updateUserStatus(id, dto);
+        return ResponseEntity.ok(updatedUser);
     }
 
     /**

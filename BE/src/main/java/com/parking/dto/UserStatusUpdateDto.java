@@ -1,6 +1,7 @@
 package com.parking.dto;
 
 import com.parking.entity.Status;
+import jakarta.validation.constraints.NotNull;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Data;
@@ -10,11 +11,7 @@ import lombok.NoArgsConstructor;
 @NoArgsConstructor
 @AllArgsConstructor
 @Builder
-public class UserResponseDto {
-    private Long id;
-    private String username;
-    private String email;
-    private String phoneNumber;
-    private String roleName;
+public class UserStatusUpdateDto {
+    @NotNull(message = "Status is required")
     private Status status;
 }
