@@ -35,6 +35,8 @@ public interface UserService extends UserDetailsService {
      * Lấy toàn bộ danh sách người dùng.
      */
     List<UserResponseDto> getAllUsers();
+
+    List<UserResponseDto> getActiveStaffUsers();
     
     /**
      * Cập nhật thông tin người dùng theo ID (Admin quản trị).
