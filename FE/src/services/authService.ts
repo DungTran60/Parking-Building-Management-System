@@ -14,10 +14,6 @@ export interface LoginResult {
 }
 
 export const loginUser = async (username: string, password: string): Promise<LoginResult> => {
-  // TODO(API): Sau khi test mock hoàn tất, xóa khối mock bên dưới và mở lại khối API này.
-  // BE POST /api/auth/login trả role: ADMIN | MANAGER | STAFF | DRIVER,
-  // vì vậy cần map sang role FE trước khi lưu phiên đăng nhập.
-  /*
   try {
     const response = await authApi.login({ username: username.trim(), password });
     const roleMap: Record<string, Role> = {
@@ -41,22 +37,6 @@ export const loginUser = async (username: string, password: string): Promise<Log
     }
     throw error;
   }
-  */
-
-  // MOCK ONLY: xóa khối này khi mở lại phần gọi API phía trên.
-  const result = await authenticateMockUser(username, password);
-
-  if (!result.success) {
-    if (result.reason === "INACTIVE_ACCOUNT") {
-      throw new Error("Tài khoản đã bị vô hiệu hóa.");
-    }
-    throw new Error("Tên đăng nhập hoặc mật khẩu không chính xác.");
-  }
-
-  return {
-    token: `mock-token-${result.user.id}`,
-    user: { username: result.user.username, role: result.user.role }
-  };
 };
 
 export const registerUser = async (payload: RegisterRequest): Promise<RegisterResponse> => {
