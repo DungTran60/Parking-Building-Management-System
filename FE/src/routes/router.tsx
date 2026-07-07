@@ -14,7 +14,7 @@ import { ParkingInfoPage } from "@/pages/user/ParkingInfoPage";
 import { PaymentPage } from "@/pages/user/PaymentPage";
 import { PricingPage } from "@/pages/manager/PricingPage";
 import { ProfilePage } from "@/pages/shared/ProfilePage";
-import { ReportsPage } from "@/pages/manager/ReportsPage";
+import { ReportsPage } from "@/pages/manager/ReportsPageLive";
 import { ReservationsPage } from "@/pages/user/ReservationsPage";
 import { RolesPage } from "@/pages/admin/RolesPage";
 import { SessionsPage } from "@/pages/shared/SessionsPage";

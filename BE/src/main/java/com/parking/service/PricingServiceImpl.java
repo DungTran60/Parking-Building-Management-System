@@ -276,7 +276,7 @@ public class PricingServiceImpl implements PricingService {
         }
 
         return LostTicketFeeResponseDto.builder()
-                .vehicleType(vehicleType.getName())
+                .vehicleType(vehicleType.getCode())
                 .lostTicketFee(lostTicketFeeVal)
                 .parkingFee(BigDecimal.ZERO)   // endpoint này chỉ tra cứu phụ phí, không có session cụ thể
                 .total(lostTicketFeeVal)

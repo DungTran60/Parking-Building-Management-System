@@ -41,7 +41,7 @@ public class ParkingSession {
     @Column(name = "check_out_at")
     private LocalDateTime checkOutAt;
 
-    @Column(name = "fee", precision = 10, scale = 2)
+    @Column(name = "fee")
     private Double fee;
 
     @Column(nullable = false, length = 30)

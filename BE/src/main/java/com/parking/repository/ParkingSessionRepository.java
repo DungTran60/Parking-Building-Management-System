@@ -48,12 +48,15 @@ public interface ParkingSessionRepository extends JpaRepository<ParkingSession, 
 
     long countByCheckOutAtIsNull();
 
-    @Query("SELECT new com.parking.dto.RevenueByVehicleTypeDto(ps.vehicleType.id, ps.vehicleType.name, SUM(ps.fee)) " +
+    @Query("SELECT new com.parking.dto.RevenueByVehicleTypeDto(ps.vehicleType.id, ps.vehicleType.name, CAST(SUM(ps.fee) AS big_decimal)) " +
            "FROM ParkingSession ps " +
            "WHERE ps.checkOutAt BETWEEN :startDate AND :endDate AND ps.status = 'COMPLETED' " +
            "GROUP BY ps.vehicleType.id, ps.vehicleType.name")
-    List<RevenueByVehicleTypeDto> findRevenueByVehicleType(
-            @Param("startDate") LocalDateTime startDate,
-            @Param("endDate") LocalDateTime endDate
-    );
+            List<RevenueByVehicleTypeDto> findRevenueByVehicleType(
+                    @Param("startDate") LocalDateTime startDate,
+                    @Param("endDate") LocalDateTime endDate
+            );
+
+    @Query("SELECT ps FROM ParkingSession ps WHERE ps.checkInAt BETWEEN :startTime AND :endTime OR ps.checkOutAt BETWEEN :startTime AND :endTime")
+    List<ParkingSession> findTrafficInRange(@Param("startTime") LocalDateTime startTime, @Param("endTime") LocalDateTime endTime);
 }

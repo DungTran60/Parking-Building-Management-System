@@ -74,7 +74,7 @@ public class PaymentServiceImpl implements PaymentService {
         return PaymentResponseDto.builder()
                 .id(String.valueOf(payment.getId()))
                 .sessionId(payment.getSession().getTicketCode() != null ? payment.getSession().getTicketCode() : String.valueOf(payment.getSession().getId()))
-                .amount(payment.getAmount().doubleValue())
+                .amount(payment.getAmount())
                 .method(payment.getMethod())
                 .paidAt(payment.getPaymentTime())
                 .build();
