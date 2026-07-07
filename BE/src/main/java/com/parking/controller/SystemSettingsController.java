@@ -21,7 +21,7 @@ public class SystemSettingsController {
      * Quyền: ADMIN hoặc MANAGER
      */
     @GetMapping
-    @PreAuthorize("hasAnyRole('ADMIN', 'MANAGER')")
+    @PreAuthorize("isAuthenticated()")
     public ResponseEntity<SystemSettingsResponseDto> getSettings() {
         return ResponseEntity.ok(systemSettingsService.getSettings());
     }

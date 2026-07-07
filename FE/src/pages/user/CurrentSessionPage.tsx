@@ -1,29 +1,55 @@
-import { useEffect, useState } from "react";
+import { useMemo } from "react";
 import type { ReactNode } from "react";
 import dayjs from "dayjs";
-import { Map, Navigation } from "lucide-react";
+import { useQuery } from "@tanstack/react-query";
+import { Map, Navigation, Car, AlertCircle } from "lucide-react";
 import { Badge } from "@/components/common/Badge";
 import { Card, CardContent, CardHeader } from "@/components/common/Card";
 import { PageHeader } from "@/components/layout/PageHeader";
-import { floors, slots, vehicleTypes } from "@/api/mockData";
-import { getCurrentUserSession } from "@/services/mockRepository";
+import { floorApi } from "@/api/floorApi";
+import { slotApi } from "@/api/slotApi";
+import { vehicleTypeApi } from "@/api/vehicleTypeApi";
+import { sessionApi } from "@/api/sessionApi";
 import { currency, dateTime } from "@/utils/format";
 import type { ParkingSession } from "@/types/domain";
 
 export function CurrentSessionPage() {
-  const [session, setSession] = useState<ParkingSession | null>(null);
+  const { data: floors = [] } = useQuery({ queryKey: ["floors"], queryFn: floorApi.getAll });
+  const { data: slotRows = [] } = useQuery({ queryKey: ["slots"], queryFn: slotApi.getAll });
+  const { data: vehicleTypes = [] } = useQuery({ queryKey: ["vehicleTypes"], queryFn: () => vehicleTypeApi.getAll() });
+  const { data: sessionList, isLoading } = useQuery({ 
+    queryKey: ["current-session"], 
+    queryFn: () => sessionApi.list({ status: "ACTIVE" }) 
+  });
 
-  useEffect(() => {
-    getCurrentUserSession().then(setSession);
-  }, []);
+  const session = sessionList?.content?.[0] || null;
 
-  if (!session) {
+  if (isLoading) {
     return <PageHeader title="Lượt gửi xe hiện tại" description="Đang tải thông tin lượt gửi xe." />;
   }
 
-  const slot = slots.find((item) => item.id === session.slotId);
-  const floor = floors.find((item) => item.id === slot?.floorId);
-  const vehicle = vehicleTypes.find((item) => item.id === session.vehicleTypeId);
+  if (!session) {
+    return (
+      <>
+        <PageHeader title="Lượt gửi xe hiện tại" description="Theo dõi giờ vào, vị trí gửi và phí tạm tính." />
+        <Card className="mt-8">
+          <CardContent className="flex flex-col items-center justify-center py-16 text-center">
+            <div className="flex h-16 w-16 items-center justify-center rounded-full bg-slate-100 text-slate-400">
+              <Car size={32} />
+            </div>
+            <h3 className="mt-4 text-lg font-semibold text-slate-900">Không có lượt gửi xe nào đang hoạt động</h3>
+            <p className="mt-2 max-w-sm text-sm text-slate-500">
+              Bạn hiện không có xe nào đang được gửi trong bãi. Thông tin lượt gửi sẽ tự động xuất hiện tại đây sau khi bạn check-in thành công.
+            </p>
+          </CardContent>
+        </Card>
+      </>
+    );
+  }
+
+  const slot = slotRows.find((item) => String(item.id) === String(session.slotId));
+  const floor = floors.find((item) => String(item.id) === String(slot?.floorId));
+  const vehicle = vehicleTypes.find((item) => String(item.id) === String(session.vehicleTypeId));
   const hours = Math.max(1, dayjs().diff(dayjs(session.checkInAt), "hour", true));
   const estimatedFee = session.fee || Math.ceil(hours) * 3000 + 5000;
 
@@ -36,7 +62,7 @@ export function CurrentSessionPage() {
             <div className="mb-5 flex flex-wrap items-center justify-between gap-3">
               <div>
                 <p className="text-xs font-medium uppercase tracking-wide text-slate-500">Mã lượt gửi</p>
-                <h2 className="mt-1 font-mono text-xl font-semibold text-slate-950">{session.ticketCode}</h2>
+                <h2 className="mt-1 font-mono text-xl font-semibold text-slate-950">{session.ticketCode || "N/A"}</h2>
               </div>
               <Badge value={session.status} />
             </div>

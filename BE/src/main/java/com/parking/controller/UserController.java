@@ -61,6 +61,16 @@ public class UserController {
     }
 
     /**
+     * API láº¥y danh sÃ¡ch Staff Ä‘ang hoáº¡t Ä‘á»™ng.
+     * Quyá»n truy cáº­p: ADMIN, MANAGER
+     */
+    @GetMapping("/staff")
+    @PreAuthorize("hasAnyRole('ADMIN', 'MANAGER')")
+    public ResponseEntity<List<UserResponseDto>> getActiveStaffUsers() {
+        return ResponseEntity.ok(userService.getActiveStaffUsers());
+    }
+
+    /**
      * API cập nhật thông tin tài khoản người dùng theo ID.
      * Quyền truy cập: ADMIN
      */

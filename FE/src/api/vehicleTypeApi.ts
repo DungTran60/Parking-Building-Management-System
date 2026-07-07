@@ -1,5 +1,5 @@
 import { httpClient } from "./httpClient";
-import type { VehicleType } from "@/types/domain";
+import type { VehicleType, VehicleTypeStatus } from "@/types/domain";
 
 export type VehicleTypePayload = Pick<VehicleType, "code" | "name" | "description" | "status">;
 
@@ -11,8 +11,10 @@ const normalizeVehicleType = (item: VehicleTypeResponse): VehicleType => ({
 });
 
 export const vehicleTypeApi = {
-  getAll: async (): Promise<VehicleType[]> => {
-    const response = await httpClient.get<VehicleTypeResponse[]>("/vehicle-types");
+  getAll: async (status?: VehicleTypeStatus): Promise<VehicleType[]> => {
+    const response = await httpClient.get<VehicleTypeResponse[]>("/vehicle-types", {
+      params: status ? { status } : undefined
+    });
     return response.data.map(normalizeVehicleType);
   },
 

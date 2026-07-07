@@ -1,182 +1,261 @@
 package com.parking.service;
 
-import com.parking.dto.*;
+import com.parking.dto.OccupancyReportDto;
+import com.parking.dto.RevenueReportDto;
+import com.parking.dto.TrafficReportDto;
+import com.parking.dto.TrafficEventDto;
+import com.parking.dto.TrafficByHourAndVehicleTypeDto;
+import com.parking.dto.RevenueByVehicleTypeDto;
 import com.parking.entity.ParkingSession;
 import com.parking.entity.Payment;
-import com.parking.entity.VehicleType;
+import com.parking.entity.SlotStatus;
 import com.parking.repository.ParkingSessionRepository;
+import com.parking.repository.ParkingSlotRepository;
 import com.parking.repository.PaymentRepository;
-import com.parking.repository.VehicleTypeRepository;
 import lombok.RequiredArgsConstructor;
+import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageImpl;
 import org.springframework.data.domain.Pageable;
-import org.springframework.stereotype.Service;
 
-import java.math.BigDecimal;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
-import java.time.format.DateTimeFormatter;
+import java.math.BigDecimal;
 import java.util.*;
-import java.util.function.Function;
 import java.util.stream.Collectors;
-import java.util.stream.IntStream;
 
 @Service
 @RequiredArgsConstructor
+@Transactional(readOnly = true)
 public class ReportServiceImpl implements ReportService {
+
     private final PaymentRepository paymentRepository;
     private final ParkingSessionRepository parkingSessionRepository;
-    private final VehicleTypeRepository vehicleTypeRepository;
-
-    private static final DateTimeFormatter DATE_FORMATTER = DateTimeFormatter.ofPattern("yyyy-MM-dd");
+    private final ParkingSlotRepository parkingSlotRepository;
 
     @Override
     public RevenueReportDto getRevenueReport(LocalDate startDate, LocalDate endDate) {
         LocalDateTime startDateTime = startDate.atStartOfDay();
-        LocalDateTime endDateTime = endDate.plusDays(1).atStartOfDay();
+        LocalDateTime endExclusive = endDate.plusDays(1).atStartOfDay();
 
-        List<Payment> payments = paymentRepository.findByPaymentTimeBetween(startDateTime, endDateTime);
+        List<Payment> payments = paymentRepository.findByPaymentTimeGreaterThanEqualAndPaymentTimeLessThan(
+                startDateTime, endExclusive);
 
-        BigDecimal totalRevenue = payments.stream()
-                .map(Payment::getAmount)
+        BigDecimal totalRevenue = payments.stream().map(Payment::getAmount)
                 .reduce(BigDecimal.ZERO, BigDecimal::add);
 
-        Map<String, BigDecimal> revenueByDate = payments.stream()
-                .collect(Collectors.groupingBy(p -> p.getPaymentTime().format(DATE_FORMATTER),
-                        Collectors.mapping(Payment::getAmount, Collectors.reducing(BigDecimal.ZERO, BigDecimal::add))));
+        // Populate all dates in the range with 0.0 first to avoid gaps
+        Map<String, BigDecimal> dateMap = new LinkedHashMap<>();
+        LocalDate current = startDate;
+        while (!current.isAfter(endDate)) {
+            dateMap.put(current.toString(), BigDecimal.ZERO);
+            current = current.plusDays(1);
+        }
 
-        Map<String, BigDecimal> revenueByMethod = payments.stream()
-                .collect(Collectors.groupingBy(Payment::getMethod,
-                        Collectors.mapping(Payment::getAmount, Collectors.reducing(BigDecimal.ZERO, BigDecimal::add))));
+        // Add actual payments
+        for (Payment p : payments) {
+            String dateStr = p.getPaymentTime().toLocalDate().toString();
+            dateMap.merge(dateStr, p.getAmount(), BigDecimal::add);
+        }
 
-        Map<VehicleType, BigDecimal> revenueByVehicleTypeMap = payments.stream()
-                .collect(Collectors.groupingBy(p -> p.getSession().getVehicleType(),
-                        Collectors.mapping(Payment::getAmount, Collectors.reducing(BigDecimal.ZERO, BigDecimal::add))));
-
-        List<RevenueReportDto.DateRevenueDto> dateRevenueList = revenueByDate.entrySet().stream()
-                .map(e -> new RevenueReportDto.DateRevenueDto(e.getKey(), e.getValue()))
-                .sorted(Comparator.comparing(RevenueReportDto.DateRevenueDto::getDate))
+        List<RevenueReportDto.DateRevenueDto> revenueByDate = dateMap.entrySet().stream()
+                .map(e -> RevenueReportDto.DateRevenueDto.builder()
+                        .date(e.getKey())
+                        .amount(e.getValue())
+                        .build())
                 .collect(Collectors.toList());
 
-        List<RevenueReportDto.MethodRevenueDto> methodRevenueList = revenueByMethod.entrySet().stream()
-                .map(e -> new RevenueReportDto.MethodRevenueDto(e.getKey(), e.getValue()))
+        // Group by Method
+        Map<String, BigDecimal> methodMap = new HashMap<>();
+        for (Payment p : payments) {
+            String method = p.getMethod();
+            methodMap.merge(method, p.getAmount(), BigDecimal::add);
+        }
+
+        List<RevenueReportDto.MethodRevenueDto> revenueByMethod = methodMap.entrySet().stream()
+                .map(e -> RevenueReportDto.MethodRevenueDto.builder()
+                        .method(e.getKey())
+                        .amount(e.getValue())
+                        .build())
                 .collect(Collectors.toList());
 
-        List<RevenueByVehicleTypeDto> vehicleTypeRevenueList = revenueByVehicleTypeMap.entrySet().stream()
-                .map(e -> new RevenueByVehicleTypeDto(
-                        e.getKey().getId(),
-                        e.getKey().getName(),
-                        e.getValue()))
-                .collect(Collectors.toList());
+        Map<Long, RevenueByVehicleTypeDto> vehicleRevenue = new HashMap<>();
+        for (Payment payment : payments) {
+            var vehicleType = payment.getSession().getVehicleType();
+            vehicleRevenue.compute(vehicleType.getId(), (id, currentValue) -> new RevenueByVehicleTypeDto(
+                    id,
+                    vehicleType.getName(),
+                    (currentValue == null ? BigDecimal.ZERO : currentValue.getAmount()).add(payment.getAmount())
+            ));
+        }
 
         return RevenueReportDto.builder()
                 .totalRevenue(totalRevenue)
-                .revenueByDate(dateRevenueList)
-                .revenueByMethod(methodRevenueList)
-                .revenueByVehicleType(vehicleTypeRevenueList)
+                .revenueByDate(revenueByDate)
+                .revenueByMethod(revenueByMethod)
+                .revenueByVehicleType(vehicleRevenue.values().stream()
+                        .sorted(Comparator.comparing(RevenueByVehicleTypeDto::getVehicleTypeName))
+                        .toList())
                 .build();
     }
 
     @Override
     public OccupancyReportDto getOccupancyReport() {
-        long totalCapacity = 100; // Placeholder
-        long occupiedSpaces = parkingSessionRepository.countByCheckOutAtIsNull();
+        long totalSlots = parkingSlotRepository.count();
+        long occupiedSlots = parkingSlotRepository.countByStatus(SlotStatus.OCCUPIED);
+        long availableSlots = parkingSlotRepository.countByStatus(SlotStatus.AVAILABLE);
+        long reservedSlots = parkingSlotRepository.countByStatus(SlotStatus.RESERVED);
+        long maintenanceSlots = parkingSlotRepository.countByStatus(SlotStatus.MAINTENANCE);
+        long blockedSlots = parkingSlotRepository.countByStatus(SlotStatus.BLOCKED);
+
+        double occupancyRate = totalSlots == 0 ? 0.0 : ((double) occupiedSlots / totalSlots) * 100.0;
+
+        // Group by Floor
+        List<OccupancyReportDto.FloorOccupancyDto> occupancyByFloor = parkingSlotRepository.countOccupancyByFloor().stream()
+                .map(row -> {
+                    long occupied = ((Number) row[1]).longValue();
+                    long total = ((Number) row[2]).longValue();
+                    double rate = total == 0 ? 0.0 : ((double) occupied / total) * 100.0;
+                    return OccupancyReportDto.FloorOccupancyDto.builder()
+                            .floorName((String) row[0])
+                            .occupied(occupied)
+                            .total(total)
+                            .rate(rate)
+                            .build();
+                })
+                .collect(Collectors.toList());
+
+        // Group by Vehicle Type
+        List<OccupancyReportDto.VehicleTypeOccupancyDto> occupancyByVehicleType = parkingSlotRepository.countOccupancyByVehicleType().stream()
+                .map(row -> {
+                    long occupied = ((Number) row[1]).longValue();
+                    long total = ((Number) row[2]).longValue();
+                    double rate = total == 0 ? 0.0 : ((double) occupied / total) * 100.0;
+                    return OccupancyReportDto.VehicleTypeOccupancyDto.builder()
+                            .vehicleTypeName((String) row[0])
+                            .occupied(occupied)
+                            .total(total)
+                            .rate(rate)
+                            .build();
+                })
+                .collect(Collectors.toList());
+
         return OccupancyReportDto.builder()
-                .totalSlots(totalCapacity)
-                .occupiedSlots(occupiedSpaces)
-                .availableSlots(totalCapacity - occupiedSpaces)
+                .totalSlots(totalSlots)
+                .occupiedSlots(occupiedSlots)
+                .availableSlots(availableSlots)
+                .reservedSlots(reservedSlots)
+                .maintenanceSlots(maintenanceSlots)
+                .blockedSlots(blockedSlots)
+                .occupancyRate(occupancyRate)
+                .occupancyByFloor(occupancyByFloor)
+                .occupancyByVehicleType(occupancyByVehicleType)
                 .build();
     }
 
     @Override
     public TrafficReportDto getTrafficReport(LocalDate startDate, LocalDate endDate) {
         LocalDateTime startDateTime = startDate.atStartOfDay();
-        LocalDateTime endDateTime = endDate.plusDays(1).atStartOfDay();
+        LocalDateTime endExclusive = endDate.plusDays(1).atStartOfDay();
 
-        List<ParkingSession> sessions = parkingSessionRepository.findByCheckInAtBetweenOrCheckOutAtBetween(startDateTime, endDateTime, startDateTime, endDateTime);
+        List<ParkingSession> sessions = parkingSessionRepository.findTrafficInRange(startDateTime, endExclusive);
 
-        List<ParkingSession> checkInSessions = sessions.stream()
-                .filter(s -> s.getCheckInAt().isAfter(startDateTime.minusNanos(1)) && s.getCheckInAt().isBefore(endDateTime))
+        long totalCheckIns = 0;
+        long totalCheckOuts = 0;
+
+        // Initialize date map with [checkIns, checkOuts] = [0, 0]
+        Map<String, long[]> dateTrafficMap = new LinkedHashMap<>();
+        LocalDate current = startDate;
+        while (!current.isAfter(endDate)) {
+            dateTrafficMap.put(current.toString(), new long[2]);
+            current = current.plusDays(1);
+        }
+
+        // Initialize hour map 0-23
+        Map<Integer, long[]> hourMap = new LinkedHashMap<>();
+        for (int h = 0; h < 24; h++) {
+            hourMap.put(h, new long[2]);
+        }
+
+        // Initialize vehicle type traffic map
+        Map<String, long[]> typeTrafficMap = new HashMap<>();
+        Map<String, long[]> hourTypeTrafficMap = new HashMap<>();
+
+        for (ParkingSession s : sessions) {
+            boolean hasCheckInInRange = s.getCheckInAt() != null &&
+                    !s.getCheckInAt().isBefore(startDateTime) && s.getCheckInAt().isBefore(endExclusive);
+            boolean hasCheckOutInRange = s.getCheckOutAt() != null &&
+                    !s.getCheckOutAt().isBefore(startDateTime) && s.getCheckOutAt().isBefore(endExclusive);
+
+            String vehicleTypeName = s.getVehicleType().getName();
+
+            if (hasCheckInInRange) {
+                totalCheckIns++;
+                String dateStr = s.getCheckInAt().toLocalDate().toString();
+                if (dateTrafficMap.containsKey(dateStr)) {
+                    dateTrafficMap.get(dateStr)[0]++;
+                }
+                int hour = s.getCheckInAt().getHour();
+                hourMap.get(hour)[0]++;
+                typeTrafficMap.computeIfAbsent(vehicleTypeName, ignored -> new long[2])[0]++;
+                hourTypeTrafficMap.computeIfAbsent(hour + "|" + vehicleTypeName, ignored -> new long[2])[0]++;
+            }
+
+            if (hasCheckOutInRange) {
+                totalCheckOuts++;
+                String dateStr = s.getCheckOutAt().toLocalDate().toString();
+                if (dateTrafficMap.containsKey(dateStr)) {
+                    dateTrafficMap.get(dateStr)[1]++;
+                }
+                // (Optional) Hourly traffic can combine exits or just entrances, here we count check-ins for entry traffic,
+                // but we also add check-outs to hourly combined if desired. Let's make hourly count represent check-ins.
+
+                int hour = s.getCheckOutAt().getHour();
+                hourMap.get(hour)[1]++;
+                typeTrafficMap.computeIfAbsent(vehicleTypeName, ignored -> new long[2])[1]++;
+                hourTypeTrafficMap.computeIfAbsent(hour + "|" + vehicleTypeName, ignored -> new long[2])[1]++;
+            }
+        }
+
+        List<TrafficReportDto.DateTrafficDto> trafficByDate = dateTrafficMap.entrySet().stream()
+                .map(e -> TrafficReportDto.DateTrafficDto.builder()
+                        .date(e.getKey())
+                        .checkIns(e.getValue()[0])
+                        .checkOuts(e.getValue()[1])
+                        .build())
                 .collect(Collectors.toList());
 
-        List<ParkingSession> checkOutSessions = sessions.stream()
-                .filter(s -> s.getCheckOutAt() != null && s.getCheckOutAt().isAfter(startDateTime.minusNanos(1)) && s.getCheckOutAt().isBefore(endDateTime))
+        List<TrafficReportDto.HourTrafficDto> trafficByHour = hourMap.entrySet().stream()
+                .map(e -> TrafficReportDto.HourTrafficDto.builder()
+                        .hour(e.getKey())
+                        .checkIns(e.getValue()[0])
+                        .checkOuts(e.getValue()[1])
+                        .build())
                 .collect(Collectors.toList());
 
-        long totalCheckIns = checkInSessions.size();
-        long totalCheckOuts = checkOutSessions.size();
-
-        // Traffic by Date
-        Map<LocalDate, TrafficReportDto.DateTrafficDto> trafficByDateMap = new LinkedHashMap<>();
-        startDate.datesUntil(endDate.plusDays(1)).forEach(date ->
-                trafficByDateMap.put(date, new TrafficReportDto.DateTrafficDto(date.format(DATE_FORMATTER), 0L, 0L))
-        );
-        checkInSessions.forEach(s -> {
-            LocalDate checkInDate = s.getCheckInAt().toLocalDate();
-            trafficByDateMap.computeIfPresent(checkInDate, (k, v) -> {
-                v.setCheckIns(v.getCheckIns() + 1);
-                return v;
-            });
-        });
-        checkOutSessions.forEach(s -> {
-            LocalDate checkOutDate = s.getCheckOutAt().toLocalDate();
-            trafficByDateMap.computeIfPresent(checkOutDate, (k, v) -> {
-                v.setCheckOuts(v.getCheckOuts() + 1);
-                return v;
-            });
-        });
-        List<TrafficReportDto.DateTrafficDto> trafficByDate = new ArrayList<>(trafficByDateMap.values());
-
-        // Traffic by Hour
-        Map<Integer, TrafficReportDto.HourTrafficDto> trafficByHourMap = new LinkedHashMap<>();
-        IntStream.range(0, 24).forEach(hour -> trafficByHourMap.put(hour, new TrafficReportDto.HourTrafficDto(hour, 0L, 0L)));
-        checkInSessions.forEach(s -> {
-            int checkInHour = s.getCheckInAt().getHour();
-            trafficByHourMap.get(checkInHour).setCheckIns(trafficByHourMap.get(checkInHour).getCheckIns() + 1);
-        });
-        checkOutSessions.forEach(s -> {
-            int checkOutHour = s.getCheckOutAt().getHour();
-            trafficByHourMap.get(checkOutHour).setCheckOuts(trafficByHourMap.get(checkOutHour).getCheckOuts() + 1);
-        });
-        List<TrafficReportDto.HourTrafficDto> trafficByHour = new ArrayList<>(trafficByHourMap.values());
-
-        // Traffic by Vehicle Type
-        Map<String, TrafficReportDto.VehicleTypeTrafficDto> trafficByVehicleTypeMap = new HashMap<>();
-        checkInSessions.forEach(s -> {
-            String vehicleTypeName = s.getVehicleType().getName();
-            TrafficReportDto.VehicleTypeTrafficDto dto = trafficByVehicleTypeMap.computeIfAbsent(vehicleTypeName, k -> new TrafficReportDto.VehicleTypeTrafficDto(k, 0L, 0L));
-            dto.setCheckIns(dto.getCheckIns() + 1);
-        });
-        checkOutSessions.forEach(s -> {
-             String vehicleTypeName = s.getVehicleType().getName();
-             TrafficReportDto.VehicleTypeTrafficDto dto = trafficByVehicleTypeMap.computeIfAbsent(vehicleTypeName, k -> new TrafficReportDto.VehicleTypeTrafficDto(k, 0L, 0L));
-             dto.setCheckOuts(dto.getCheckOuts() + 1);
-        });
-        List<TrafficReportDto.VehicleTypeTrafficDto> trafficByVehicleType = new ArrayList<>(trafficByVehicleTypeMap.values());
-
-
-        // Traffic by Hour and Vehicle Type
-        Map<String, TrafficByHourAndVehicleTypeDto> trafficByHourAndVehicleTypeMap = new LinkedHashMap<>();
-        checkInSessions.forEach(s -> {
-            int hour = s.getCheckInAt().getHour();
-            String vehicleTypeName = s.getVehicleType().getName();
-            String key = hour + ":" + vehicleTypeName;
-            TrafficByHourAndVehicleTypeDto dto = trafficByHourAndVehicleTypeMap.computeIfAbsent(key, k -> new TrafficByHourAndVehicleTypeDto(hour, vehicleTypeName, 0L, 0L));
-            dto.setCheckIns(dto.getCheckIns() + 1);
-        });
-        checkOutSessions.forEach(s -> {
-            int hour = s.getCheckOutAt().getHour();
-            String vehicleTypeName = s.getVehicleType().getName();
-            String key = hour + ":" + vehicleTypeName;
-            TrafficByHourAndVehicleTypeDto dto = trafficByHourAndVehicleTypeMap.computeIfAbsent(key, k -> new TrafficByHourAndVehicleTypeDto(hour, vehicleTypeName, 0L, 0L));
-            dto.setCheckOuts(dto.getCheckOuts() + 1);
-        });
-
-        List<TrafficByHourAndVehicleTypeDto> trafficByHourAndVehicleType = trafficByHourAndVehicleTypeMap.values().stream()
-                .sorted(Comparator.comparing(TrafficByHourAndVehicleTypeDto::getHour).thenComparing(TrafficByHourAndVehicleTypeDto::getVehicleTypeName))
+        List<TrafficReportDto.VehicleTypeTrafficDto> trafficByVehicleType = typeTrafficMap.entrySet().stream()
+                .map(e -> TrafficReportDto.VehicleTypeTrafficDto.builder()
+                        .vehicleTypeName(e.getKey())
+                        .checkIns(e.getValue()[0])
+                        .checkOuts(e.getValue()[1])
+                        .build())
+                .sorted(Comparator.comparing(TrafficReportDto.VehicleTypeTrafficDto::getVehicleTypeName))
                 .collect(Collectors.toList());
 
+        List<TrafficByHourAndVehicleTypeDto> trafficByHourAndVehicleType = hourTypeTrafficMap.entrySet().stream()
+                .map(e -> {
+                    String[] key = e.getKey().split("\\|", 2);
+                    return TrafficByHourAndVehicleTypeDto.builder()
+                            .hour(Integer.parseInt(key[0]))
+                            .vehicleTypeName(key[1])
+                            .checkIns(e.getValue()[0])
+                            .checkOuts(e.getValue()[1])
+                            .build();
+                })
+                .sorted(Comparator.comparingInt(TrafficByHourAndVehicleTypeDto::getHour)
+                        .thenComparing(TrafficByHourAndVehicleTypeDto::getVehicleTypeName))
+                .toList();
 
         return TrafficReportDto.builder()
                 .totalCheckIns(totalCheckIns)
@@ -190,39 +269,33 @@ public class ReportServiceImpl implements ReportService {
 
     @Override
     public Page<TrafficEventDto> getTrafficEvents(LocalDate startDate, LocalDate endDate, String eventType, Pageable pageable) {
-        LocalDateTime startDateTime = startDate.atStartOfDay();
-        LocalDateTime endDateTime = endDate.plusDays(1).atStartOfDay();
-
-        List<ParkingSession> sessions = parkingSessionRepository
-                .findByCheckInAtBetweenOrCheckOutAtBetween(startDateTime, endDateTime, startDateTime, endDateTime);
-
-        List<TrafficEventDto> events = new ArrayList<>();
-        sessions.forEach(s -> {
-            if (("check-in".equalsIgnoreCase(eventType) || eventType == null) && s.getCheckInAt().isAfter(startDateTime.minusNanos(1)) && s.getCheckInAt().isBefore(endDateTime)) {
-                events.add(mapToTrafficEventDto(s, "check-in"));
-            }
-            if (("check-out".equalsIgnoreCase(eventType) || eventType == null) && s.getCheckOutAt() != null && s.getCheckOutAt().isAfter(startDateTime.minusNanos(1)) && s.getCheckOutAt().isBefore(endDateTime)) {
-                events.add(mapToTrafficEventDto(s, "check-out"));
-            }
-        });
-
-        events.sort(Comparator.comparing(TrafficEventDto::getEventTime).reversed());
-
-        int start = (int) pageable.getOffset();
-        int end = Math.min((start + pageable.getPageSize()), events.size());
-        return new PageImpl<>(events.subList(start, end), pageable, events.size());
+        LocalDateTime start = startDate.atStartOfDay();
+        LocalDateTime end = endDate.plusDays(1).atStartOfDay();
+        String normalizedType = eventType == null ? "ALL" : eventType.trim().toUpperCase();
+        List<TrafficEventDto> events = parkingSessionRepository.findTrafficInRange(start, end).stream()
+                .flatMap(session -> {
+                    List<TrafficEventDto> rows = new ArrayList<>();
+                    if (!session.getCheckInAt().isBefore(start) && session.getCheckInAt().isBefore(end)
+                            && (normalizedType.equals("ALL") || normalizedType.equals("CHECK_IN"))) {
+                        rows.add(toTrafficEvent(session, "CHECK_IN", session.getCheckInAt()));
+                    }
+                    if (session.getCheckOutAt() != null && !session.getCheckOutAt().isBefore(start) && session.getCheckOutAt().isBefore(end)
+                            && (normalizedType.equals("ALL") || normalizedType.equals("CHECK_OUT"))) {
+                        rows.add(toTrafficEvent(session, "CHECK_OUT", session.getCheckOutAt()));
+                    }
+                    return rows.stream();
+                })
+                .sorted(Comparator.comparing(TrafficEventDto::getEventTime).reversed())
+                .toList();
+        int from = Math.min((int) pageable.getOffset(), events.size());
+        int to = Math.min(from + pageable.getPageSize(), events.size());
+        return new PageImpl<>(events.subList(from, to), pageable, events.size());
     }
 
-    private TrafficEventDto mapToTrafficEventDto(ParkingSession session, String eventType) {
-        LocalDateTime timestamp = "check-in".equals(eventType) ? session.getCheckInAt() : session.getCheckOutAt();
+    private TrafficEventDto toTrafficEvent(ParkingSession session, String type, LocalDateTime time) {
         return TrafficEventDto.builder()
-                .sessionId(session.getId())
-                .ticketCode(session.getTicketCode())
-                .plateNumber(session.getPlateNumber())
-                .vehicleTypeName(session.getVehicleType().getName())
-                .slotCode(session.getSlot().getCode())
-                .eventType(eventType)
-                .eventTime(timestamp)
-                .build();
+                .sessionId(session.getId()).ticketCode(session.getTicketCode()).plateNumber(session.getPlateNumber())
+                .vehicleTypeName(session.getVehicleType().getName()).slotCode(session.getSlot().getCode())
+                .eventType(type).eventTime(time).build();
     }
 }

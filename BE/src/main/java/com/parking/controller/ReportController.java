@@ -3,11 +3,9 @@ package com.parking.controller;
 import com.parking.dto.OccupancyReportDto;
 import com.parking.dto.RevenueReportDto;
 import com.parking.dto.TrafficReportDto;
-import com.parking.dto.TrafficEventDto;
+import com.parking.exception.BadRequestException;
 import com.parking.service.ReportService;
 import lombok.RequiredArgsConstructor;
-import org.springframework.data.domain.Page;
-import org.springframework.data.domain.Pageable;
 import org.springframework.format.annotation.DateTimeFormat;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
@@ -21,7 +19,7 @@ import java.time.LocalDate;
 @RestController
 @RequestMapping("/api/reports")
 @RequiredArgsConstructor
-@PreAuthorize("hasAnyRole('ADMIN', 'MANAGER')")
+@PreAuthorize("hasRole('MANAGER')")
 public class ReportController {
 
     private final ReportService reportService;
@@ -32,15 +30,12 @@ public class ReportController {
             @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate endDate) {
         
         if (startDate == null) {
-            startDate = LocalDate.now().minusDays(7);
+            startDate = LocalDate.now().minusDays(6);
         }
         if (endDate == null) {
             endDate = LocalDate.now();
         }
-
-        if (startDate.isAfter(endDate)) {
-            return ResponseEntity.badRequest().build();
-        }
+        validateDateRange(startDate, endDate);
         
         return ResponseEntity.ok(reportService.getRevenueReport(startDate, endDate));
     }
@@ -56,37 +51,19 @@ public class ReportController {
             @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate endDate) {
         
         if (startDate == null) {
-            startDate = LocalDate.now().minusDays(7);
+            startDate = LocalDate.now().minusDays(6);
         }
         if (endDate == null) {
             endDate = LocalDate.now();
         }
-
-        if (startDate.isAfter(endDate)) {
-            return ResponseEntity.badRequest().build();
-        }
+        validateDateRange(startDate, endDate);
         
         return ResponseEntity.ok(reportService.getTrafficReport(startDate, endDate));
     }
 
-    @GetMapping("/traffic/events")
-    public ResponseEntity<Page<TrafficEventDto>> getTrafficEvents(
-            @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate startDate,
-            @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate endDate,
-            @RequestParam(required = false) String eventType,
-            Pageable pageable) {
-        
-        if (startDate == null) {
-            startDate = LocalDate.now().minusDays(7);
-        }
-        if (endDate == null) {
-            endDate = LocalDate.now();
-        }
-
+    private void validateDateRange(LocalDate startDate, LocalDate endDate) {
         if (startDate.isAfter(endDate)) {
-            return ResponseEntity.badRequest().build();
+            throw new BadRequestException("startDate must not be after endDate");
         }
-        
-        return ResponseEntity.ok(reportService.getTrafficEvents(startDate, endDate, eventType, pageable));
     }
 }

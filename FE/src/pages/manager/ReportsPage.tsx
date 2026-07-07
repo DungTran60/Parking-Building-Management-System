@@ -14,7 +14,7 @@ const peak = [{ h: "07", v: 42 }, { h: "08", v: 88 }, { h: "09", v: 73 }, { h: "
 const vehicleRevenue = [{ name: "Xe máy", value: 142 }, { name: "Ô tô", value: 118 }, { name: "Xe điện", value: 61 }, { name: "Xe tải", value: 31 }];
 const ranges = [{ value: "today", label: "Hôm nay" }, { value: "week", label: "Tuần này" }, { value: "month", label: "Tháng này" }, { value: "custom", label: "Khoảng ngày" }];
 
-export function ReportsPage() {
+export function LegacyReportsPage() {
   const [range, setRange] = useState("month");
   const [dateRange, setDateRange] = useState<DateRangeValue>({ from: "2026-07-01", to: "2026-07-05" });
   const exportCsv = () => {
@@ -55,6 +55,8 @@ export function ReportsPage() {
     </>
   );
 }
+
+export { ReportsPage } from "@/pages/manager/ReportsPageLive";
 
 function Insight({ label, value, note, positive = false }: { label: string; value: string; note: string; positive?: boolean }) {
   return <Card><CardContent><div className="flex items-start justify-between gap-3"><div><p className="text-sm text-slate-500">{label}</p><p className="mt-2 text-xl font-semibold text-slate-950">{value}</p><p className="mt-1 text-xs text-slate-500">{note}</p></div><span className={`rounded-lg p-2 ${positive ? "bg-emerald-50 text-emerald-600" : "bg-red-50 text-red-600"}`}>{positive ? <TrendingUp size={18} /> : <TrendingDown size={18} />}</span></div></CardContent></Card>;

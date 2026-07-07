@@ -2,7 +2,7 @@ import React, { useCallback, useEffect, useState } from "react";
 import { BuildingTable } from "@/components/tables/BuildingTable";
 import { BuildingForm } from "@/components/forms/BuildingForm";
 import { buildingApi } from "@/api/buildingApi";
-import type { Building } from "@/api/buildingApi";
+import type { Building, BuildingPayload } from "@/api/buildingApi";
 import { Plus, Search, Building2, AlertTriangle, RefreshCw } from "lucide-react";
 import { getApiErrorMessage } from "@/utils/apiError";
 
@@ -36,7 +36,7 @@ export const BuildingsPage: React.FC = () => {
     void loadBuildings();
   }, [loadBuildings]);
 
-  const handleCreateOrUpdate = async (data: Omit<Building, "id" | "createdAt">) => {
+  const handleCreateOrUpdate = async (data: BuildingPayload) => {
     setIsSubmitting(true);
     setErrorMsg(null);
     setHasLoadError(false);
@@ -60,7 +60,7 @@ export const BuildingsPage: React.FC = () => {
   };
 
   const handleDelete = async (id: number) => {
-    if (!window.confirm("Bạn có chắc chắn muốn xóa tòa nhà này? Tất cả các tầng liên quan có thể bị ảnh hưởng.")) {
+    if (!window.confirm("Bạn có chắc chắn muốn xóa tòa nhà này? Chỉ tòa nhà không còn tầng phụ thuộc mới có thể xóa.")) {
       return;
     }
     setErrorMsg(null);

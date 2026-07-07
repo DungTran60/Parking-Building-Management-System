@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useState, type FormEvent } from "react";
-import { Calculator, Clock3, Pencil, Plus, Power, ReceiptText, RefreshCw, ShieldAlert, Tags } from "lucide-react";
+import { Calculator, Clock3, Pencil, Plus, Power, ReceiptText, RefreshCw, ShieldAlert, Tags, Trash2 } from "lucide-react";
 import { Button } from "@/components/common/Button";
 import { Card, CardContent, CardHeader } from "@/components/common/Card";
 import { Field, Input, Select } from "@/components/forms/FormField";
@@ -39,6 +39,7 @@ export function PricingPage() {
   const [saving, setSaving] = useState(false);
   const [simulating, setSimulating] = useState(false);
   const [togglingId, setTogglingId] = useState<string | null>(null);
+  const [deletingId, setDeletingId] = useState<string | null>(null);
 
   const loadData = useCallback(async () => {
     setLoading(true);
@@ -123,6 +124,20 @@ export function PricingPage() {
     }
   };
 
+  const deletePolicy = async (policy: Pricing) => {
+    if (!window.confirm(`Bạn có chắc chắn muốn xóa bảng giá của ${policy.vehicleTypeName}?`)) return;
+    setSaveError("");
+    setDeletingId(policy.id);
+    try {
+      await pricingApi.delete(policy.id);
+      setPolicies((current) => current.filter((item) => item.id !== policy.id));
+    } catch (error: unknown) {
+      setSaveError(getApiErrorMessage(error, "Không thể xóa bảng giá."));
+    } finally {
+      setDeletingId(null);
+    }
+  };
+
   const simulateFee = async (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault();
     setSimulationError("");
@@ -178,7 +193,7 @@ export function PricingPage() {
           {!loading && !loadError && policies.map((policy) => {
             return (
               <Card key={policy.id}>
-                <CardHeader title={`${policy.vehicleTypeName} · ${timeUnitLabel[policy.timeUnit]}`} action={<div className="flex gap-2"><Button variant="ghost" className="h-9 px-3" disabled={togglingId === policy.id} onClick={() => void togglePolicy(policy)} title={policy.active ? "Ngừng áp dụng" : "Kích hoạt"}><Power size={16} /> {policy.active ? "Đang áp dụng" : "Đã tắt"}</Button><Button variant="ghost" className="h-9 px-3" onClick={() => openEdit(policy)}><Pencil size={16} /> Chỉnh sửa</Button></div>} />
+                <CardHeader title={`${policy.vehicleTypeName} · ${timeUnitLabel[policy.timeUnit]}`} action={<div className="flex flex-wrap gap-2"><Button variant="ghost" className="h-9 px-3" disabled={togglingId === policy.id} onClick={() => void togglePolicy(policy)} title={policy.active ? "Ngừng áp dụng" : "Kích hoạt"}><Power size={16} /> {policy.active ? "Đang áp dụng" : "Đã tắt"}</Button><Button variant="ghost" className="h-9 px-3" onClick={() => openEdit(policy)}><Pencil size={16} /> Chỉnh sửa</Button><Button variant="ghost" className="h-9 px-3 text-red-600" disabled={deletingId === policy.id} onClick={() => void deletePolicy(policy)}><Trash2 size={16} /> {deletingId === policy.id ? "Đang xóa" : "Xóa"}</Button></div>} />
                 <CardContent className="grid gap-5 sm:grid-cols-2">
                   <PriceGroup title="Phí cơ bản" icon={<Clock3 size={17} />} items={[
                     [`Đơn giá/${timeUnitShortLabel[policy.timeUnit]}`, policy.price]
@@ -233,7 +248,7 @@ export function PricingPage() {
       <Modal open={formOpen} title={editing ? "Cập nhật bảng giá" : "Tạo bảng giá"} onClose={closeForm}>
         <form key={editing?.id ?? "create-pricing"} className="grid gap-4 sm:grid-cols-2" onSubmit={savePolicy}>
           <Field label="Loại xe"><Select name="vehicleTypeId" defaultValue={editing?.vehicleTypeId ?? vehicleTypes[0]?.id ?? ""} required disabled={saving}>{vehicleTypes.map((type) => <option key={type.id} value={type.id}>{type.name}</option>)}</Select></Field>
-          <Field label="Đơn vị tính"><Select name="timeUnit" defaultValue={editing?.timeUnit ?? "HOURLY"} required disabled={saving}>{(Object.keys(timeUnitLabel) as PricingTimeUnit[]).map((unit) => <option key={unit} value={unit}>{timeUnitLabel[unit]}</option>)}</Select></Field>
+          <Field label="Đơn vị tính"><input type="hidden" name="timeUnit" value="HOURLY" /><Select value="HOURLY" disabled><option value="HOURLY">{timeUnitLabel.HOURLY}</option></Select></Field>
           <PriceInput name="price" label="Đơn giá" value={editing?.price ?? 1} min={1} disabled={saving} />
           <PriceInput name="overnightFee" label="Qua đêm" value={editing?.overnightFee ?? 0} disabled={saving} />
           <PriceInput name="lostTicketFee" label="Mất vé" value={editing?.lostTicketFee ?? 0} disabled={saving} />

@@ -4,6 +4,7 @@ import com.parking.dto.FloorRequestDto;
 import com.parking.dto.FloorResponseDto;
 import com.parking.dto.FloorStatsDto;
 import com.parking.service.FloorService;
+import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
@@ -47,21 +48,21 @@ public class FloorController {
     }
 
     @PostMapping
-    @PreAuthorize("hasAnyAuthority('MANAGER', 'ADMIN')")
-    public ResponseEntity<FloorResponseDto> createFloor(@RequestBody FloorRequestDto request) {
+    @PreAuthorize("hasRole('MANAGER')")
+    public ResponseEntity<FloorResponseDto> createFloor(@Valid @RequestBody FloorRequestDto request) {
         FloorResponseDto createdFloor = floorService.createFloor(request);
         return new ResponseEntity<>(createdFloor, HttpStatus.CREATED);
     }
 
     @PutMapping("/{id}")
-    @PreAuthorize("hasAnyAuthority('MANAGER', 'ADMIN')")
-    public ResponseEntity<FloorResponseDto> updateFloor(@PathVariable Long id, @RequestBody FloorRequestDto request) {
+    @PreAuthorize("hasRole('MANAGER')")
+    public ResponseEntity<FloorResponseDto> updateFloor(@PathVariable Long id, @Valid @RequestBody FloorRequestDto request) {
         FloorResponseDto updatedFloor = floorService.updateFloor(id, request);
         return ResponseEntity.ok(updatedFloor);
     }
 
     @DeleteMapping("/{id}")
-    @PreAuthorize("hasAnyAuthority('MANAGER', 'ADMIN')")
+    @PreAuthorize("hasRole('MANAGER')")
     public ResponseEntity<Void> deleteFloor(@PathVariable Long id) {
         floorService.deleteFloor(id);
         return ResponseEntity.noContent().build();

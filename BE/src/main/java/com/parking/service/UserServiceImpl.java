@@ -118,6 +118,15 @@ public class UserServiceImpl implements UserService {
     }
 
     @Override
+    public List<UserResponseDto> getActiveStaffUsers() {
+        return userRepository.findAll().stream()
+                .filter(user -> user.getRole() != null && "STAFF".equalsIgnoreCase(user.getRole().getName()))
+                .filter(user -> user.getStatus() == Status.ACTIVE)
+                .map(this::mapToResponseDto)
+                .collect(Collectors.toList());
+    }
+
+    @Override
     @Transactional
     public UserResponseDto updateUser(Long id, UserUpdateDto dto) {
         User user = userRepository.findById(id)

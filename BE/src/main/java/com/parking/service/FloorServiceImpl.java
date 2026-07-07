@@ -16,6 +16,7 @@ import com.parking.repository.ParkingSlotRepository;
 import com.parking.repository.VehicleTypeRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
 import java.util.HashSet;
 import java.util.List;
@@ -24,6 +25,7 @@ import java.util.stream.Collectors;
 
 @Service
 @RequiredArgsConstructor
+@Transactional(readOnly = true)
 public class FloorServiceImpl implements FloorService {
 
     private final FloorRepository floorRepository;
@@ -55,6 +57,7 @@ public class FloorServiceImpl implements FloorService {
     }
 
     @Override
+    @Transactional
     public FloorResponseDto createFloor(FloorRequestDto request) {
         validateFloorRequest(request);
 
@@ -83,14 +86,22 @@ public class FloorServiceImpl implements FloorService {
     }
 
     @Override
+    @Transactional
     public FloorResponseDto updateFloor(Long id, FloorRequestDto request) {
         validateFloorRequest(request);
 
         Floor floor = floorRepository.findById(id)
                 .orElseThrow(() -> new ResourceNotFoundException("Floor not found with id: " + id));
 
-        if (!floor.getName().equals(request.getName()) && floorRepository.existsByNameAndBuildingId(request.getName(), request.getBuildingId())) {
+        boolean identityChanged = !floor.getName().equals(request.getName())
+                || !floor.getBuilding().getId().equals(request.getBuildingId());
+        if (identityChanged && floorRepository.existsByNameAndBuildingId(request.getName(), request.getBuildingId())) {
             throw new ResourceConflictException("Floor with name '" + request.getName() + "' already exists in this building.");
+        }
+
+        long actualSlotCount = parkingSlotRepository.countByFloorId(id);
+        if (request.getSlotCount() < actualSlotCount) {
+            throw new ResourceConflictException("Slot count cannot be lower than the number of existing slots: " + actualSlotCount);
         }
 
         Building building = buildingRepository.findById(request.getBuildingId())
@@ -112,6 +123,7 @@ public class FloorServiceImpl implements FloorService {
     }
 
     @Override
+    @Transactional
     public void deleteFloor(Long id) {
         Floor floor = floorRepository.findById(id)
                 .orElseThrow(() -> new ResourceNotFoundException("Floor not found with id: " + id));
@@ -119,7 +131,7 @@ public class FloorServiceImpl implements FloorService {
         // Note: Assuming ParkingSlot entity has a 'floor' field.
         // And ParkingSession is linked via ParkingSlot.
         // A more direct check might be needed depending on the domain model.
-        if (!floorRepository.findParkingSlotsByFloorId(id).isEmpty()) {
+        if (parkingSlotRepository.existsByFloorId(id)) {
             throw new ResourceConflictException("Cannot delete floor with active parking slots.");
         }
 

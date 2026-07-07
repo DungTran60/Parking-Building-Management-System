@@ -41,7 +41,8 @@ public class ParkingSessionSpecification {
                 String likePattern = "%" + query.toUpperCase() + "%";
                 Predicate plateNumberPredicate = criteriaBuilder.like(criteriaBuilder.upper(root.get("plateNumber")), likePattern);
                 Predicate ticketCodePredicate = criteriaBuilder.like(criteriaBuilder.upper(root.get("ticketCode")), likePattern);
-                predicates.add(criteriaBuilder.or(plateNumberPredicate, ticketCodePredicate));
+                Predicate slotCodePredicate = criteriaBuilder.like(criteriaBuilder.upper(root.get("slot").get("code")), likePattern);
+                predicates.add(criteriaBuilder.or(plateNumberPredicate, ticketCodePredicate, slotCodePredicate));
             }
 
             return criteriaBuilder.and(predicates.toArray(new Predicate[0]));

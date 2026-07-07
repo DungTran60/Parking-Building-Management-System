@@ -8,6 +8,8 @@ export interface Building {
   createdAt?: string;
 }
 
+export type BuildingPayload = Pick<Building, "buildingName" | "address">;
+
 export const buildingApi = {
   getAll: async (): Promise<Building[]> => {
     const response = await httpClient.get<Building[]>("/buildings");
@@ -19,12 +21,12 @@ export const buildingApi = {
     return response.data;
   },
 
-  create: async (building: Omit<Building, "id" | "createdAt">): Promise<Building> => {
+  create: async (building: BuildingPayload): Promise<Building> => {
     const response = await httpClient.post<Building>("/buildings", building);
     return response.data;
   },
 
-  update: async (id: number, building: Omit<Building, "id" | "createdAt">): Promise<Building> => {
+  update: async (id: number, building: BuildingPayload): Promise<Building> => {
     const response = await httpClient.put<Building>(`/buildings/${id}`, building);
     return response.data;
   },
