@@ -2,6 +2,7 @@ package com.parking.controller;
 
 import com.parking.dto.FloorRequestDto;
 import com.parking.dto.FloorResponseDto;
+import com.parking.dto.FloorStatsDto;
 import com.parking.service.FloorService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
@@ -59,5 +60,12 @@ public class FloorController {
     public ResponseEntity<Void> deleteFloor(@PathVariable Long id) {
         floorService.deleteFloor(id);
         return ResponseEntity.noContent().build();
+    }
+
+    @GetMapping("/{id}/stats")
+    @PreAuthorize("isAuthenticated()")
+    public ResponseEntity<FloorStatsDto> getFloorStats(@PathVariable Long id) {
+        FloorStatsDto stats = floorService.getFloorStats(id);
+        return ResponseEntity.ok(stats);
     }
 }
