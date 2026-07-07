@@ -3,7 +3,9 @@ package com.parking.service;
 import com.parking.dto.BuildingRequestDto;
 import com.parking.dto.BuildingResponseDto;
 import com.parking.entity.Building;
+import com.parking.exception.ResourceConflictException;
 import com.parking.exception.ResourceNotFoundException;
+import com.parking.repository.FloorRepository;
 import com.parking.repository.BuildingRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
@@ -17,18 +19,18 @@ import java.util.stream.Collectors;
 public class BuildingServiceImpl implements BuildingService {
 
     private final BuildingRepository buildingRepository;
+    private final FloorRepository floorRepository;
 
     @Override
     @Transactional
     public BuildingResponseDto createBuilding(BuildingRequestDto dto) {
         if (buildingRepository.findByBuildingName(dto.getBuildingName()).isPresent()) {
-            throw new IllegalArgumentException("Building name already exists: " + dto.getBuildingName());
+            throw new ResourceConflictException("Building name already exists: " + dto.getBuildingName());
         }
 
         Building building = Building.builder()
                 .buildingName(dto.getBuildingName())
                 .address(dto.getAddress())
-                .totalFloors(dto.getTotalFloors())
                 .build();
 
         Building savedBuilding = buildingRepository.save(building);
@@ -60,13 +62,12 @@ public class BuildingServiceImpl implements BuildingService {
         // If the name is changed, verify it doesn't collide with other buildings
         if (!building.getBuildingName().equals(dto.getBuildingName())) {
             if (buildingRepository.findByBuildingName(dto.getBuildingName()).isPresent()) {
-                throw new IllegalArgumentException("Building name already exists: " + dto.getBuildingName());
+                throw new ResourceConflictException("Building name already exists: " + dto.getBuildingName());
             }
             building.setBuildingName(dto.getBuildingName());
         }
 
         building.setAddress(dto.getAddress());
-        building.setTotalFloors(dto.getTotalFloors());
 
         Building updatedBuilding = buildingRepository.save(building);
         return mapToResponseDto(updatedBuilding);
@@ -78,6 +79,9 @@ public class BuildingServiceImpl implements BuildingService {
         if (!buildingRepository.existsById(id)) {
             throw new ResourceNotFoundException("Building not found with ID: " + id);
         }
+        if (!floorRepository.findByBuildingId(id).isEmpty()) {
+            throw new ResourceConflictException("Cannot delete building because it contains floors");
+        }
         buildingRepository.deleteById(id);
     }
 
@@ -86,7 +90,7 @@ public class BuildingServiceImpl implements BuildingService {
                 .id(building.getId())
                 .buildingName(building.getBuildingName())
                 .address(building.getAddress())
-                .totalFloors(building.getTotalFloors())
+                .totalFloors(building.getFloors().size())
                 .createdAt(building.getCreatedAt())
                 .build();
     }
