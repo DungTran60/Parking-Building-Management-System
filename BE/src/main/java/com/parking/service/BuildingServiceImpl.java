@@ -3,10 +3,10 @@ package com.parking.service;
 import com.parking.dto.BuildingRequestDto;
 import com.parking.dto.BuildingResponseDto;
 import com.parking.entity.Building;
-import com.parking.exception.ResourceConflictException;
 import com.parking.exception.ResourceNotFoundException;
-import com.parking.repository.FloorRepository;
+import com.parking.exception.ResourceConflictException;
 import com.parking.repository.BuildingRepository;
+import com.parking.repository.FloorRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -25,7 +25,7 @@ public class BuildingServiceImpl implements BuildingService {
     @Transactional
     public BuildingResponseDto createBuilding(BuildingRequestDto dto) {
         if (buildingRepository.findByBuildingName(dto.getBuildingName()).isPresent()) {
-            throw new ResourceConflictException("Building name already exists: " + dto.getBuildingName());
+            throw new IllegalArgumentException("Building name already exists: " + dto.getBuildingName());
         }
 
         Building building = Building.builder()
@@ -62,7 +62,7 @@ public class BuildingServiceImpl implements BuildingService {
         // If the name is changed, verify it doesn't collide with other buildings
         if (!building.getBuildingName().equals(dto.getBuildingName())) {
             if (buildingRepository.findByBuildingName(dto.getBuildingName()).isPresent()) {
-                throw new ResourceConflictException("Building name already exists: " + dto.getBuildingName());
+                throw new IllegalArgumentException("Building name already exists: " + dto.getBuildingName());
             }
             building.setBuildingName(dto.getBuildingName());
         }
@@ -79,8 +79,8 @@ public class BuildingServiceImpl implements BuildingService {
         if (!buildingRepository.existsById(id)) {
             throw new ResourceNotFoundException("Building not found with ID: " + id);
         }
-        if (!floorRepository.findByBuildingId(id).isEmpty()) {
-            throw new ResourceConflictException("Cannot delete building because it contains floors");
+        if (floorRepository.existsByBuildingId(id)) {
+            throw new ResourceConflictException("Cannot delete building because it still contains floors");
         }
         buildingRepository.deleteById(id);
     }

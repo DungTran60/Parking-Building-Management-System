@@ -28,7 +28,7 @@ public class PricingController {
      * Tạo bảng giá mới. Chỉ ADMIN / MANAGER mới được phép.
      */
     @PostMapping
-    @PreAuthorize("hasAnyRole('ADMIN', 'MANAGER')")
+    @PreAuthorize("hasRole('MANAGER')")
     public ResponseEntity<PricingResponseDto> createPricing(
             @Valid @RequestBody PricingRequestDto dto) {
         PricingResponseDto created = pricingService.createPricing(dto);
@@ -79,7 +79,7 @@ public class PricingController {
      * Cập nhật toàn bộ thông tin bảng giá. Chỉ ADMIN / MANAGER mới được phép.
      */
     @PutMapping("/{id}")
-    @PreAuthorize("hasAnyRole('ADMIN', 'MANAGER')")
+    @PreAuthorize("hasRole('MANAGER')")
     public ResponseEntity<PricingResponseDto> updatePricing(
             @PathVariable Long id,
             @Valid @RequestBody PricingRequestDto dto) {
@@ -91,7 +91,7 @@ public class PricingController {
      * Bật/tắt trạng thái áp dụng bảng giá. Chỉ ADMIN / MANAGER mới được phép.
      */
     @PatchMapping("/{id}/toggle")
-    @PreAuthorize("hasAnyRole('ADMIN', 'MANAGER')")
+    @PreAuthorize("hasRole('MANAGER')")
     public ResponseEntity<PricingResponseDto> togglePricingStatus(@PathVariable Long id) {
         return ResponseEntity.ok(pricingService.togglePricingStatus(id));
     }
@@ -101,7 +101,7 @@ public class PricingController {
      * Xóa bảng giá. Chỉ ADMIN mới được phép.
      */
     @DeleteMapping("/{id}")
-    @PreAuthorize("hasAnyRole('ADMIN', 'MANAGER')")
+    @PreAuthorize("hasRole('MANAGER')")
     public ResponseEntity<Void> deletePricing(@PathVariable Long id) {
         pricingService.deletePricing(id);
         return ResponseEntity.noContent().build();

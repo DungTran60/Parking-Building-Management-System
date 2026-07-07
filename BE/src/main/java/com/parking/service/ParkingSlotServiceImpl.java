@@ -58,12 +58,7 @@ public class ParkingSlotServiceImpl implements ParkingSlotService {
         SlotStatus currentStatus = slot.getStatus();
         SlotStatus newStatus = request.getStatus();
 
-        if (currentStatus == SlotStatus.OCCUPIED && (newStatus == SlotStatus.MAINTENANCE || newStatus == SlotStatus.BLOCKED)) {
-            throw new ConflictException("Cannot change status from OCCUPIED to MAINTENANCE or BLOCKED.");
-        }
-        if (currentStatus == SlotStatus.RESERVED && newStatus == SlotStatus.MAINTENANCE) {
-            throw new ConflictException("Cannot change status from RESERVED to MAINTENANCE. Please cancel reservation first.");
-        }
+        validateStatusTransition(currentStatus, newStatus);
 
         slot.setStatus(newStatus);
         ParkingSlot saved = parkingSlotRepository.save(slot);
@@ -73,7 +68,8 @@ public class ParkingSlotServiceImpl implements ParkingSlotService {
     @Override
     @Transactional
     public ParkingSlotResponseDto createSlot(ParkingSlotRequestDto request) {
-        if (parkingSlotRepository.existsByCode(request.getCode())) {
+        String normalizedCode = request.getCode().trim().toUpperCase();
+        if (parkingSlotRepository.existsByCode(normalizedCode)) {
             throw new ConflictException("Slot code already exists");
         }
 
@@ -85,12 +81,15 @@ public class ParkingSlotServiceImpl implements ParkingSlotService {
         if (!floor.getSupportedVehicleTypes().contains(vehicleType)) {
             throw new ConflictException("Vehicle type " + vehicleType.getCode() + " is not supported by floor " + floor.getName());
         }
+        if (parkingSlotRepository.countByFloorId(floor.getId()) >= floor.getSlotCount()) {
+            throw new ConflictException("Floor has reached its configured slot capacity");
+        }
 
         ParkingSlot slot = ParkingSlot.builder()
-                .code(request.getCode())
+                .code(normalizedCode)
                 .floor(floor)
                 .vehicleType(vehicleType)
-                .status(request.getStatus() != null ? request.getStatus() : SlotStatus.AVAILABLE)
+                .status(SlotStatus.AVAILABLE)
                 .build();
         ParkingSlot saved = parkingSlotRepository.save(slot);
         return convertToDto(saved);
@@ -102,21 +101,29 @@ public class ParkingSlotServiceImpl implements ParkingSlotService {
         ParkingSlot slot = parkingSlotRepository.findById(id)
                 .orElseThrow(() -> new ResourceNotFoundException("Parking slot not found with id: " + id));
 
-        if (request.getCode() != null) {
-            slot.setCode(request.getCode());
+        if (slot.getStatus() == SlotStatus.OCCUPIED || slot.getStatus() == SlotStatus.RESERVED) {
+            throw new ConflictException("Cannot edit an OCCUPIED or RESERVED slot");
         }
-        if (request.getFloorId() != null) {
-            Floor floor = floorRepository.findById(request.getFloorId())
-                    .orElseThrow(() -> new ResourceNotFoundException("Floor not found with id: " + request.getFloorId()));
-            slot.setFloor(floor);
+
+        String normalizedCode = request.getCode().trim().toUpperCase();
+        if (parkingSlotRepository.existsByCodeAndIdNot(normalizedCode, id)) {
+            throw new ConflictException("Slot code already exists");
         }
-        if (request.getVehicleTypeId() != null) {
-            VehicleType vehicleType = resolveVehicleType(request.getVehicleTypeId());
-            slot.setVehicleType(vehicleType);
+        Floor floor = floorRepository.findById(request.getFloorId())
+                .orElseThrow(() -> new ResourceNotFoundException("Floor not found with id: " + request.getFloorId()));
+        VehicleType vehicleType = resolveVehicleType(request.getVehicleTypeId());
+        if (!floor.getSupportedVehicleTypes().contains(vehicleType)) {
+            throw new ConflictException("Vehicle type " + vehicleType.getCode() + " is not supported by floor " + floor.getName());
         }
-        if (request.getStatus() != null) {
-            slot.setStatus(request.getStatus());
+        if (!slot.getFloor().getId().equals(floor.getId())
+                && parkingSlotRepository.countByFloorId(floor.getId()) >= floor.getSlotCount()) {
+            throw new ConflictException("Floor has reached its configured slot capacity");
         }
+        validateStatusTransition(slot.getStatus(), request.getStatus());
+        slot.setCode(normalizedCode);
+        slot.setFloor(floor);
+        slot.setVehicleType(vehicleType);
+        slot.setStatus(request.getStatus());
 
         ParkingSlot saved = parkingSlotRepository.save(slot);
         return convertToDto(saved);
@@ -157,5 +164,15 @@ public class ParkingSlotServiceImpl implements ParkingSlotService {
 
     private Long resolveVehicleTypeId(String vehicleTypeRef) {
         return resolveVehicleType(vehicleTypeRef).getId();
+    }
+
+    private void validateStatusTransition(SlotStatus currentStatus, SlotStatus newStatus) {
+        if (newStatus == null) {
+            throw new ConflictException("Slot status is required");
+        }
+        if ((currentStatus == SlotStatus.OCCUPIED || currentStatus == SlotStatus.RESERVED)
+                && (newStatus == SlotStatus.MAINTENANCE || newStatus == SlotStatus.BLOCKED)) {
+            throw new ConflictException("Cannot put an OCCUPIED or RESERVED slot into maintenance or blocked state");
+        }
     }
 }

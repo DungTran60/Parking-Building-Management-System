@@ -20,7 +20,7 @@ public class BuildingController {
     private final BuildingService buildingService;
 
     @PostMapping
-    @PreAuthorize("hasAnyRole('ADMIN', 'MANAGER')")
+    @PreAuthorize("hasRole('MANAGER')")
     public ResponseEntity<BuildingResponseDto> createBuilding(@Valid @RequestBody BuildingRequestDto dto) {
         BuildingResponseDto created = buildingService.createBuilding(dto);
         return new ResponseEntity<>(created, HttpStatus.CREATED);
@@ -41,7 +41,7 @@ public class BuildingController {
     }
 
     @PutMapping("/{id}")
-    @PreAuthorize("hasAnyRole('ADMIN', 'MANAGER')")
+    @PreAuthorize("hasRole('MANAGER')")
     public ResponseEntity<BuildingResponseDto> updateBuilding(
             @PathVariable Long id,
             @Valid @RequestBody BuildingRequestDto dto
@@ -51,7 +51,7 @@ public class BuildingController {
     }
 
     @DeleteMapping("/{id}")
-    @PreAuthorize("hasAnyRole('ADMIN', 'MANAGER')")
+    @PreAuthorize("hasRole('MANAGER')")
     public ResponseEntity<Void> deleteBuilding(@PathVariable Long id) {
         buildingService.deleteBuilding(id);
         return ResponseEntity.noContent().build();
