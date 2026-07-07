@@ -3,6 +3,7 @@ package com.parking.service;
 import com.parking.dto.FloorResponseDto;
 import com.parking.entity.Floor;
 import com.parking.entity.VehicleType;
+import com.parking.exception.ResourceNotFoundException;
 import com.parking.repository.FloorRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
@@ -22,6 +23,13 @@ public class FloorServiceImpl implements FloorService {
         return floors.stream()
                 .map(this::convertToDto)
                 .collect(Collectors.toList());
+    }
+
+    @Override
+    public FloorResponseDto getFloorById(Long id) {
+        Floor floor = floorRepository.findById(id)
+                .orElseThrow(() -> new ResourceNotFoundException("Floor not found with id: " + id));
+        return convertToDto(floor);
     }
 
     private FloorResponseDto convertToDto(Floor floor) {
