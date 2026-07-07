@@ -32,6 +32,14 @@ public class FloorServiceImpl implements FloorService {
     private final ParkingSlotRepository parkingSlotRepository;
 
     @Override
+    public List<FloorResponseDto> getAllFloors() {
+        List<Floor> floors = floorRepository.findAll();
+        return floors.stream()
+                .map(this::convertToDto)
+                .collect(Collectors.toList());
+    }
+
+    @Override
     public List<FloorResponseDto> getFloorsByBuildingId(Long buildingId) {
         List<Floor> floors = floorRepository.findByBuildingId(buildingId);
         return floors.stream()

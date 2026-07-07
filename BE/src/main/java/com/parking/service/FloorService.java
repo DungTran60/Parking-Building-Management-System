@@ -7,6 +7,7 @@ import com.parking.dto.FloorStatsDto;
 import java.util.List;
 
 public interface FloorService {
+    List<FloorResponseDto> getAllFloors();
     List<FloorResponseDto> getFloorsByBuildingId(Long buildingId);
     FloorResponseDto getFloorById(Long id);
     FloorResponseDto createFloor(FloorRequestDto request);

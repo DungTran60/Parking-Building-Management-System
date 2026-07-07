@@ -29,8 +29,13 @@ public class FloorController {
 
     @GetMapping
     @PreAuthorize("isAuthenticated()")
-    public ResponseEntity<List<FloorResponseDto>> getFloorsByBuildingId(@RequestParam Long buildingId) {
-        List<FloorResponseDto> floors = floorService.getFloorsByBuildingId(buildingId);
+    public ResponseEntity<List<FloorResponseDto>> getFloorsByBuildingId(@RequestParam(required = false) Long buildingId) {
+        List<FloorResponseDto> floors;
+        if (buildingId != null) {
+            floors = floorService.getFloorsByBuildingId(buildingId);
+        } else {
+            floors = floorService.getAllFloors();
+        }
         return ResponseEntity.ok(floors);
     }
 

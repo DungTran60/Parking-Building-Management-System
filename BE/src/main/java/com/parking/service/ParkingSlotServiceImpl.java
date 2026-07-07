@@ -7,6 +7,7 @@ import com.parking.entity.Floor;
 import com.parking.entity.ParkingSlot;
 import com.parking.entity.SlotStatus;
 import com.parking.entity.VehicleType;
+import com.parking.exception.ConflictException;
 import com.parking.exception.ResourceNotFoundException;
 import com.parking.repository.FloorRepository;
 import com.parking.repository.ParkingSlotRepository;
@@ -53,7 +54,18 @@ public class ParkingSlotServiceImpl implements ParkingSlotService {
     public ParkingSlotResponseDto updateSlotStatus(Long id, SlotStatusUpdateRequestDto request) {
         ParkingSlot slot = parkingSlotRepository.findById(id)
                 .orElseThrow(() -> new ResourceNotFoundException("Parking slot not found with id: " + id));
-        slot.setStatus(request.getStatus());
+
+        SlotStatus currentStatus = slot.getStatus();
+        SlotStatus newStatus = request.getStatus();
+
+        if (currentStatus == SlotStatus.OCCUPIED && (newStatus == SlotStatus.MAINTENANCE || newStatus == SlotStatus.BLOCKED)) {
+            throw new ConflictException("Cannot change status from OCCUPIED to MAINTENANCE or BLOCKED.");
+        }
+        if (currentStatus == SlotStatus.RESERVED && newStatus == SlotStatus.MAINTENANCE) {
+            throw new ConflictException("Cannot change status from RESERVED to MAINTENANCE. Please cancel reservation first.");
+        }
+
+        slot.setStatus(newStatus);
         ParkingSlot saved = parkingSlotRepository.save(slot);
         return convertToDto(saved);
     }
@@ -61,9 +73,18 @@ public class ParkingSlotServiceImpl implements ParkingSlotService {
     @Override
     @Transactional
     public ParkingSlotResponseDto createSlot(ParkingSlotRequestDto request) {
+        if (parkingSlotRepository.existsByCode(request.getCode())) {
+            throw new ConflictException("Slot code already exists");
+        }
+
         Floor floor = floorRepository.findById(request.getFloorId())
                 .orElseThrow(() -> new ResourceNotFoundException("Floor not found with id: " + request.getFloorId()));
         VehicleType vehicleType = resolveVehicleType(request.getVehicleTypeId());
+
+        // Validate if vehicle type is supported by the floor
+        if (!floor.getSupportedVehicleTypes().contains(vehicleType)) {
+            throw new ConflictException("Vehicle type " + vehicleType.getCode() + " is not supported by floor " + floor.getName());
+        }
 
         ParkingSlot slot = ParkingSlot.builder()
                 .code(request.getCode())
