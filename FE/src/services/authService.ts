@@ -1,6 +1,5 @@
 import axios from "axios";
 import { authApi, type RegisterRequest, type RegisterResponse } from "@/api/authApi";
-import { authenticateMockUser } from "@/services/mockRepository";
 import type { Role } from "@/types/rbac";
 
 interface AuthenticatedUser {
