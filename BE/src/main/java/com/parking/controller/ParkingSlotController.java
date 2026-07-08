@@ -31,13 +31,13 @@ public class ParkingSlotController {
     }
 
     @PostMapping
-    @PreAuthorize("hasRole('MANAGER')")
+    @PreAuthorize("hasAnyRole('ADMIN', 'MANAGER')")
     public ResponseEntity<ParkingSlotResponseDto> createSlot(@Valid @RequestBody ParkingSlotRequestDto request) {
         return ResponseEntity.ok(parkingSlotService.createSlot(request));
     }
 
     @PutMapping("/{id}")
-    @PreAuthorize("hasRole('MANAGER')")
+    @PreAuthorize("hasAnyRole('ADMIN', 'MANAGER')")
     public ResponseEntity<ParkingSlotResponseDto> updateSlot(
             @PathVariable Long id,
             @Valid @RequestBody ParkingSlotRequestDto request
@@ -46,14 +46,14 @@ public class ParkingSlotController {
     }
 
     @DeleteMapping("/{id}")
-    @PreAuthorize("hasRole('MANAGER')")
+    @PreAuthorize("hasAnyRole('ADMIN', 'MANAGER')")
     public ResponseEntity<Void> deleteSlot(@PathVariable Long id) {
         parkingSlotService.deleteSlot(id);
         return ResponseEntity.noContent().build();
     }
 
     @PatchMapping("/{id}/status")
-    @PreAuthorize("hasAnyRole('MANAGER', 'STAFF')")
+    @PreAuthorize("hasAnyRole('ADMIN', 'MANAGER', 'STAFF')")
     public ResponseEntity<ParkingSlotResponseDto> updateSlotStatus(
             @PathVariable Long id,
             @Valid @RequestBody SlotStatusUpdateRequestDto request
