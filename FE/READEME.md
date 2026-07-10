@@ -1,3 +1,5 @@
+# Parking Building Management System
+
 ## Tech Stack
 - React
 - TypeScript
@@ -5,34 +7,31 @@
 - React Router
 - Tailwind CSS
 
-## Installation
+---
+# Installation
+
+```bash
 npm install
+```
 
-## Build
-npm run build
+---
 
-## Run Development
+# Run Development Server
+
+```bash
 npm run dev
+```
 
+The application will be available at:
 
-SHARED MODULES
-==============
+```
+http://localhost:5173
+```
 
-components/
-├── common     → Button, Card, Modal,...
-├── forms      → Form components
-├── table      → Reusable tables
-├── charts     → Charts thống kê
-└── layout     → Header/Sidebar/Navbar
+---
 
-hooks/
-└── custom hooks dùng chung
+# Build Production
 
-utils/
-└── helper functions
-
-constants/
-└── role, status, config...
-
-store/
-└── Redux/Zustand state global
+```bash
+npm run build
+```
