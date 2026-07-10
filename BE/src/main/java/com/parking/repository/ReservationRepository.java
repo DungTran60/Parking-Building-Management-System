@@ -19,6 +19,9 @@ public interface ReservationRepository extends JpaRepository<Reservation, Long> 
     /** Lấy tất cả đặt chỗ của một slot cụ thể */
     List<Reservation> findBySlotId(Long slotId);
 
+    /** Tìm các reservation chưa check-in và đã quá giờ dự kiến (startAt < cutoff) — phục vụ no-show expiry */
+    List<Reservation> findByStatusInAndStartAtBefore(List<ReservationStatus> statuses, LocalDateTime cutoff);
+
     /**
      * Kiểm tra xem slot có bị đặt chồng thời gian không.
      * Điều kiện: trạng thái chưa hủy VÀ khoảng thời gian mới giao với khoảng hiện có.
@@ -27,7 +30,7 @@ public interface ReservationRepository extends JpaRepository<Reservation, Long> 
         SELECT COUNT(r) > 0
         FROM Reservation r
         WHERE r.slot.id = :slotId
-          AND r.status <> com.parking.entity.ReservationStatus.CANCELLED
+          AND r.status NOT IN (com.parking.entity.ReservationStatus.CANCELLED, com.parking.entity.ReservationStatus.EXPIRED)
           AND r.startAt < :endAt
           AND r.endAt   > :startAt
     """)
@@ -46,7 +49,7 @@ public interface ReservationRepository extends JpaRepository<Reservation, Long> 
         FROM Reservation r
         WHERE r.slot.id = :slotId
           AND r.id <> :excludeId
-          AND r.status <> com.parking.entity.ReservationStatus.CANCELLED
+          AND r.status NOT IN (com.parking.entity.ReservationStatus.CANCELLED, com.parking.entity.ReservationStatus.EXPIRED)
           AND r.startAt < :endAt
           AND r.endAt   > :startAt
     """)

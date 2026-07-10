@@ -69,6 +69,11 @@ public class ReservationServiceImpl implements ReservationService {
                 .build();
 
         Reservation saved = reservationRepository.save(reservation);
+
+        // 7. Giữ chỗ: slot → RESERVED (workflow §5.2 bước 5)
+        slot.setStatus(SlotStatus.RESERVED);
+        parkingSlotRepository.save(slot);
+
         return mapToResponse(saved);
     }
 
@@ -136,6 +141,10 @@ public class ReservationServiceImpl implements ReservationService {
         }
 
         r.setStatus(ReservationStatus.CANCELLED);
+
+        // Giải phóng slot RESERVED → AVAILABLE (workflow §5.2 bước 5b)
+        releaseSlotIfReserved(r.getSlot());
+
         return mapToResponse(reservationRepository.save(r));
     }
 
@@ -146,6 +155,14 @@ public class ReservationServiceImpl implements ReservationService {
         return reservationRepository.findById(id)
                 .orElseThrow(() -> new ResourceNotFoundException(
                         "Reservation not found with ID: " + id));
+    }
+
+    // Chỉ giải phóng slot khi đang RESERVED — không đụng slot OCCUPIED/MAINTENANCE/BLOCKED.
+    private void releaseSlotIfReserved(ParkingSlot slot) {
+        if (slot != null && slot.getStatus() == SlotStatus.RESERVED) {
+            slot.setStatus(SlotStatus.AVAILABLE);
+            parkingSlotRepository.save(slot);
+        }
     }
 
     private ReservationResponseDto mapToResponse(Reservation r) {
