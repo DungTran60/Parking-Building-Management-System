@@ -165,7 +165,7 @@ export function ReservationsPage() {
           </Card>
           <div className="rounded-lg border border-amber-200 bg-amber-50 p-5">
             <h3 className="font-semibold text-amber-800">Lưu ý</h3>
-            <p className="mt-2 text-sm text-amber-700">Chỗ đặt được giữ trong 15 phút kể từ giờ vào dự kiến. Quá thời gian này hệ thống có thể giải phóng slot.</p>
+            <p className="mt-2 text-sm text-amber-700">Chỗ đặt được giữ trong 30 phút kể từ giờ vào dự kiến. Quá thời gian này hệ thống có thể giải phóng slot.</p>
           </div>
         </div>
       </div>

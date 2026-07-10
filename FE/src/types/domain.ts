@@ -3,7 +3,7 @@ import type { Role } from "@/types/rbac";
 export type Status = "ACTIVE" | "INACTIVE";
 export type SlotStatus = "AVAILABLE" | "OCCUPIED" | "RESERVED" | "MAINTENANCE" | "BLOCKED";
 export type SessionStatus = "ACTIVE" | "COMPLETED" | "UNPAID" | "LOST_TICKET" | "EXPIRED";
-export type ReservationStatus = "PENDING" | "CONFIRMED" | "CANCELLED";
+export type ReservationStatus = "PENDING" | "CONFIRMED" | "CANCELLED" | "CHECKED_IN" | "COMPLETED" | "EXPIRED";
 export type ExceptionType = "LOST_TICKET" | "WRONG_PLATE" | "WRONG_ZONE" | "OVERTIME" | "UNPAID";
 export type IncidentType = "LOST_TICKET" | "WRONG_PLATE" | "WRONG_ZONE" | "OVERTIME" | "UNPAID" | "VEHICLE_DAMAGE" | "FACILITY_ISSUE";
 export type IncidentStatus = "OPEN" | "IN_PROGRESS" | "RESOLVED" | "CLOSED";
