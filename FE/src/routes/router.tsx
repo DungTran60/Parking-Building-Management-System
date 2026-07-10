@@ -16,7 +16,6 @@ import { PricingPage } from "@/pages/manager/PricingPage";
 import { ProfilePage } from "@/pages/shared/ProfilePage";
 import { ReportsPage } from "@/pages/manager/ReportsPageLive";
 import { ReservationsPage } from "@/pages/user/ReservationsPage";
-import { RolesPage } from "@/pages/admin/RolesPage";
 import { SessionsPage } from "@/pages/shared/SessionsPage";
 import { SettingsPage } from "@/pages/admin/SettingsPage";
 import { SlotsPage } from "@/pages/shared/SlotsPage";
@@ -77,7 +76,6 @@ export const router = createBrowserRouter([
       { path: "reports", ...protectedChild("reports:view", <ReportsPage />) },
       { path: "ai-optimization", ...protectedChild("ai:view", <AiOptimizationPage />) },
       { path: "users", ...protectedChild("users:manage", <UsersPage />) },
-      { path: "roles", ...protectedChild("roles:manage", <RolesPage />) },
       { path: "settings", ...protectedChild("settings:manage", <SettingsPage />) },
       { path: "403", element: <ForbiddenPage /> }
     ]

@@ -1,5 +1,6 @@
 package com.parking.repository;
 
+import com.parking.entity.Status;
 import com.parking.entity.User;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.stereotype.Repository;
@@ -30,4 +31,6 @@ public interface UserRepository extends JpaRepository<User, Long>
      * Trả về true nếu tồn tại, false nếu không tồn tại
      */
     boolean existsByEmail(String email);
+
+    long countByRole_NameAndStatus(String roleName, Status status);
 }

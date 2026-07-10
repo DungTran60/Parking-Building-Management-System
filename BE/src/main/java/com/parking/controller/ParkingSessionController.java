@@ -40,7 +40,7 @@ public class ParkingSessionController {
     private final ParkingSessionService parkingSessionService;
 
     @GetMapping
-    @PreAuthorize("hasAuthority('sessions:view')")
+    @PreAuthorize("hasAnyRole('STAFF', 'MANAGER', 'ADMIN')")
     public ResponseEntity<Page<ParkingSessionResponseDto>> findAll(
             @RequestParam(required = false) String status,
             @RequestParam(required = false) String query,
@@ -56,7 +56,7 @@ public class ParkingSessionController {
      * Quyền: STAFF, MANAGER, ADMIN
      */
     @PostMapping("/checkin")
-    @PreAuthorize("hasAuthority('sessions:checkout')")
+    @PreAuthorize("hasAnyRole('STAFF', 'MANAGER', 'ADMIN')")
     public ResponseEntity<ParkingSessionResponseDto> checkIn(
             @Valid @RequestBody CheckInRequestDto request) {
         return ResponseEntity.ok(parkingSessionService.checkIn(request));
@@ -70,13 +70,13 @@ public class ParkingSessionController {
      *        /api/sessions/checkout?query=51G-88888
      */
     @PostMapping("/checkout")
-    @PreAuthorize("hasAuthority('sessions:checkout')")
+    @PreAuthorize("hasAnyRole('STAFF', 'MANAGER', 'ADMIN')")
     public ResponseEntity<ParkingSessionResponseDto> checkOut(@RequestParam String query) {
         return ResponseEntity.ok(parkingSessionService.checkOut(query));
     }
 
     @GetMapping("/{id}")
-    @PreAuthorize("hasAuthority('sessions:view')")
+    @PreAuthorize("hasAnyRole('STAFF', 'MANAGER', 'ADMIN')")
     public ResponseEntity<ParkingSessionResponseDto> findById(@PathVariable Long id) {
         return ResponseEntity.ok(parkingSessionService.findById(id));
     }
@@ -89,7 +89,7 @@ public class ParkingSessionController {
      * Ví dụ: GET /api/sessions/lost-ticket-preview?plateNumber=51G-88888
      */
     @GetMapping("/lost-ticket-preview")
-    @PreAuthorize("hasAuthority('sessions:exception')")
+    @PreAuthorize("hasAnyRole('STAFF', 'MANAGER', 'ADMIN')")
     public ResponseEntity<LostTicketFeeResponseDto> previewLostTicketFee(
             @RequestParam @NotBlank(message = "Plate number is required") String plateNumber) {
         return ResponseEntity.ok(parkingSessionService.previewLostTicketFee(plateNumber));
@@ -103,7 +103,7 @@ public class ParkingSessionController {
      * Body: { "plateNumber": "51G-88888", "paymentMethod": "CASH" }
      */
     @PostMapping("/lost-ticket-checkout")
-    @PreAuthorize("hasAuthority('sessions:exception')")
+    @PreAuthorize("hasAnyRole('STAFF', 'MANAGER', 'ADMIN')")
     public ResponseEntity<ParkingSessionResponseDto> lostTicketCheckout(
             @Valid @RequestBody LostTicketCheckoutRequestDto request) {
         return ResponseEntity.ok(parkingSessionService.lostTicketCheckout(request));
@@ -114,7 +114,7 @@ public class ParkingSessionController {
      * Quyền: STAFF, MANAGER, ADMIN
      */
     @PostMapping("/{id}/exceptions")
-    @PreAuthorize("hasAuthority('sessions:exception')")
+    @PreAuthorize("hasAnyRole('STAFF', 'MANAGER', 'ADMIN')")
     public ResponseEntity<ParkingSessionResponseDto> handleException(
             @PathVariable Long id,
             @Valid @RequestBody SessionExceptionRequestDto request) {
@@ -122,7 +122,7 @@ public class ParkingSessionController {
     }
 
     @PatchMapping("/{id}/status")
-    @PreAuthorize("hasAuthority('sessions:manage')")
+    @PreAuthorize("hasAnyRole('STAFF', 'MANAGER', 'ADMIN')")
     public ResponseEntity<ParkingSessionResponseDto> updateStatus(
             @PathVariable Long id,
             @Valid @RequestBody SessionStatusUpdateRequestDto request) {
@@ -131,28 +131,28 @@ public class ParkingSessionController {
     }
 
     @PostMapping("/{id}/reopen")
-    @PreAuthorize("hasAuthority('sessions:manage')")
+    @PreAuthorize("hasAnyRole('STAFF', 'MANAGER', 'ADMIN')")
     public ResponseEntity<ParkingSessionResponseDto> reopenSession(@PathVariable Long id) {
         // Implementation will be added in the service layer
         return ResponseEntity.ok().build();
     }
 
     @PostMapping("/{id}/mark-unpaid")
-    @PreAuthorize("hasAuthority('sessions:manage')")
+    @PreAuthorize("hasAnyRole('STAFF', 'MANAGER', 'ADMIN')")
     public ResponseEntity<ParkingSessionResponseDto> markAsUnpaid(@PathVariable Long id) {
         // Implementation will be added in the service layer
         return ResponseEntity.ok().build();
     }
 
     @PostMapping("/{id}/waive-fee")
-    @PreAuthorize("hasAuthority('sessions:manage')")
+    @PreAuthorize("hasAnyRole('STAFF', 'MANAGER', 'ADMIN')")
     public ResponseEntity<ParkingSessionResponseDto> waiveFee(@PathVariable Long id) {
         // Implementation will be added in the service layer
         return ResponseEntity.ok().build();
     }
 
     @PostMapping("/{id}/notes")
-    @PreAuthorize("hasAuthority('sessions:manage')")
+    @PreAuthorize("hasAnyRole('STAFF', 'MANAGER', 'ADMIN')")
     public ResponseEntity<ParkingSessionResponseDto> addNote(
             @PathVariable Long id,
             @Valid @RequestBody SessionNoteRequestDto request) {

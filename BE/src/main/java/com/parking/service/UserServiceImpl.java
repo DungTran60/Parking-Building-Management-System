@@ -155,6 +155,11 @@ public class UserServiceImpl implements UserService {
         if (dto.getRoleName() != null && !dto.getRoleName().trim().isEmpty()) {
             Role role = roleRepository.findByName(dto.getRoleName().toUpperCase())
                     .orElseThrow(() -> new IllegalArgumentException("Role not found: " + dto.getRoleName()));
+            boolean wasAdmin = "ADMIN".equalsIgnoreCase(user.getRole().getName());
+            boolean willBeAdmin = "ADMIN".equalsIgnoreCase(role.getName());
+            if (wasAdmin && !willBeAdmin) {
+                ensureNotLastActiveAdmin(user, "demote");
+            }
             user.setRole(role);
         }
 
@@ -179,6 +184,8 @@ public class UserServiceImpl implements UserService {
             throw new IllegalArgumentException("Admin cannot delete their own account.");
         }
 
+        ensureNotLastActiveAdmin(userToDelete, "delete");
+
         userRepository.deleteById(id);
 
         // Audit Log
@@ -195,6 +202,10 @@ public class UserServiceImpl implements UserService {
 
         if (userToUpdate.getUsername().equals(currentUsername)) {
             throw new IllegalArgumentException("Admin cannot lock their own account.");
+        }
+
+        if (dto.getStatus() == Status.INACTIVE) {
+            ensureNotLastActiveAdmin(userToUpdate, "lock");
         }
 
         userToUpdate.setStatus(dto.getStatus());
@@ -252,6 +263,14 @@ public class UserServiceImpl implements UserService {
 
         User updatedUser = userRepository.save(user);
         return mapToResponseDto(updatedUser);
+    }
+
+    // Ngăn demote/xóa/khóa admin đang hoạt động cuối cùng để hệ thống không bị mất toàn bộ admin.
+    private void ensureNotLastActiveAdmin(User user, String action) {
+        boolean isAdmin = user.getRole() != null && "ADMIN".equalsIgnoreCase(user.getRole().getName());
+        if (isAdmin && userRepository.countByRole_NameAndStatus("ADMIN", Status.ACTIVE) <= 1) {
+            throw new IllegalArgumentException("Cannot " + action + " the last active admin account.");
+        }
     }
 
     private UserResponseDto mapToResponseDto(User user) {

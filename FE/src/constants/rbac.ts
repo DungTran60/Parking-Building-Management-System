@@ -9,7 +9,6 @@ export const ROLE_LABELS: Record<Role, string> = {
 
 export const PERMISSION_LABELS: Record<Permission, string> = {
   "users:manage": "Quản lý tài khoản",
-  "roles:manage": "Quản lý phân quyền",
   "settings:manage": "Quản lý cài đặt",
 
   "dashboard:view": "Xem tổng quan",
@@ -40,14 +39,13 @@ export const PERMISSION_LABELS: Record<Permission, string> = {
   "ai:view": "Sử dụng AI"
 };
 
-const RBAC_SCHEMA_VERSION = 3;
+const RBAC_SCHEMA_VERSION = 4;
 const ROLE_PERMISSIONS_STORAGE_KEY = `parking-bms-role-permissions-v${RBAC_SCHEMA_VERSION}`;
 const LEGACY_ROLE_PERMISSIONS_STORAGE_KEY = "parking-bms-role-permissions";
 
 const DEFAULT_ROLE_PERMISSIONS: Record<Role, Permission[]> = {
   SYSTEM_ADMIN: [
     "users:manage",
-    "roles:manage",
     "settings:manage"
   ],
   PARKING_MANAGER: [
@@ -108,10 +106,5 @@ const getStoredRolePermissions = (): Record<Role, Permission[]> => {
 };
 
 export const ROLE_PERMISSIONS: Record<Role, Permission[]> = getStoredRolePermissions();
-
-export const saveRolePermissions = (role: Role, permissions: Permission[]) => {
-  ROLE_PERMISSIONS[role] = [...permissions];
-  localStorage.setItem(ROLE_PERMISSIONS_STORAGE_KEY, JSON.stringify(ROLE_PERMISSIONS));
-};
 
 export const hasPermission = (role: Role, permission: Permission) => ROLE_PERMISSIONS[role].includes(permission);
