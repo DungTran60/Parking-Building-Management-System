@@ -2,6 +2,7 @@ import { Badge } from "@/components/common/Badge";
 import { userApi, type UserResponse } from "@/api/userApi";
 import { ROLE_LABELS } from "@/constants/rbac";
 import { EntityManagement } from "@/modules/shared/EntityManagement";
+import { useAuthStore } from "@/stores/authStore";
 import type { ResourceApi } from "@/hooks/useResources";
 import type { Role } from "@/types/rbac";
 
@@ -62,6 +63,7 @@ const api: ResourceApi<ManagedUser> = {
 };
 
 export function UsersPage() {
+  const currentUserName = useAuthStore((state) => state.userName);
   return (
     <EntityManagement<ManagedUser>
       title="Quản lý tài khoản"
@@ -78,8 +80,8 @@ export function UsersPage() {
           label: "Vai trò",
           type: "select",
           options: (Object.entries(ROLE_LABELS) as [Role, string][])
-            .filter(([value]) => value !== "SYSTEM_ADMIN")
             .map(([value, label]) => ({ value, label })),
+          disabled: (editing) => !!editing && editing.username === currentUserName,
           render: (value) => ROLE_LABELS[value as Role]
         },
         {

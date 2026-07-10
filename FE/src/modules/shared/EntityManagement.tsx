@@ -1,11 +1,10 @@
 import { useCallback, useMemo, useState } from "react";
 import type { FormEvent, ReactNode } from "react";
 import type { ColumnDef } from "@tanstack/react-table";
-import { Eye, Pencil, Plus, Trash2 } from "lucide-react";
+import { Pencil, Plus, Trash2 } from "lucide-react";
 import { Badge } from "@/components/common/Badge";
 import { Button } from "@/components/common/Button";
 import { Card, CardContent, CardHeader } from "@/components/common/Card";
-import { Drawer } from "@/components/common/Drawer";
 import { Modal } from "@/components/common/Modal";
 import { PageHeader } from "@/components/layout/PageHeader";
 import { Field, Input, Select } from "@/components/forms/FormField";
@@ -27,6 +26,7 @@ export type FieldConfig<T> = {
   options?: { label: string; value: string }[];
   render?: (value: T[keyof T], row: T) => ReactNode;
   required?: boolean;
+  disabled?: (editing: T | null) => boolean;
 };
 
 export function EntityManagement<T extends { id: string }>({
@@ -181,7 +181,7 @@ export function EntityManagement<T extends { id: string }>({
           {fields.filter((field) => !(editing && field.createOnly)).map((field) => (
             <Field key={String(field.key)} label={field.label}>
               {field.type === "select" ? (
-                <Select name={String(field.key)} defaultValue={editing ? String(editing[field.key] ?? "") : field.options?.[0]?.value} required={field.required !== false}>
+                <Select name={String(field.key)} defaultValue={editing ? String(editing[field.key] ?? "") : field.options?.[0]?.value} required={field.required !== false} disabled={field.disabled?.(editing) ?? false}>
                   {field.options?.map((option) => (
                     <option key={option.value} value={option.value}>
                       {option.label}
@@ -189,7 +189,7 @@ export function EntityManagement<T extends { id: string }>({
                   ))}
                 </Select>
               ) : (
-                <Input name={String(field.key)} type={field.inputType ?? field.type ?? "text"} placeholder={field.placeholder} minLength={field.minLength} maxLength={field.maxLength} defaultValue={editing ? String(editing[field.key] ?? "") : ""} required={field.required !== false} />
+                <Input name={String(field.key)} type={field.inputType ?? field.type ?? "text"} placeholder={field.placeholder} minLength={field.minLength} maxLength={field.maxLength} defaultValue={editing ? String(editing[field.key] ?? "") : ""} required={field.required !== false} disabled={field.disabled?.(editing) ?? false} />
               )}
             </Field>
           ))}
