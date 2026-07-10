@@ -1,6 +1,7 @@
 package com.parking.specification;
 
 import com.parking.entity.ParkingSession;
+import com.parking.entity.SessionStatus;
 import jakarta.persistence.criteria.Predicate;
 import org.springframework.data.jpa.domain.Specification;
 import org.springframework.stereotype.Component;
@@ -22,7 +23,13 @@ public class ParkingSessionSpecification {
             List<Predicate> predicates = new ArrayList<>();
 
             if (status != null && !status.isBlank()) {
-                predicates.add(criteriaBuilder.equal(root.get("status"), status));
+                // status đến từ query param (String) → parse sang enum; bỏ qua lọc nếu không hợp lệ.
+                try {
+                    SessionStatus statusEnum = SessionStatus.valueOf(status.trim().toUpperCase());
+                    predicates.add(criteriaBuilder.equal(root.get("status"), statusEnum));
+                } catch (IllegalArgumentException ignored) {
+                    // Giá trị status không hợp lệ → không thêm điều kiện (trả kết quả như không lọc theo status)
+                }
             }
 
             if (vehicleTypeId != null) {

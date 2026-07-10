@@ -26,4 +26,6 @@ public class ParkingSessionResponseDto {
     private String status;
     private String notes;
     private String createdByUsername;
+    private Long userId;
+    private String ownerUsername;
 }

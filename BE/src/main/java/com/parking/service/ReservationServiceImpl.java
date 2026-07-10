@@ -3,7 +3,10 @@ package com.parking.service;
 import com.parking.dto.ReservationRequestDto;
 import com.parking.dto.ReservationResponseDto;
 import com.parking.entity.*;
+import com.parking.exception.BadRequestException;
+import com.parking.exception.ConflictException;
 import com.parking.exception.ResourceNotFoundException;
+import org.springframework.security.access.AccessDeniedException;
 import com.parking.repository.ParkingSlotRepository;
 import com.parking.repository.ReservationRepository;
 import com.parking.repository.VehicleTypeRepository;
@@ -21,6 +24,7 @@ public class ReservationServiceImpl implements ReservationService {
     private final ReservationRepository reservationRepository;
     private final ParkingSlotRepository  parkingSlotRepository;
     private final VehicleTypeRepository  vehicleTypeRepository;
+    private final AuthenticationService  authenticationService;
 
     /* ─────────────────────────────────────────────────────
        Tạo đặt chỗ mới
@@ -58,7 +62,7 @@ public class ReservationServiceImpl implements ReservationService {
                     "Slot " + slot.getCode() + " is already reserved in the requested time range");
         }
 
-        // 6. Tạo và lưu reservation
+        // 6. Tạo và lưu reservation (gắn tài khoản Driver đang đăng nhập nếu có)
         Reservation reservation = Reservation.builder()
                 .plateNumber(dto.getPlateNumber())
                 .vehicleType(vehicleType)
@@ -66,6 +70,7 @@ public class ReservationServiceImpl implements ReservationService {
                 .startAt(dto.getStartAt())
                 .endAt(dto.getEndAt())
                 .status(ReservationStatus.PENDING)
+                .user(authenticationService.getCurrentUser())
                 .build();
 
         Reservation saved = reservationRepository.save(reservation);
@@ -79,6 +84,11 @@ public class ReservationServiceImpl implements ReservationService {
     @Transactional(readOnly = true)
     public ReservationResponseDto getReservationById(Long id) {
         Reservation r = findOrThrow(id);
+        // Chống IDOR: chỉ chủ sở hữu hoặc ADMIN/MANAGER được xem chi tiết.
+        User currentUser = requireCurrentUser();
+        if (!canViewAll(currentUser) && !isOwner(r, currentUser)) {
+            throw new AccessDeniedException("Bạn không có quyền xem đặt chỗ này.");
+        }
         return mapToResponse(r);
     }
 
@@ -88,8 +98,12 @@ public class ReservationServiceImpl implements ReservationService {
     @Override
     @Transactional(readOnly = true)
     public List<ReservationResponseDto> getAllReservations() {
-        return reservationRepository.findAll()
-                .stream()
+        User currentUser = requireCurrentUser();
+        // Chống IDOR: chỉ ADMIN/MANAGER xem toàn bộ; Driver/Staff chỉ thấy đặt chỗ của chính mình.
+        List<Reservation> reservations = canViewAll(currentUser)
+                ? reservationRepository.findAll()
+                : reservationRepository.findByUserIdOrderByStartAtDesc(currentUser.getId());
+        return reservations.stream()
                 .map(this::mapToResponse)
                 .collect(Collectors.toList());
     }
@@ -100,7 +114,23 @@ public class ReservationServiceImpl implements ReservationService {
     @Override
     @Transactional(readOnly = true)
     public List<ReservationResponseDto> getReservationsByStatus(ReservationStatus status) {
+        User currentUser = requireCurrentUser();
+        // Chống IDOR: người dùng thường chỉ lọc trên đặt chỗ của chính mình.
         return reservationRepository.findByStatus(status)
+                .stream()
+                .filter(r -> canViewAll(currentUser) || isOwner(r, currentUser))
+                .map(this::mapToResponse)
+                .collect(Collectors.toList());
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public List<ReservationResponseDto> getMyReservations() {
+        User currentUser = authenticationService.getCurrentUser();
+        if (currentUser == null) {
+            throw new BadRequestException("Không xác định được người dùng hiện tại.");
+        }
+        return reservationRepository.findByUserIdOrderByStartAtDesc(currentUser.getId())
                 .stream()
                 .map(this::mapToResponse)
                 .collect(Collectors.toList());
@@ -119,6 +149,17 @@ public class ReservationServiceImpl implements ReservationService {
                     "Only PENDING reservations can be confirmed. Current status: " + r.getStatus());
         }
 
+        // Giữ chỗ thực sự: đánh dấu slot RESERVED để xe vãng lai không thể chiếm.
+        ParkingSlot slot = r.getSlot();
+        if (slot.getStatus() == SlotStatus.OCCUPIED) {
+            throw new ConflictException(
+                    "Slot " + slot.getCode() + " đang có xe, không thể xác nhận đặt chỗ.");
+        }
+        if (slot.getStatus() == SlotStatus.AVAILABLE) {
+            slot.setStatus(SlotStatus.RESERVED);
+            parkingSlotRepository.save(slot);
+        }
+
         r.setStatus(ReservationStatus.CONFIRMED);
         return mapToResponse(reservationRepository.save(r));
     }
@@ -131,12 +172,31 @@ public class ReservationServiceImpl implements ReservationService {
     public ReservationResponseDto cancelReservation(Long id) {
         Reservation r = findOrThrow(id);
 
+        // Chống IDOR: chỉ chủ sở hữu hoặc ADMIN/MANAGER được hủy đặt chỗ.
+        User currentUser = requireCurrentUser();
+        if (!canViewAll(currentUser) && !isOwner(r, currentUser)) {
+            throw new AccessDeniedException("Bạn không có quyền hủy đặt chỗ này.");
+        }
+
         if (r.getStatus() == ReservationStatus.CANCELLED) {
             throw new IllegalArgumentException("Reservation is already cancelled");
         }
 
+        ReservationStatus previous = r.getStatus();
         r.setStatus(ReservationStatus.CANCELLED);
-        return mapToResponse(reservationRepository.save(r));
+        Reservation saved = reservationRepository.save(r);
+
+        // Trả slot về AVAILABLE nếu đặt chỗ này đang giữ slot (RESERVED) và chưa check-in,
+        // và không còn đặt chỗ CONFIRMED nào khác giữ slot đó.
+        ParkingSlot slot = r.getSlot();
+        if (previous == ReservationStatus.CONFIRMED
+                && slot.getStatus() == SlotStatus.RESERVED
+                && !reservationRepository.existsBySlotIdAndStatus(slot.getId(), ReservationStatus.CONFIRMED)) {
+            slot.setStatus(SlotStatus.AVAILABLE);
+            parkingSlotRepository.save(slot);
+        }
+
+        return mapToResponse(saved);
     }
 
     /* ─────────────────────────────────────────────────────
@@ -146,6 +206,31 @@ public class ReservationServiceImpl implements ReservationService {
         return reservationRepository.findById(id)
                 .orElseThrow(() -> new ResourceNotFoundException(
                         "Reservation not found with ID: " + id));
+    }
+
+    /** Lấy người dùng hiện tại, ném lỗi nếu không xác định được (chặn truy cập ẩn danh). */
+    private User requireCurrentUser() {
+        User currentUser = authenticationService.getCurrentUser();
+        if (currentUser == null) {
+            throw new AccessDeniedException("Không xác định được người dùng hiện tại.");
+        }
+        return currentUser;
+    }
+
+    /** ADMIN/MANAGER được xem/thao tác trên mọi đặt chỗ. */
+    private boolean canViewAll(User user) {
+        if (user.getRole() == null || user.getRole().getName() == null) {
+            return false;
+        }
+        String roleName = user.getRole().getName();
+        return "ADMIN".equalsIgnoreCase(roleName) || "MANAGER".equalsIgnoreCase(roleName);
+    }
+
+    /** Kiểm tra người dùng có phải chủ sở hữu của đặt chỗ không. */
+    private boolean isOwner(Reservation reservation, User user) {
+        return reservation.getUser() != null
+                && reservation.getUser().getId() != null
+                && reservation.getUser().getId().equals(user.getId());
     }
 
     private ReservationResponseDto mapToResponse(Reservation r) {
@@ -161,6 +246,8 @@ public class ReservationServiceImpl implements ReservationService {
                 .status(r.getStatus())
                 .createdAt(r.getCreatedAt())
                 .updatedAt(r.getUpdatedAt())
+                .userId(r.getUser() != null ? r.getUser().getId() : null)
+                .ownerUsername(r.getUser() != null ? r.getUser().getUsername() : null)
                 .build();
     }
 

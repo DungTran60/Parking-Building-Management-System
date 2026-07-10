@@ -30,4 +30,10 @@ public interface UserRepository extends JpaRepository<User, Long>
      * Trả về true nếu tồn tại, false nếu không tồn tại
      */
     boolean existsByEmail(String email);
+
+    /**
+     * Kiểm tra có user nào đang được gán role này không (theo role.id).
+     * Dùng để chặn xóa role đang được sử dụng.
+     */
+    boolean existsByRole_Id(Long roleId);
 }

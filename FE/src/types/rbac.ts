@@ -19,6 +19,7 @@ export type Permission =
   | "checkin:create"
   | "checkout:create"
   | "reservations:selfManage"
+  | "reservations:manage"
   | "reports:view"
   | "users:manage"
   | "roles:manage"

@@ -10,12 +10,16 @@ import com.parking.dto.SessionStatusUpdateRequestDto;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import java.time.LocalDateTime;
+import java.util.List;
 
 public interface ParkingSessionService {
     ParkingSessionResponseDto checkIn(CheckInRequestDto request);
     ParkingSessionResponseDto checkOut(String query);
     Page<ParkingSessionResponseDto> findAll(String status, String query, Long vehicleTypeId, LocalDateTime from, LocalDateTime to, Pageable pageable);
     ParkingSessionResponseDto findById(Long id);
+
+    /** Lấy các lượt gửi xe của tài khoản Driver đang đăng nhập. */
+    List<ParkingSessionResponseDto> getMySessions();
 
     /**
      * Tính phí preview khi khách báo mất vé (chưa checkout).

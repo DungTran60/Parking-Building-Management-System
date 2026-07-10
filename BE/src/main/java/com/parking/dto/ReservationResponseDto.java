@@ -29,4 +29,8 @@ public class ReservationResponseDto {
     private ReservationStatus status;
     private LocalDateTime createdAt;
     private LocalDateTime updatedAt;
+
+    // Chủ sở hữu (tài khoản Driver) của đặt chỗ
+    private Long userId;
+    private String ownerUsername;
 }

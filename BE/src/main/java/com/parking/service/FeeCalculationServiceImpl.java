@@ -4,6 +4,7 @@ import com.parking.dto.FeeCalculationResponseDto;
 import com.parking.entity.ParkingSession;
 import com.parking.entity.Pricing;
 import com.parking.entity.PricingTimeUnit;
+import com.parking.entity.SessionStatus;
 import com.parking.entity.VehicleType;
 import com.parking.exception.ResourceNotFoundException;
 import com.parking.entity.SystemSettings;
@@ -41,8 +42,8 @@ public class FeeCalculationServiceImpl implements FeeCalculationService {
     public FeeCalculationResponseDto previewFee(String query) {
         // Tìm session ACTIVE theo ticketCode hoặc plateNumber
         ParkingSession session = parkingSessionRepository
-                .findByTicketCodeAndStatus(query, "ACTIVE")
-                .or(() -> parkingSessionRepository.findByPlateNumberAndStatus(query, "ACTIVE"))
+                .findByTicketCodeAndStatus(query, SessionStatus.ACTIVE)
+                .or(() -> parkingSessionRepository.findByPlateNumberAndStatus(query, SessionStatus.ACTIVE))
                 .orElseThrow(() -> new ResourceNotFoundException(
                         "Không tìm thấy lượt gửi xe đang hoạt động với mã: " + query));
 

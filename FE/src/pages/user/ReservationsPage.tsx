@@ -13,9 +13,12 @@ import { vehicleTypeApi } from "@/api/vehicleTypeApi";
 import { reservationApi } from "@/api/reservationApi";
 import { getApiErrorMessage } from "@/utils/apiError";
 import { dateTime } from "@/utils/format";
+import { useAuthStore } from "@/stores/authStore";
 
 export function ReservationsPage() {
   const queryClient = useQueryClient();
+  const role = useAuthStore((state) => state.role);
+  const canConfirm = role === "PARKING_MANAGER" || role === "SYSTEM_ADMIN";
   const [vehicleTypeId, setVehicleTypeId] = useState("motorbike");
   const [plateNumber, setPlateNumber] = useState("");
   const [startAt, setStartAt] = useState(dayjs().add(1, "hour").format("YYYY-MM-DDTHH:mm"));
@@ -43,12 +46,23 @@ export function ReservationsPage() {
 
   const cancelMutation = useMutation({
     mutationFn: reservationApi.cancel,
-    onSuccess: () => { 
-      queryClient.invalidateQueries({ queryKey: ["reservations"] }); 
-      queryClient.invalidateQueries({ queryKey: ["slots"] }); 
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["reservations"] });
+      queryClient.invalidateQueries({ queryKey: ["slots"] });
     },
     onError: (error) => {
       alert(getApiErrorMessage(error, "Không thể hủy đặt chỗ."));
+    }
+  });
+
+  const confirmMutation = useMutation({
+    mutationFn: reservationApi.confirm,
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["reservations"] });
+      queryClient.invalidateQueries({ queryKey: ["slots"] });
+    },
+    onError: (error) => {
+      alert(getApiErrorMessage(error, "Không thể xác nhận đặt chỗ."));
     }
   });
 
@@ -83,6 +97,10 @@ export function ReservationsPage() {
     if (window.confirm("Bạn có chắc chắn muốn hủy đặt chỗ này?")) {
       cancelMutation.mutate(id);
     }
+  };
+
+  const confirm = (id: string | number) => {
+    confirmMutation.mutate(id);
   };
 
   return (
@@ -156,8 +174,11 @@ export function ReservationsPage() {
                   </div>
                   <p className="mt-1 text-xs text-slate-500">Slot {slotRows.find((slot) => String(slot.id) === String(reservation.slotId))?.code ?? reservation.slotId}</p>
                   <p className="mt-1 text-xs text-slate-500">{dateTime(reservation.startAt)} - {dateTime(reservation.endAt)}</p>
+                  {canConfirm && reservation.status === "PENDING" && (
+                    <Button className="mt-3 h-8 w-full" disabled={confirmMutation.isPending} onClick={() => confirm(reservation.id)}>Xác nhận đặt chỗ</Button>
+                  )}
                   {["PENDING", "CONFIRMED"].includes(reservation.status) && (
-                    <Button variant="secondary" className="mt-3 h-8 w-full" disabled={cancelMutation.isPending} onClick={() => cancel(reservation.id)}>Hủy đặt chỗ</Button>
+                    <Button variant="secondary" className="mt-2 h-8 w-full" disabled={cancelMutation.isPending} onClick={() => cancel(reservation.id)}>Hủy đặt chỗ</Button>
                   )}
                 </div>
               ))}

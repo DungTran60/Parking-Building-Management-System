@@ -3,7 +3,9 @@ package com.parking.service;
 import com.parking.dto.RoleRequestDto;
 import com.parking.dto.RoleResponseDto;
 import com.parking.entity.Role;
+import com.parking.exception.ConflictException;
 import com.parking.repository.RoleRepository;
+import com.parking.repository.UserRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -20,6 +22,7 @@ public class RoleServiceImpl implements RoleService {
 
     // Tiêm (Inject) RoleRepository thông qua Constructor
     private final RoleRepository roleRepository;
+    private final UserRepository userRepository;
 
     @Override
     @Transactional
@@ -84,6 +87,10 @@ public class RoleServiceImpl implements RoleService {
         // Kiểm tra tồn tại trước khi xóa
         if (!roleRepository.existsById(id)) {
             throw new IllegalArgumentException("Role not found with ID: " + id);
+        }
+        // Không cho xóa role đang được gán cho user (tránh vỡ FK users.role_id / dữ liệu mồ côi)
+        if (userRepository.existsByRole_Id(id)) {
+            throw new ConflictException("Cannot delete a role that is currently assigned to one or more users");
         }
         roleRepository.deleteById(id);
     }

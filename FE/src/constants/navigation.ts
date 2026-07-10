@@ -24,7 +24,7 @@ import type { Permission } from "@/types/rbac";
 export interface NavItem {
   label: string;
   path: string;
-  permission: Permission;
+  permission: Permission | Permission[];
   icon: LucideIcon;
 }
 
@@ -39,7 +39,7 @@ export const NAV_ITEMS: NavItem[] = [
   { label: "Xe vào", path: "/app/check-in", permission: "checkin:create", icon: LogIn },
   { label: "Xe ra", path: "/app/check-out", permission: "checkout:create", icon: LogOut },
   { label: "Lịch sử gửi xe", path: "/app/sessions", permission: "sessions:view", icon: SquareParking },
-  { label: "Đặt chỗ", path: "/app/reservations", permission: "reservations:selfManage", icon: CalendarClock },
+  { label: "Đặt chỗ", path: "/app/reservations", permission: ["reservations:selfManage", "reservations:manage"], icon: CalendarClock },
   { label: "Xe đang gửi", path: "/app/current-session", permission: "currentSession:view", icon: MapPin },
   { label: "Thanh toán", path: "/app/payments", permission: "payments:pay", icon: WalletCards },
   { label: "Xử lý sự cố", path: "/app/incidents", permission: "exceptions:manage", icon: MessageSquareWarning },

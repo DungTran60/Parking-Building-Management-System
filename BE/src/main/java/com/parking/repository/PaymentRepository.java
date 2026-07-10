@@ -11,5 +11,8 @@ public interface PaymentRepository extends JpaRepository<Payment, Long> {
     List<Payment> findAllByOrderByPaymentTimeDesc();
     List<Payment> findByPaymentTimeGreaterThanEqualAndPaymentTimeLessThan(
             LocalDateTime startInclusive, LocalDateTime endExclusive);
+
+    /** Kiểm tra một lượt gửi xe đã có thanh toán chưa (chống thu phí trùng). */
+    boolean existsBySessionId(Long sessionId);
 }
 

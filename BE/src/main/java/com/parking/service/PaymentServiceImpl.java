@@ -5,8 +5,10 @@ import com.parking.dto.PaymentResponseDto;
 import com.parking.entity.ParkingSession;
 import com.parking.entity.ParkingSlot;
 import com.parking.entity.Payment;
+import com.parking.entity.SessionStatus;
 import com.parking.entity.SlotStatus;
 import com.parking.entity.User;
+import com.parking.exception.ConflictException;
 import com.parking.exception.ResourceNotFoundException;
 import com.parking.repository.ParkingSessionRepository;
 import com.parking.repository.ParkingSlotRepository;
@@ -36,7 +38,12 @@ public class PaymentServiceImpl implements PaymentService {
         ParkingSession session = parkingSessionRepository.findById(Long.valueOf(request.getSessionId()))
                 .orElseThrow(() -> new ResourceNotFoundException("Parking session not found with id: " + request.getSessionId()));
 
-        if ("ACTIVE".equals(session.getStatus())) {
+        // Idempotency: mỗi lượt gửi xe chỉ được thu phí một lần (chống tạo Payment trùng).
+        if (paymentRepository.existsBySessionId(session.getId())) {
+            throw new ConflictException("Lượt gửi xe này đã được thanh toán.");
+        }
+
+        if (session.getStatus() == SessionStatus.ACTIVE) {
             LocalDateTime checkOutTime = LocalDateTime.now();
             // Dùng chung logic tính phí với checkout (Pricing → hourlyRate → SystemSettings default → mặc định)
             BigDecimal fee = feeCalculationService.calculateFee(
@@ -46,12 +53,16 @@ public class PaymentServiceImpl implements PaymentService {
 
             session.setCheckOutAt(checkOutTime);
             session.setFee(fee);
-            session.setStatus("COMPLETED");
+            session.setStatus(SessionStatus.COMPLETED);
             parkingSessionRepository.save(session);
 
             ParkingSlot slot = session.getSlot();
             slot.setStatus(SlotStatus.AVAILABLE);
             parkingSlotRepository.save(slot);
+        } else if (session.getStatus() == SessionStatus.UNPAID) {
+            // Session đã check-out nhưng còn nợ phí: thu phí xong thì đóng thành COMPLETED.
+            session.setStatus(SessionStatus.COMPLETED);
+            parkingSessionRepository.save(session);
         }
 
         User collectedBy = authenticationService.getCurrentUser();
@@ -81,7 +92,7 @@ public class PaymentServiceImpl implements PaymentService {
                 .id(payment.getId())
                 .sessionId(payment.getSession().getTicketCode() != null ? payment.getSession().getTicketCode() : String.valueOf(payment.getSession().getId()))
                 .amount(payment.getAmount())
-                .method(payment.getMethod())
+                .method(payment.getMethod() != null ? payment.getMethod().name() : null)
                 .paidAt(payment.getPaymentTime())
                 .collectedByUsername(payment.getCollectedBy() != null ? payment.getCollectedBy().getUsername() : null)
                 .build();

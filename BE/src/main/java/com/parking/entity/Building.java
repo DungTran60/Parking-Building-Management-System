@@ -25,8 +25,13 @@ public class Building {
     @Column(nullable = false, length = 255)
     private String address;
 
+    /**
+     * Danh sách tầng thuộc tòa nhà (chỉ đọc/điều hướng).
+     * KHÔNG cascade/orphanRemoval: xóa Building được kiểm soát ở service (chặn khi còn tầng)
+     * để bảo vệ dữ liệu vận hành & tài chính (slot/session/payment) khỏi bị xóa dây chuyền.
+     */
     @Builder.Default
-    @OneToMany(mappedBy = "building", cascade = CascadeType.ALL, orphanRemoval = true, fetch = FetchType.LAZY)
+    @OneToMany(mappedBy = "building", fetch = FetchType.LAZY)
     private List<Floor> floors = new ArrayList<>();
 
     @Column(name = "created_at", nullable = false, updatable = false)

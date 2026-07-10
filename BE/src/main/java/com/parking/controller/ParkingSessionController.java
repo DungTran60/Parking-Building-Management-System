@@ -75,6 +75,15 @@ public class ParkingSessionController {
         return ResponseEntity.ok(parkingSessionService.checkOut(query));
     }
 
+    /**
+     * Lấy các lượt gửi xe của chính tài khoản đang đăng nhập (Driver theo dõi lượt gửi của mình).
+     */
+    @GetMapping("/me")
+    @PreAuthorize("isAuthenticated()")
+    public ResponseEntity<java.util.List<ParkingSessionResponseDto>> getMySessions() {
+        return ResponseEntity.ok(parkingSessionService.getMySessions());
+    }
+
     @GetMapping("/{id}")
     @PreAuthorize("hasAuthority('sessions:view')")
     public ResponseEntity<ParkingSessionResponseDto> findById(@PathVariable Long id) {

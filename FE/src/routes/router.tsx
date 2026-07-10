@@ -30,7 +30,7 @@ import RegisterPage from "@/pages/auth/RegisterPage";
 import LandingPage from "@/pages/auth/LandingPage";
 import { IncidentPage } from "@/pages/shared/IncidentPage";
 
-const protectedChild = (permission: Permission, element: ReactNode) => ({
+const protectedChild = (permission: Permission | Permission[], element: ReactNode) => ({
   element: <ProtectedRoute permission={permission} />,
   children: [{ element, index: true }]
 });
@@ -70,7 +70,7 @@ export const router = createBrowserRouter([
       { path: "check-in", ...protectedChild("checkin:create", <CheckInPage />) },
       { path: "check-out", ...protectedChild("checkout:create", <CheckOutPage />) },
       { path: "sessions", ...protectedChild("sessions:view", <SessionsPage />) },
-      { path: "reservations", ...protectedChild("reservations:selfManage", <ReservationsPage />) },
+      { path: "reservations", ...protectedChild(["reservations:selfManage", "reservations:manage"], <ReservationsPage />) },
       { path: "current-session", ...protectedChild("currentSession:view", <CurrentSessionPage />) },
       { path: "payments", ...protectedChild("payments:pay", <PaymentPage />) },
       { path: "feedback", ...protectedChild("feedback:create", <FeedbackPage />) },

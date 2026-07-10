@@ -1,6 +1,8 @@
 package com.parking.dto;
 
+import com.parking.entity.PaymentMethod;
 import jakarta.validation.constraints.NotBlank;
+import jakarta.validation.constraints.NotNull;
 import lombok.*;
 
 @Data
@@ -11,6 +13,6 @@ public class PaymentRequestDto {
     @NotBlank(message = "Session ID is required")
     private String sessionId;
 
-    @NotBlank(message = "Payment method is required")
-    private String method; // "QR_CODE", "BANK_CARD", "CASH"
+    @NotNull(message = "Payment method is required")
+    private PaymentMethod method; // CASH, QR_CODE, BANK_CARD
 }

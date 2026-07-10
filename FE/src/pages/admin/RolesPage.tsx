@@ -11,7 +11,7 @@ const permissions = Object.keys(PERMISSION_LABELS) as Permission[];
 const groups: { label: string; permissions: Permission[] }[] = [
   { label: "Quản trị hệ thống", permissions: ["users:manage", "roles:manage", "settings:manage"] },
   { label: "Bãi đỗ xe", permissions: ["dashboard:view", "buildings:manage", "parkingInfo:view", "vehicleTypes:manage", "floors:manage", "slots:view", "slots:updateStatus", "slots:manage", "pricing:manage"] },
-  { label: "Vận hành", permissions: ["checkin:create", "checkout:create", "sessions:view", "sessions:manage", "exceptions:manage", "currentSession:view", "reservations:selfManage", "payments:pay", "payments:collect", "feedback:create"] },
+  { label: "Vận hành", permissions: ["checkin:create", "checkout:create", "sessions:view", "sessions:manage", "exceptions:manage", "currentSession:view", "reservations:selfManage", "reservations:manage", "payments:pay", "payments:collect", "feedback:create"] },
   { label: "Báo cáo và phân tích", permissions: ["reports:view", "ai:view"] }
 ];
 

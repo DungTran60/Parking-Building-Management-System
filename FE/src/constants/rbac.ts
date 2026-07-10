@@ -31,6 +31,7 @@ export const PERMISSION_LABELS: Record<Permission, string> = {
   "exceptions:manage": "Xử lý trường hợp ngoại lệ",
   "currentSession:view": "Xem xe đang gửi",
   "reservations:selfManage": "Quản lý đặt chỗ cá nhân",
+  "reservations:manage": "Quản lý & xác nhận đặt chỗ",
 
   "payments:pay": "Thanh toán phí gửi xe",
   "payments:collect": "Thu phí gửi xe",
@@ -40,7 +41,7 @@ export const PERMISSION_LABELS: Record<Permission, string> = {
   "ai:view": "Sử dụng AI"
 };
 
-const RBAC_SCHEMA_VERSION = 4;
+const RBAC_SCHEMA_VERSION = 5;
 const ROLE_PERMISSIONS_STORAGE_KEY = `parking-bms-role-permissions-v${RBAC_SCHEMA_VERSION}`;
 const LEGACY_ROLE_PERMISSIONS_STORAGE_KEY = "parking-bms-role-permissions";
 
@@ -48,7 +49,8 @@ const DEFAULT_ROLE_PERMISSIONS: Record<Role, Permission[]> = {
   SYSTEM_ADMIN: [
     "users:manage",
     "roles:manage",
-    "settings:manage"
+    "settings:manage",
+    "reservations:manage"
   ],
   PARKING_MANAGER: [
     "dashboard:view",
@@ -60,6 +62,7 @@ const DEFAULT_ROLE_PERMISSIONS: Record<Role, Permission[]> = {
     "pricing:manage",
     "sessions:view",
     "exceptions:manage",
+    "reservations:manage",
     "reports:view",
     "ai:view"
   ],

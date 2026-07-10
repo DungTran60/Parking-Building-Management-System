@@ -7,7 +7,9 @@ import java.math.BigDecimal;
 import java.time.LocalDateTime;
 
 @Entity
-@Table(name = "payments")
+@Table(name = "payments", indexes = {
+        @Index(name = "idx_payments_time", columnList = "payment_time")
+})
 @Getter
 @Setter
 @NoArgsConstructor
@@ -26,8 +28,9 @@ public class Payment {
     @Column(nullable = false, precision = 10, scale = 2)
     private BigDecimal amount;
 
+    @Enumerated(EnumType.STRING)
     @Column(nullable = false, length = 50)
-    private String method; // "QR_CODE", "BANK_CARD", "CASH"
+    private PaymentMethod method;
 
     @Column(name = "payment_time", nullable = false)
     private LocalDateTime paymentTime;

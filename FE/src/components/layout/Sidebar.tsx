@@ -9,7 +9,9 @@ import { cn } from "@/utils/cn";
 export function Sidebar() {
   const role = useAuthStore((state) => state.role);
   const { sidebarOpen, closeSidebar } = useUiStore();
-  const items = NAV_ITEMS.filter((item) => hasPermission(role, item.permission));
+  const items = NAV_ITEMS.filter((item) =>
+    (Array.isArray(item.permission) ? item.permission : [item.permission]).some((p) => hasPermission(role, p))
+  );
 
   return (
     <>

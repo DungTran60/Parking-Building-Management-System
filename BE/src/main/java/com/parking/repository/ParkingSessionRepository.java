@@ -2,6 +2,7 @@ package com.parking.repository;
 
 import com.parking.dto.RevenueByVehicleTypeDto;
 import com.parking.entity.ParkingSession;
+import com.parking.entity.SessionStatus;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.JpaSpecificationExecutor;
 import org.springframework.data.jpa.repository.Query;
@@ -14,17 +15,20 @@ import java.util.Optional;
 @Repository
 public interface ParkingSessionRepository extends JpaRepository<ParkingSession, Long>, JpaSpecificationExecutor<ParkingSession> {
 
-    boolean existsByPlateNumberAndStatus(String plateNumber, String status);
+    boolean existsByPlateNumberAndStatus(String plateNumber, SessionStatus status);
 
-    Optional<ParkingSession> findByTicketCodeAndStatus(String ticketCode, String status);
+    Optional<ParkingSession> findByTicketCodeAndStatus(String ticketCode, SessionStatus status);
 
-    Optional<ParkingSession> findByPlateNumberAndStatus(String plateNumber, String status);
+    Optional<ParkingSession> findByPlateNumberAndStatus(String plateNumber, SessionStatus status);
+
+    /** Lấy các lượt gửi xe của một tài khoản Driver (mới nhất trước). */
+    List<ParkingSession> findByUserIdOrderByCheckInAtDesc(Long userId);
 
     /**
      * Lấy session ACTIVE mới nhất theo biển số (findFirst tránh crash khi có nhiều kết quả).
      */
     Optional<ParkingSession> findFirstByPlateNumberAndStatusOrderByCheckInAtDesc(
-            String plateNumber, String status);
+            String plateNumber, SessionStatus status);
 
     /**
      * Tìm kiếm không phân biệt hoa/thường – dùng cho biển số xe.
@@ -33,7 +37,7 @@ public interface ParkingSessionRepository extends JpaRepository<ParkingSession, 
            "AND s.status = :status ORDER BY s.checkInAt DESC")
     Optional<ParkingSession> findFirstActiveByPlateNumberIgnoreCase(
             @Param("plateNumber") String plateNumber,
-            @Param("status") String status);
+            @Param("status") SessionStatus status);
 
     /** Kiểm tra VehicleType có đang được dùng trong ParkingSession không */
     boolean existsByVehicleTypeId(Long vehicleTypeId);
@@ -42,13 +46,13 @@ public interface ParkingSessionRepository extends JpaRepository<ParkingSession, 
             LocalDateTime start1, LocalDateTime end1,
             LocalDateTime start2, LocalDateTime end2);
 
-    List<ParkingSession> findByStatusAndCheckOutAtBetween(String status, LocalDateTime start, LocalDateTime end);
+    List<ParkingSession> findByStatusAndCheckOutAtBetween(SessionStatus status, LocalDateTime start, LocalDateTime end);
 
     long countByCheckOutAtIsNull();
 
     @Query("SELECT new com.parking.dto.RevenueByVehicleTypeDto(ps.vehicleType.id, ps.vehicleType.name, SUM(ps.fee)) " +
            "FROM ParkingSession ps " +
-           "WHERE ps.checkOutAt BETWEEN :startDate AND :endDate AND ps.status = 'COMPLETED' " +
+           "WHERE ps.checkOutAt BETWEEN :startDate AND :endDate AND ps.status = com.parking.entity.SessionStatus.COMPLETED " +
            "GROUP BY ps.vehicleType.id, ps.vehicleType.name")
             List<RevenueByVehicleTypeDto> findRevenueByVehicleType(
                     @Param("startDate") LocalDateTime startDate,

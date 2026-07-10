@@ -57,6 +57,15 @@ public class ReservationController {
     }
 
     /**
+     * Lấy các đặt chỗ của chính tài khoản đang đăng nhập (Driver theo dõi đặt chỗ của mình).
+     */
+    @GetMapping("/me")
+    @PreAuthorize("isAuthenticated()")
+    public ResponseEntity<List<ReservationResponseDto>> getMyReservations() {
+        return ResponseEntity.ok(reservationService.getMyReservations());
+    }
+
+    /**
      * Lấy thông tin một đặt chỗ theo ID.
      */
     @GetMapping("/{id}")

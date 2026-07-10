@@ -9,7 +9,13 @@ import java.time.LocalDateTime;
  * trong khoảng thời gian xác định trước.
  */
 @Entity
-@Table(name = "reservations")
+@Table(name = "reservations", indexes = {
+        @Index(name = "idx_reservations_status", columnList = "status"),
+        @Index(name = "idx_reservations_start", columnList = "start_at"),
+        @Index(name = "idx_reservations_end", columnList = "end_at"),
+        @Index(name = "idx_reservations_plate", columnList = "plate_number"),
+        @Index(name = "idx_reservations_user", columnList = "user_id")
+})
 @Getter
 @Setter
 @NoArgsConstructor
@@ -34,6 +40,11 @@ public class Reservation {
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "slot_id", nullable = false)
     private ParkingSlot slot;
+
+    /** Tài khoản Driver đã tạo đặt chỗ (nullable cho dữ liệu cũ/không xác định). */
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "user_id")
+    private User user;
 
     /** Thời gian bắt đầu khoảng đặt chỗ */
     @Column(name = "start_at", nullable = false)

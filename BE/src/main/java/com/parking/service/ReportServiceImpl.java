@@ -69,7 +69,7 @@ public class ReportServiceImpl implements ReportService {
         // Group by Method
         Map<String, BigDecimal> methodMap = new HashMap<>();
         for (Payment p : payments) {
-            String method = p.getMethod();
+            String method = p.getMethod() != null ? p.getMethod().name() : "UNKNOWN";
             methodMap.merge(method, p.getAmount(), BigDecimal::add);
         }
 

@@ -3,7 +3,9 @@ package com.parking.config;
 import com.parking.entity.*;
 import com.parking.repository.*;
 import lombok.RequiredArgsConstructor;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.boot.CommandLineRunner;
+import org.springframework.core.env.Environment;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Component;
 
@@ -29,10 +31,23 @@ public class DataInitializer implements CommandLineRunner {
     private final ParkingSessionRepository parkingSessionRepository;
     private final PaymentRepository paymentRepository;
     private final SystemSettingsRepository systemSettingsRepository;
+    private final Environment environment;
+
+    @Value("${app.admin.username:admin}")
+    private String adminUsername;
+
+    @Value("${app.admin.password:admin123}")
+    private String adminPassword;
+
+    @Value("${app.admin.email:admin@parking.com}")
+    private String adminEmail;
 
     @Override
     @Transactional
     public void run(String... args) throws Exception {
+        // Bảo mật: chặn khởi động ở môi trường thật (không phải dev/test) nếu admin còn dùng mật khẩu mặc định.
+        guardAdminPassword();
+
         // Seed Permissions
         List<String> permissionNames = Arrays.asList(
                 "sessions:view",
@@ -67,21 +82,21 @@ public class DataInitializer implements CommandLineRunner {
         seedRole("ADMIN", adminPermissions);
 
 
-        // Seed Admin User if not exists
-        if (userRepository.findByUsername("admin").isEmpty()) {
+        // Seed Admin User if not exists (thông tin lấy từ cấu hình app.admin.*)
+        if (userRepository.findByUsername(adminUsername).isEmpty()) {
             Role adminRole = roleRepository.findByName("ADMIN")
                     .orElseThrow(() -> new RuntimeException("ADMIN role not found"));
 
             User adminUser = User.builder()
-                    .username("admin")
-                    .password(passwordEncoder.encode("admin123"))
-                    .email("admin@parking.com")
+                    .username(adminUsername)
+                    .password(passwordEncoder.encode(adminPassword))
+                    .email(adminEmail)
                     .status(Status.ACTIVE)
                     .role(adminRole)
                     .build();
 
             userRepository.save(adminUser);
-            System.out.println("Seeded admin user (admin / admin123)");
+            System.out.println("Seeded admin user: " + adminUsername);
         }
 
         // Seed Building
@@ -188,7 +203,7 @@ public class DataInitializer implements CommandLineRunner {
                             .checkInAt(entryTime)
                             .checkOutAt(exitTime)
                             .fee(BigDecimal.valueOf(fee))
-                            .status("COMPLETED")
+                            .status(SessionStatus.COMPLETED)
                             .build();
                     
                     sessionsToSave.add(session);
@@ -199,7 +214,7 @@ public class DataInitializer implements CommandLineRunner {
             List<ParkingSession> savedSessions = parkingSessionRepository.saveAll(sessionsToSave);
             
             // Now create payment records for these sessions
-            String[] methods = {"CASH", "QR_CODE", "BANK_CARD"};
+            PaymentMethod[] methods = {PaymentMethod.CASH, PaymentMethod.QR_CODE, PaymentMethod.BANK_CARD};
             for (ParkingSession session : savedSessions) {
                 Payment payment = Payment.builder()
                         .session(session)
@@ -237,7 +252,7 @@ public class DataInitializer implements CommandLineRunner {
                         .entryGate("Gate " + (1 + random.nextInt(3)))
                         .checkInAt(entryTime)
                         .fee(BigDecimal.ZERO)
-                        .status("ACTIVE")
+                        .status(SessionStatus.ACTIVE)
                         .build();
                 parkingSessionRepository.save(activeSession);
             }
@@ -276,6 +291,21 @@ public class DataInitializer implements CommandLineRunner {
                     .build()
             );
             System.out.println("Seeded vehicle type: " + code);
+        }
+    }
+
+    /**
+     * Chặn dùng mật khẩu admin mặc định ('admin123') ngoài môi trường dev/test.
+     * Ở prod (không có profile 'dev'/'test'), yêu cầu đặt ADMIN_PASSWORD khác mặc định,
+     * fail-fast để tránh tài khoản admin bị đoán mật khẩu.
+     */
+    private void guardAdminPassword() {
+        boolean isDevOrTest = Arrays.stream(environment.getActiveProfiles())
+                .anyMatch(p -> p.equalsIgnoreCase("dev") || p.equalsIgnoreCase("test"));
+        if (!isDevOrTest && "admin123".equals(adminPassword)) {
+            throw new IllegalStateException(
+                    "[SECURITY] Admin đang dùng mật khẩu mặc định 'admin123' ở môi trường thật. "
+                    + "Hãy đặt biến môi trường ADMIN_PASSWORD với mật khẩu mạnh trước khi khởi động.");
         }
     }
 

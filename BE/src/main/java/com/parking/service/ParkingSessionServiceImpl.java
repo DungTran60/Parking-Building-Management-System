@@ -71,7 +71,7 @@ public class ParkingSessionServiceImpl implements ParkingSessionService {
         return convertToDto(session);
     }
     private void validateActiveSession(String plateNumber) {
-        if (parkingSessionRepository.existsByPlateNumberAndStatus(plateNumber, "ACTIVE")) {
+        if (parkingSessionRepository.existsByPlateNumberAndStatus(plateNumber, SessionStatus.ACTIVE)) {
             throw new ConflictException("Biển số xe " + plateNumber + " đã có một lượt gửi xe đang hoạt động.");
         }
     }
@@ -121,6 +121,7 @@ public class ParkingSessionServiceImpl implements ParkingSessionService {
     private ParkingSlot getSlotFromReservation(Reservation reservation) {
         ParkingSlot slot = parkingSlotRepository.findByIdWithLock(reservation.getSlot().getId())
                 .orElseThrow(() -> new ResourceNotFoundException("Slot đặt chỗ không tồn tại."));
+        // Slot của reservation phải là RESERVED (đã xác nhận) hoặc AVAILABLE (chưa xác nhận nhưng vẫn cho vào).
         if (slot.getStatus() == SlotStatus.OCCUPIED) {
             throw new ConflictException("Slot đặt chỗ đã có xe khác chiếm.");
         }
@@ -150,9 +151,10 @@ public class ParkingSessionServiceImpl implements ParkingSessionService {
                 .slot(slot)
                 .entryGate(request.getEntryGate())
                 .checkInAt(LocalDateTime.now())
-                .status("ACTIVE")
+                .status(SessionStatus.ACTIVE)
                 .reservation(reservation)
                 .createdBy(authenticationService.getCurrentUser())
+                .user(reservation != null ? reservation.getUser() : null)
                 .fee(BigDecimal.ZERO)
                 .build();
         return parkingSessionRepository.save(session);
@@ -182,10 +184,10 @@ public class ParkingSessionServiceImpl implements ParkingSessionService {
     public ParkingSessionResponseDto checkOut(String query) {
         // Tìm session ACTIVE theo ticketCode hoặc plateNumber (không phân biệt hoa/thường)
         Optional<ParkingSession> sessionOpt =
-                parkingSessionRepository.findByTicketCodeAndStatus(query, "ACTIVE");
+                parkingSessionRepository.findByTicketCodeAndStatus(query, SessionStatus.ACTIVE);
         if (sessionOpt.isEmpty()) {
             sessionOpt = parkingSessionRepository
-                    .findFirstActiveByPlateNumberIgnoreCase(query, "ACTIVE");
+                    .findFirstActiveByPlateNumberIgnoreCase(query, SessionStatus.ACTIVE);
         }
 
         ParkingSession session = sessionOpt.orElseThrow(() ->
@@ -201,7 +203,7 @@ public class ParkingSessionServiceImpl implements ParkingSessionService {
 
         session.setCheckOutAt(checkOutTime);
         session.setFee(fee);
-        session.setStatus("COMPLETED");
+        session.setStatus(SessionStatus.COMPLETED);
         ParkingSession saved = parkingSessionRepository.save(session);
 
         // Giải phóng slot
@@ -229,6 +231,19 @@ public class ParkingSessionServiceImpl implements ParkingSessionService {
         return parkingSessionRepository.findById(id)
                 .map(this::convertToDto)
                 .orElseThrow(() -> new ResourceNotFoundException("Không tìm thấy session với ID: " + id));
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public List<ParkingSessionResponseDto> getMySessions() {
+        User currentUser = authenticationService.getCurrentUser();
+        if (currentUser == null) {
+            throw new BadRequestException("Không xác định được người dùng hiện tại.");
+        }
+        return parkingSessionRepository.findByUserIdOrderByCheckInAtDesc(currentUser.getId())
+                .stream()
+                .map(this::convertToDto)
+                .toList();
     }
     
     /* ─────────────────────────────────────────────────────
@@ -279,7 +294,7 @@ public class ParkingSessionServiceImpl implements ParkingSessionService {
         ParkingSession session = findActiveSessionByPlate(request.getPlateNumber());
 
         // Kiểm tra session đã ở trạng thái không thể checkout
-        if (!"ACTIVE".equals(session.getStatus())) {
+        if (session.getStatus() != SessionStatus.ACTIVE) {
             throw new IllegalStateException(
                     "Lượt gửi xe này không ở trạng thái ACTIVE (trạng thái hiện tại: " + session.getStatus() + ")");
         }
@@ -298,7 +313,7 @@ public class ParkingSessionServiceImpl implements ParkingSessionService {
         // Cập nhật session với status đặc biệt để phân biệt checkout thông thường
         session.setCheckOutAt(checkOutTime);
         session.setFee(totalFee);
-        session.setStatus("LOST_TICKET");
+        session.setStatus(SessionStatus.LOST_TICKET);
         ParkingSession saved = parkingSessionRepository.save(session);
 
         // Giải phóng slot
@@ -364,10 +379,12 @@ public class ParkingSessionServiceImpl implements ParkingSessionService {
         ParkingSession session = parkingSessionRepository.findById(id)
                 .orElseThrow(() -> new ResourceNotFoundException("Session not found with id: " + id));
 
-        // Basic validation, can be expanded with a state machine pattern
-        String newStatus = request.getNewStatus().toUpperCase();
-        if (!List.of("ACTIVE", "COMPLETED", "UNPAID", "LOST_TICKET", "EXPIRED").contains(newStatus)) {
-            throw new BadRequestException("Invalid status: " + newStatus);
+        // Parse & validate trạng thái mới qua enum (thay cho danh sách String cứng).
+        SessionStatus newStatus;
+        try {
+            newStatus = SessionStatus.valueOf(request.getNewStatus().trim().toUpperCase());
+        } catch (IllegalArgumentException | NullPointerException ex) {
+            throw new BadRequestException("Invalid status: " + request.getNewStatus());
         }
 
         session.setStatus(newStatus);
@@ -381,7 +398,7 @@ public class ParkingSessionServiceImpl implements ParkingSessionService {
         ParkingSession session = parkingSessionRepository.findById(id)
                 .orElseThrow(() -> new ResourceNotFoundException("Session not found with id: " + id));
 
-        if ("ACTIVE".equals(session.getStatus())) {
+        if (session.getStatus() == SessionStatus.ACTIVE) {
             throw new ConflictException("Session is already active.");
         }
 
@@ -391,7 +408,7 @@ public class ParkingSessionServiceImpl implements ParkingSessionService {
             throw new ConflictException("Slot " + slot.getCode() + " is now occupied by another vehicle.");
         }
 
-        session.setStatus("ACTIVE");
+        session.setStatus(SessionStatus.ACTIVE);
         session.setCheckOutAt(null);
         session.setFee(BigDecimal.ZERO);
         parkingSessionRepository.save(session);
@@ -409,11 +426,11 @@ public class ParkingSessionServiceImpl implements ParkingSessionService {
         ParkingSession session = parkingSessionRepository.findById(id)
                 .orElseThrow(() -> new ResourceNotFoundException("Session not found with id: " + id));
 
-        if (!List.of("COMPLETED", "LOST_TICKET").contains(session.getStatus())) {
+        if (!List.of(SessionStatus.COMPLETED, SessionStatus.LOST_TICKET).contains(session.getStatus())) {
             throw new BadRequestException("Only COMPLETED or LOST_TICKET sessions can be marked as unpaid.");
         }
 
-        session.setStatus("UNPAID");
+        session.setStatus(SessionStatus.UNPAID);
         parkingSessionRepository.save(session);
         return convertToDto(session);
     }
@@ -471,7 +488,7 @@ public class ParkingSessionServiceImpl implements ParkingSessionService {
      */
     private ParkingSession findActiveSessionByPlate(String plateNumber) {
         return parkingSessionRepository
-                .findFirstActiveByPlateNumberIgnoreCase(plateNumber.trim(), "ACTIVE")
+                .findFirstActiveByPlateNumberIgnoreCase(plateNumber.trim(), SessionStatus.ACTIVE)
                 .orElseThrow(() -> new ResourceNotFoundException(
                         "Không tìm thấy lượt gửi xe đang hoạt động (ACTIVE) với biển số: " + plateNumber));
     }
@@ -510,9 +527,11 @@ public class ParkingSessionServiceImpl implements ParkingSessionService {
                 .checkInAt(session.getCheckInAt())
                 .checkOutAt(session.getCheckOutAt())
                 .fee(session.getFee())
-                .status(session.getStatus())
+                .status(session.getStatus() != null ? session.getStatus().name() : null)
                 .notes(session.getNotes())
                 .createdByUsername(session.getCreatedBy() != null ? session.getCreatedBy().getUsername() : null)
+                .userId(session.getUser() != null ? session.getUser().getId() : null)
+                .ownerUsername(session.getUser() != null ? session.getUser().getUsername() : null)
                 .build();
     }
 
