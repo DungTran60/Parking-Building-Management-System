@@ -171,6 +171,7 @@ export function CheckInPage() {
                 </div>
               )}
 
+              {/* Biển số nhập tay. Quét biển số tự động (OCR/ANPR) là phạm vi tương lai, chưa tích hợp. */}
               <Field label="Biển số" error={form.formState.errors.plateNumber?.message}>
                 <Input
                   {...form.register("plateNumber")}

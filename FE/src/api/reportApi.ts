@@ -27,6 +27,24 @@ export interface TrafficReport {
   trafficByVehicleType: { vehicleTypeName: string; checkIns: number; checkOuts: number }[];
 }
 
+export interface TrafficEvent {
+  sessionId: number;
+  ticketCode: string;
+  plateNumber: string;
+  vehicleTypeName: string;
+  slotCode: string;
+  eventType: "CHECK_IN" | "CHECK_OUT";
+  eventTime: string;
+}
+
+export interface Page<T> {
+  content: T[];
+  totalElements: number;
+  totalPages: number;
+  number: number;
+  size: number;
+}
+
 const dateParams = (startDate?: string, endDate?: string) => ({
   params: startDate && endDate ? { startDate, endDate } : undefined
 });
@@ -37,5 +55,15 @@ export const reportApi = {
   occupancy: async (): Promise<OccupancyReport> =>
     (await httpClient.get<OccupancyReport>("/reports/occupancy")).data,
   traffic: async (startDate?: string, endDate?: string): Promise<TrafficReport> =>
-    (await httpClient.get<TrafficReport>("/reports/traffic", dateParams(startDate, endDate))).data
+    (await httpClient.get<TrafficReport>("/reports/traffic", dateParams(startDate, endDate))).data,
+  trafficEvents: async (
+    startDate: string,
+    endDate: string,
+    eventType?: "CHECK_IN" | "CHECK_OUT",
+    page = 0,
+    size = 20
+  ): Promise<Page<TrafficEvent>> =>
+    (await httpClient.get<Page<TrafficEvent>>("/reports/traffic-events", {
+      params: { startDate, endDate, page, size, ...(eventType ? { eventType } : {}) }
+    })).data
 };

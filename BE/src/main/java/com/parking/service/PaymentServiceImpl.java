@@ -16,7 +16,6 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.math.BigDecimal;
-import java.time.Duration;
 import java.time.LocalDateTime;
 import java.util.List;
 import java.util.stream.Collectors;
@@ -29,6 +28,7 @@ public class PaymentServiceImpl implements PaymentService {
     private final ParkingSessionRepository parkingSessionRepository;
     private final ParkingSlotRepository parkingSlotRepository;
     private final AuthenticationService authenticationService;
+    private final FeeCalculationService feeCalculationService;
 
     @Override
     @Transactional
@@ -38,13 +38,14 @@ public class PaymentServiceImpl implements PaymentService {
 
         if ("ACTIVE".equals(session.getStatus())) {
             LocalDateTime checkOutTime = LocalDateTime.now();
-            long seconds = Duration.between(session.getCheckInAt(), checkOutTime).getSeconds();
-            double hours = Math.max(1.0, Math.ceil(seconds / 3600.0));
-            double hourlyRate = session.getVehicleType().getHourlyRate() != null ? session.getVehicleType().getHourlyRate() : 5000.0;
-            double fee = hours * hourlyRate;
+            // Dùng chung logic tính phí với checkout (Pricing → hourlyRate → SystemSettings default → mặc định)
+            BigDecimal fee = feeCalculationService.calculateFee(
+                    String.valueOf(session.getVehicleType().getId()),
+                    session.getCheckInAt(),
+                    checkOutTime);
 
             session.setCheckOutAt(checkOutTime);
-            session.setFee(BigDecimal.valueOf(fee));
+            session.setFee(fee);
             session.setStatus("COMPLETED");
             parkingSessionRepository.save(session);
 

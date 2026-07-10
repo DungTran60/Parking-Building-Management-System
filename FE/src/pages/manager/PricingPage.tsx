@@ -248,7 +248,7 @@ export function PricingPage() {
       <Modal open={formOpen} title={editing ? "Cập nhật bảng giá" : "Tạo bảng giá"} onClose={closeForm}>
         <form key={editing?.id ?? "create-pricing"} className="grid gap-4 sm:grid-cols-2" onSubmit={savePolicy}>
           <Field label="Loại xe"><Select name="vehicleTypeId" defaultValue={editing?.vehicleTypeId ?? vehicleTypes[0]?.id ?? ""} required disabled={saving}>{vehicleTypes.map((type) => <option key={type.id} value={type.id}>{type.name}</option>)}</Select></Field>
-          <Field label="Đơn vị tính"><input type="hidden" name="timeUnit" value="HOURLY" /><Select value="HOURLY" disabled><option value="HOURLY">{timeUnitLabel.HOURLY}</option></Select></Field>
+          <Field label="Đơn vị tính"><Select name="timeUnit" defaultValue={editing?.timeUnit ?? "HOURLY"} disabled={saving}>{(Object.keys(timeUnitLabel) as PricingTimeUnit[]).map((unit) => <option key={unit} value={unit}>{timeUnitLabel[unit]}</option>)}</Select></Field>
           <PriceInput name="price" label="Đơn giá" value={editing?.price ?? 1} min={1} disabled={saving} />
           <PriceInput name="overnightFee" label="Qua đêm" value={editing?.overnightFee ?? 0} disabled={saving} />
           <PriceInput name="lostTicketFee" label="Mất vé" value={editing?.lostTicketFee ?? 0} disabled={saving} />

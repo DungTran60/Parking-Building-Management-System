@@ -4,6 +4,8 @@ import com.parking.entity.PaymentMode;
 import jakarta.validation.constraints.*;
 import lombok.*;
 
+import java.math.BigDecimal;
+
 @Data
 @NoArgsConstructor
 @AllArgsConstructor
@@ -27,4 +29,8 @@ public class SystemSettingsRequestDto {
 
     @NotNull(message = "autoBlockOverdueSlots is required")
     private Boolean autoBlockOverdueSlots;
+
+    /** Đơn giá giờ mặc định (VND) — tùy chọn, không âm */
+    @PositiveOrZero(message = "Default hourly rate must not be negative")
+    private BigDecimal defaultHourlyRate;
 }

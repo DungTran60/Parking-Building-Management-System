@@ -10,6 +10,7 @@ import { floorApi } from "@/api/floorApi";
 import { slotApi } from "@/api/slotApi";
 import { vehicleTypeApi } from "@/api/vehicleTypeApi";
 import { sessionApi } from "@/api/sessionApi";
+import { feeApi } from "@/api/feeApi";
 import { currency, dateTime } from "@/utils/format";
 import type { ParkingSession } from "@/types/domain";
 
@@ -23,6 +24,11 @@ export function CurrentSessionPage() {
   });
 
   const session = sessionList?.content?.[0] || null;
+  const { data: feePreview } = useQuery({
+    queryKey: ["current-session-fee", session?.id],
+    enabled: Boolean(session),
+    queryFn: () => feeApi.preview(session?.ticketCode || session?.plateNumber || "")
+  });
 
   if (isLoading) {
     return <PageHeader title="Lượt gửi xe hiện tại" description="Đang tải thông tin lượt gửi xe." />;
@@ -50,8 +56,8 @@ export function CurrentSessionPage() {
   const slot = slotRows.find((item) => String(item.id) === String(session.slotId));
   const floor = floors.find((item) => String(item.id) === String(slot?.floorId));
   const vehicle = vehicleTypes.find((item) => String(item.id) === String(session.vehicleTypeId));
-  const hours = Math.max(1, dayjs().diff(dayjs(session.checkInAt), "hour", true));
-  const estimatedFee = session.fee || Math.ceil(hours) * 3000 + 5000;
+  const hours = feePreview?.hours ?? Math.max(1, dayjs().diff(dayjs(session.checkInAt), "hour", true));
+  const estimatedFee = feePreview?.totalFee ?? session.fee ?? 0;
 
   return (
     <>

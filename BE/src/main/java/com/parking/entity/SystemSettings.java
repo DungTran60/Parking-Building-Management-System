@@ -2,6 +2,7 @@ package com.parking.entity;
 
 import jakarta.persistence.*;
 import lombok.*;
+import java.math.BigDecimal;
 import java.time.LocalDateTime;
 
 /**
@@ -34,6 +35,10 @@ public class SystemSettings {
 
     @Column(name = "auto_block_overdue_slots", nullable = false)
     private boolean autoBlockOverdueSlots;
+
+    /** Đơn giá giờ mặc định (VND) dùng khi loại xe chưa có bảng giá — nullable */
+    @Column(name = "default_hourly_rate", precision = 12, scale = 2)
+    private BigDecimal defaultHourlyRate;
 
     @Column(name = "updated_at", nullable = false)
     private LocalDateTime updatedAt;

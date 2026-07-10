@@ -29,7 +29,7 @@ public class IncidentController {
      * Nhân viên hoặc Manager tạo sự cố mới.
      */
     @PostMapping
-    @PreAuthorize("hasAnyRole('ADMIN', 'MANAGER', 'STAFF')")
+    @PreAuthorize("isAuthenticated()")
     public ResponseEntity<IncidentResponseDto> createIncident(
             @Valid @RequestBody IncidentRequestDto dto,
             Principal principal) {

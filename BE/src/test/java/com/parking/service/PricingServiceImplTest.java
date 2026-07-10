@@ -207,16 +207,20 @@ class PricingServiceImplTest {
     }
 
     @Test
-    void testCreatePricing_AllowsOnlyHourlyPolicy() {
+    void testCreatePricing_AllowsDailyPolicy() {
         PricingRequestDto dto = PricingRequestDto.builder()
                 .vehicleTypeId("1")
-                .timeUnit(PricingTimeUnit.DAILY) // Not allowed
+                .timeUnit(PricingTimeUnit.DAILY) // Nay đã được hỗ trợ (mức giá tham chiếu)
                 .price(BigDecimal.TEN)
+                .active(true)
                 .build();
 
-        assertThrows(IllegalArgumentException.class, () -> {
-            pricingService.createPricing(dto);
-        }, "Only HOURLY pricing policies are supported at the moment.");
+        when(vehicleTypeRepository.findById(1L)).thenReturn(Optional.of(mockCar));
+        when(pricingRepository.existsByVehicleTypeIdAndTimeUnit(1L, PricingTimeUnit.DAILY)).thenReturn(false);
+        when(pricingRepository.save(any(Pricing.class))).thenAnswer(invocation -> invocation.getArgument(0));
+
+        assertDoesNotThrow(() -> pricingService.createPricing(dto));
+        verify(pricingRepository, times(1)).save(argThat(p -> p.getTimeUnit() == PricingTimeUnit.DAILY));
     }
 
     @Test

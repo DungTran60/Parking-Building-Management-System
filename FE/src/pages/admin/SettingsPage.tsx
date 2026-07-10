@@ -13,7 +13,8 @@ const FALLBACK_SETTINGS: UpdateSystemSettingsRequest = {
   openingTime: "06:00",
   closingTime: "23:00",
   paymentMode: "HYBRID",
-  autoBlockOverdueSlots: true
+  autoBlockOverdueSlots: true,
+  defaultHourlyRate: 5000
 };
 
 export function SettingsPage() {
@@ -32,7 +33,8 @@ export function SettingsPage() {
         openingTime: savedSettings.openingTime,
         closingTime: savedSettings.closingTime,
         paymentMode: savedSettings.paymentMode,
-        autoBlockOverdueSlots: savedSettings.autoBlockOverdueSlots
+        autoBlockOverdueSlots: savedSettings.autoBlockOverdueSlots,
+        defaultHourlyRate: savedSettings.defaultHourlyRate
       });
     } else if (isError) {
       setForm({ ...FALLBACK_SETTINGS });
@@ -62,7 +64,8 @@ export function SettingsPage() {
     openingTime: savedSettings.openingTime,
     closingTime: savedSettings.closingTime,
     paymentMode: savedSettings.paymentMode,
-    autoBlockOverdueSlots: savedSettings.autoBlockOverdueSlots
+    autoBlockOverdueSlots: savedSettings.autoBlockOverdueSlots,
+    defaultHourlyRate: savedSettings.defaultHourlyRate
   } : null;
   const isDirty = Boolean(form && savedForm && JSON.stringify(form) !== JSON.stringify(savedForm));
   const isReadOnly = !savedSettings;
@@ -146,6 +149,12 @@ export function SettingsPage() {
             <Field label="Tự động khóa slot quá hạn">
               <Select value={form.autoBlockOverdueSlots ? "true" : "false"} onChange={(event) => update("autoBlockOverdueSlots", event.target.value === "true")} disabled={isReadOnly}><option value="true">Bật</option><option value="false">Tắt</option></Select>
             </Field>
+            <div className="md:col-span-2">
+              <Field label="Đơn giá giờ mặc định (VND)">
+                <Input type="number" min={0} step={500} value={form.defaultHourlyRate ?? ""} onChange={(event) => update("defaultHourlyRate", event.target.value === "" ? null : Number(event.target.value))} disabled={isReadOnly} />
+              </Field>
+              <p className="mt-1.5 text-xs text-slate-500">Áp dụng khi loại xe chưa có bảng giá và chưa cấu hình đơn giá riêng. Để trống sẽ dùng mặc định hệ thống (5.000đ).</p>
+            </div>
             {/* <div className="flex gap-3 rounded-lg border border-blue-100 bg-blue-50 p-4 text-sm text-blue-800 md:col-span-2">
               <Settings2 size={19} className="mt-0.5 shrink-0" />
               <p>Khi bật, hệ thống sẽ tự động chuyển slot giữ chỗ quá hạn sang trạng thái bị khóa để nhân viên kiểm tra.</p>

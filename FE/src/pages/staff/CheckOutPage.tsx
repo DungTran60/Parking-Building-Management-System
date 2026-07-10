@@ -2,6 +2,7 @@
 import axios from "axios";
 import dayjs from "dayjs";
 import { Printer, ReceiptText, Search } from "lucide-react";
+import { feeApi, type FeePreview } from "@/api/feeApi";
 import { paymentApi } from "@/api/paymentApi";
 import { sessionApi } from "@/api/sessionApi";
 import { Button } from "@/components/common/Button";
@@ -20,6 +21,7 @@ const PAYMENT_METHODS: { label: string; value: PaymentMethod }[] = [
 export function CheckOutPage() {
   const [session, setSession] = useState<ParkingSession | null>(null);
   const [payment, setPayment] = useState<PaymentRecord | null>(null);
+  const [preview, setPreview] = useState<FeePreview | null>(null);
   const [paymentMethod, setPaymentMethod] = useState<PaymentMethod>("CASH");
   const [searchError, setSearchError] = useState("");
   const [paymentError, setPaymentError] = useState("");
@@ -27,12 +29,14 @@ export function CheckOutPage() {
   const [isPaying, setIsPaying] = useState(false);
 
   const durationHours = useMemo(() => {
+    if (payment) return (session?.checkOutAt ? Math.max(1, dayjs(session.checkOutAt).diff(dayjs(session.checkInAt), "hour", true)) : 0).toFixed(1);
+    if (preview) return preview.hours.toFixed(1);
     if (!session) return "0.0";
     const endAt = session.checkOutAt ?? new Date().toISOString();
     return Math.max(1, dayjs(endAt).diff(dayjs(session.checkInAt), "hour", true)).toFixed(1);
-  }, [session]);
+  }, [payment, preview, session]);
 
-  const displayFee = payment?.amount ?? session?.fee ?? 0;
+  const displayFee = payment?.amount ?? preview?.totalFee ?? session?.fee ?? 0;
   const displayStatus = payment ? "COMPLETED" : session?.status ?? "ACTIVE";
 
   const submit = async (event: FormEvent<HTMLFormElement>) => {
@@ -45,6 +49,7 @@ export function CheckOutPage() {
     setPaymentError("");
     setSession(null);
     setPayment(null);
+    setPreview(null);
 
     try {
       const result = await sessionApi.list({
@@ -62,6 +67,12 @@ export function CheckOutPage() {
       }
 
       setSession(found);
+      // Lấy phí tạm tính để hiển thị trước khi thu tiền (không chặn nếu lỗi)
+      try {
+        setPreview(await feeApi.preview(found.ticketCode || found.plateNumber || query));
+      } catch {
+        setPreview(null);
+      }
     } catch (error) {
       if (axios.isAxiosError<{ message?: string; error?: string }>(error)) {
         if (error.response?.status === 401 || error.response?.status === 403) {
@@ -137,7 +148,8 @@ export function CheckOutPage() {
                   <Info label="Giờ vào" value={dateTime(session.checkInAt)} />
                   <Info label="Giờ ra" value={session.checkOutAt ? dateTime(session.checkOutAt) : "Chưa thanh toán"} />
                   <Info label="Số giờ gửi" value={`${durationHours} giờ`} />
-                  <Info label="Phí cần thanh toán" value={currency(displayFee)} strong />
+                  {preview && !payment && <Info label="Đơn giá/giờ" value={currency(preview.hourlyRate)} />}
+                  <Info label={payment ? "Phí đã thu" : "Phí tạm tính"} value={currency(displayFee)} strong />
                   <Info label="Trạng thái" value={displayStatus} />
                   <Info label="Slot" value={session.slotCode ?? `Slot ${session.slotId}`} />
                 </div>

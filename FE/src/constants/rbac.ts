@@ -40,7 +40,7 @@ export const PERMISSION_LABELS: Record<Permission, string> = {
   "ai:view": "Sử dụng AI"
 };
 
-const RBAC_SCHEMA_VERSION = 3;
+const RBAC_SCHEMA_VERSION = 4;
 const ROLE_PERMISSIONS_STORAGE_KEY = `parking-bms-role-permissions-v${RBAC_SCHEMA_VERSION}`;
 const LEGACY_ROLE_PERMISSIONS_STORAGE_KEY = "parking-bms-role-permissions";
 
@@ -68,7 +68,6 @@ const DEFAULT_ROLE_PERMISSIONS: Record<Role, Permission[]> = {
     "slots:view",
     "slots:updateStatus",
     "sessions:view",
-    "sessions:manage",
     "exceptions:manage",
     "checkin:create",
     "checkout:create",

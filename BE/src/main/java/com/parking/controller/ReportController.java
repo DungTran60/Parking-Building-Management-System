@@ -2,10 +2,14 @@ package com.parking.controller;
 
 import com.parking.dto.OccupancyReportDto;
 import com.parking.dto.RevenueReportDto;
+import com.parking.dto.TrafficEventDto;
 import com.parking.dto.TrafficReportDto;
 import com.parking.exception.BadRequestException;
 import com.parking.service.ReportService;
 import lombok.RequiredArgsConstructor;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageRequest;
+import org.springframework.data.domain.Pageable;
 import org.springframework.format.annotation.DateTimeFormat;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
@@ -59,6 +63,26 @@ public class ReportController {
         validateDateRange(startDate, endDate);
         
         return ResponseEntity.ok(reportService.getTrafficReport(startDate, endDate));
+    }
+
+    @GetMapping("/traffic-events")
+    public ResponseEntity<Page<TrafficEventDto>> getTrafficEvents(
+            @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate startDate,
+            @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate endDate,
+            @RequestParam(required = false) String eventType,
+            @RequestParam(defaultValue = "0") int page,
+            @RequestParam(defaultValue = "20") int size) {
+
+        if (startDate == null) {
+            startDate = LocalDate.now().minusDays(6);
+        }
+        if (endDate == null) {
+            endDate = LocalDate.now();
+        }
+        validateDateRange(startDate, endDate);
+
+        Pageable pageable = PageRequest.of(Math.max(page, 0), Math.min(Math.max(size, 1), 100));
+        return ResponseEntity.ok(reportService.getTrafficEvents(startDate, endDate, eventType, pageable));
     }
 
     private void validateDateRange(LocalDate startDate, LocalDate endDate) {

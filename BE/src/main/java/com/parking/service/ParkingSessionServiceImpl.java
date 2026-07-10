@@ -1,6 +1,7 @@
 package com.parking.service;
 
 import com.parking.dto.CheckInRequestDto;
+import com.parking.dto.IncidentRequestDto;
 import com.parking.dto.LostTicketCheckoutRequestDto;
 import com.parking.dto.LostTicketFeeResponseDto;
 import com.parking.dto.ParkingSessionResponseDto;
@@ -40,6 +41,8 @@ public class ParkingSessionServiceImpl implements ParkingSessionService {
     private final ParkingSessionSpecification   parkingSessionSpecification;
     private final ParkingSessionExceptionRepository parkingSessionExceptionRepository;
     private final AuthenticationService authenticationService;
+    private final IncidentService incidentService;
+    private static final org.slf4j.Logger log = org.slf4j.LoggerFactory.getLogger(ParkingSessionServiceImpl.class);
 
 
     /* ─────────────────────────────────────────────────────
@@ -327,12 +330,29 @@ public class ParkingSessionServiceImpl implements ParkingSessionService {
                 .build();
 
         parkingSessionExceptionRepository.save(exception);
-        
+
         // Cập nhật phí nếu có
         if (request.getExtraFee() != null && request.getExtraFee().compareTo(BigDecimal.ZERO) > 0) {
             BigDecimal currentFee = session.getFee() != null ? session.getFee() : BigDecimal.ZERO;
             session.setFee(currentFee.add(request.getExtraFee()));
             parkingSessionRepository.save(session);
+        }
+
+        // Đồng bộ sang hệ thống Incident để Manager theo dõi tập trung.
+        // Lỗi tạo incident không được làm hỏng luồng xử lý ngoại lệ chính.
+        try {
+            String description = (request.getReason() != null && !request.getReason().isBlank())
+                    ? request.getReason()
+                    : "Ngoại lệ lượt gửi xe: " + request.getType().name();
+            IncidentRequestDto incidentRequest = IncidentRequestDto.builder()
+                    .type(IncidentType.valueOf(request.getType().name()))
+                    .description(description)
+                    .sessionId(session.getId())
+                    .slotId(session.getSlot() != null ? session.getSlot().getId() : null)
+                    .build();
+            incidentService.createIncident(incidentRequest, currentUser.getUsername());
+        } catch (Exception ex) {
+            log.warn("Không thể tạo Incident liên kết cho session {}: {}", session.getId(), ex.getMessage());
         }
 
         return convertToDto(session);

@@ -8,6 +8,7 @@ export interface SystemSettingsResponse {
   closingTime: string;
   paymentMode: PaymentMode;
   autoBlockOverdueSlots: boolean;
+  defaultHourlyRate: number | null;
   updatedAt: string;
 }
 

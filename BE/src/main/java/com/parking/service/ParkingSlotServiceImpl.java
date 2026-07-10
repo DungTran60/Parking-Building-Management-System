@@ -134,6 +134,9 @@ public class ParkingSlotServiceImpl implements ParkingSlotService {
     public void deleteSlot(Long id) {
         ParkingSlot slot = parkingSlotRepository.findById(id)
                 .orElseThrow(() -> new ResourceNotFoundException("Parking slot not found with id: " + id));
+        if (slot.getStatus() == SlotStatus.OCCUPIED || slot.getStatus() == SlotStatus.RESERVED) {
+            throw new ConflictException("Cannot delete an OCCUPIED or RESERVED slot");
+        }
         parkingSlotRepository.delete(slot);
     }
 

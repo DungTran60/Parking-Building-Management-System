@@ -6,8 +6,10 @@ import com.parking.entity.Pricing;
 import com.parking.entity.PricingTimeUnit;
 import com.parking.entity.VehicleType;
 import com.parking.exception.ResourceNotFoundException;
+import com.parking.entity.SystemSettings;
 import com.parking.repository.ParkingSessionRepository;
 import com.parking.repository.PricingRepository;
+import com.parking.repository.SystemSettingsRepository;
 import com.parking.repository.VehicleTypeRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
@@ -29,6 +31,7 @@ public class FeeCalculationServiceImpl implements FeeCalculationService {
     private final ParkingSessionRepository parkingSessionRepository;
     private final PricingRepository        pricingRepository;
     private final VehicleTypeRepository    vehicleTypeRepository;
+    private final SystemSettingsRepository systemSettingsRepository;
 
     /* ─────────────────────────────────────────────────────
        Preview phí tạm tính cho session đang ACTIVE
@@ -112,7 +115,15 @@ public class FeeCalculationServiceImpl implements FeeCalculationService {
                     "VEHICLE_TYPE_DEFAULT");
         }
 
-        // 3. Fallback cứng
+        // 3. Đơn giá giờ mặc định cấu hình ở SystemSettings
+        BigDecimal configuredDefault = systemSettingsRepository.findById(1L)
+                .map(SystemSettings::getDefaultHourlyRate)
+                .orElse(null);
+        if (configuredDefault != null && configuredDefault.compareTo(BigDecimal.ZERO) > 0) {
+            return new RateResult(configuredDefault, "SYSTEM_SETTINGS_DEFAULT");
+        }
+
+        // 4. Fallback cứng
         return new RateResult(DEFAULT_HOURLY_RATE, "SYSTEM_DEFAULT");
     }
 

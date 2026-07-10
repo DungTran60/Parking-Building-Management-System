@@ -1,6 +1,6 @@
 import { useMemo, useState, type FormEvent } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { CarFront, History, LayoutGrid, Lock, Pencil, Plus, Search, Unlock } from "lucide-react";
+import { CarFront, History, LayoutGrid, Lock, Pencil, Plus, Search, Trash2, Unlock, Wrench } from "lucide-react";
 import { Button } from "@/components/common/Button";
 import { Card, CardContent, CardHeader } from "@/components/common/Card";
 import { Field, Input, Select } from "@/components/forms/FormField";
@@ -57,6 +57,11 @@ export function SlotsPage() {
     onSuccess: () => void invalidateSlots(),
     onError: (requestError) => setFormError(getApiErrorMessage(requestError, "Không thể cập nhật trạng thái slot."))
   });
+  const deleteMutation = useMutation({
+    mutationFn: (id: string) => slotApi.delete(id),
+    onSuccess: () => void invalidateSlots(),
+    onError: (requestError) => setFormError(getApiErrorMessage(requestError, "Không thể xóa slot."))
+  });
   const isSaving = saveMutation.isPending;
 
   const rows = useMemo(() => {
@@ -88,6 +93,23 @@ export function SlotsPage() {
 
     const nextStatus: SlotStatus = unlocking ? "AVAILABLE" : "BLOCKED";
     statusMutation.mutate({ id: slot.id, nextStatus });
+  };
+
+  const toggleMaintenanceStatus = (slot: ParkingSlot) => {
+    const leaving = slot.status === "MAINTENANCE";
+    const message = leaving
+      ? "Kết thúc bảo trì và mở lại slot " + slot.code + "?"
+      : "Chuyển slot " + slot.code + " sang trạng thái bảo trì?";
+    if (!window.confirm(message)) return;
+
+    const nextStatus: SlotStatus = leaving ? "AVAILABLE" : "MAINTENANCE";
+    statusMutation.mutate({ id: slot.id, nextStatus });
+  };
+
+  const removeSlot = (slot: ParkingSlot) => {
+    if (slot.status === "OCCUPIED" || slot.status === "RESERVED") return;
+    if (!window.confirm("Bạn có chắc muốn xóa slot " + slot.code + "? Hành động này không thể hoàn tác.")) return;
+    deleteMutation.mutate(slot.id);
   };
 
   const openCreate = () => {
@@ -198,6 +220,8 @@ export function SlotsPage() {
                 const vehicleType = vehicleTypes.find((item) => item.id === slot.vehicleTypeId);
                 const meta = statusMeta[slot.status];
                 const canToggle = canUpdateStatus && (slot.status === "AVAILABLE" || slot.status === "BLOCKED");
+                const canMaintain = canUpdateStatus && (slot.status === "AVAILABLE" || slot.status === "MAINTENANCE");
+                const canDelete = canManage && slot.status !== "OCCUPIED" && slot.status !== "RESERVED";
                 return (
                   <article key={slot.id} className={cn("rounded-lg border-2 p-4 transition hover:shadow-md", meta.card)}>
                     <div className="flex items-start justify-between gap-2">
@@ -216,8 +240,14 @@ export function SlotsPage() {
                       <Button variant="secondary" className="h-9 flex-1 px-2" disabled={!canToggle} onClick={() => toggleBlockedStatus(slot)} title={canToggle ? (slot.status === "BLOCKED" ? "Mở khóa slot" : "Tạm khóa slot") : (canUpdateStatus ? "Không thể khóa slot ở trạng thái hiện tại" : "Bạn không có quyền cập nhật trạng thái slot")} aria-label={slot.status === "BLOCKED" ? "Mở khóa slot" : "Tạm khóa slot"}>
                         {slot.status === "BLOCKED" ? <Unlock size={15} /> : <Lock size={15} />}
                       </Button>
+                      <Button variant="secondary" className="h-9 flex-1 px-2" disabled={!canMaintain} onClick={() => toggleMaintenanceStatus(slot)} title={canMaintain ? (slot.status === "MAINTENANCE" ? "Kết thúc bảo trì" : "Chuyển sang bảo trì") : (canUpdateStatus ? "Không thể bảo trì slot ở trạng thái hiện tại" : "Bạn không có quyền cập nhật trạng thái slot")} aria-label={slot.status === "MAINTENANCE" ? "Kết thúc bảo trì" : "Chuyển sang bảo trì"}>
+                        <Wrench size={15} />
+                      </Button>
                       <Button variant="secondary" className="h-9 flex-1 px-2" onClick={() => setHistory(slot)} title="Xem chi tiết và lịch sử" aria-label="Xem chi tiết và lịch sử">
                         <History size={15} />
+                      </Button>
+                      <Button variant="secondary" className="h-9 flex-1 px-2 text-red-600" disabled={!canDelete} onClick={() => removeSlot(slot)} title={canManage ? (canDelete ? "Xóa slot" : "Không thể xóa slot đang sử dụng/đặt trước") : "Bạn không có quyền xóa slot"} aria-label="Xóa slot">
+                        <Trash2 size={15} />
                       </Button>
                     </div>
                   </article>

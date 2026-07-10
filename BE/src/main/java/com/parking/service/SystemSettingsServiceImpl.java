@@ -40,6 +40,7 @@ public class SystemSettingsServiceImpl implements SystemSettingsService {
         settings.setClosingTime(request.getClosingTime());
         settings.setPaymentMode(request.getPaymentMode());
         settings.setAutoBlockOverdueSlots(request.getAutoBlockOverdueSlots());
+        settings.setDefaultHourlyRate(request.getDefaultHourlyRate());
 
         SystemSettings saved = systemSettingsRepository.save(settings);
         return toDto(saved);
@@ -52,6 +53,7 @@ public class SystemSettingsServiceImpl implements SystemSettingsService {
                 .closingTime(s.getClosingTime())
                 .paymentMode(s.getPaymentMode())
                 .autoBlockOverdueSlots(s.isAutoBlockOverdueSlots())
+                .defaultHourlyRate(s.getDefaultHourlyRate())
                 .updatedAt(s.getUpdatedAt())
                 .build();
     }

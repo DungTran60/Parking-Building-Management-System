@@ -34,10 +34,8 @@ public class PricingServiceImpl implements PricingService {
     @Override
     @Transactional
     public PricingResponseDto createPricing(PricingRequestDto dto) {
-        // Chỉ cho phép tạo chính sách theo giờ ở thời điểm hiện tại
-        if (dto.getTimeUnit() != PricingTimeUnit.HOURLY) {
-            throw new IllegalArgumentException("Only HOURLY pricing policies are supported at the moment.");
-        }
+        // Hỗ trợ HOURLY / DAILY / MONTHLY. Phí gửi theo lượt vẫn tính theo HOURLY;
+        // DAILY/MONTHLY là mức giá tham chiếu (thuê bao) hiển thị trong bảng giá.
 
         // Giá và các loại phí không được âm
         if (dto.getPrice().compareTo(BigDecimal.ZERO) < 0 ||
@@ -129,10 +127,7 @@ public class PricingServiceImpl implements PricingService {
         Pricing pricing = findOrThrow(id);
         VehicleType vehicleType = resolveVehicleType(dto.getVehicleTypeId());
 
-        // Chỉ cho phép tạo chính sách theo giờ ở thời điểm hiện tại
-        if (dto.getTimeUnit() != PricingTimeUnit.HOURLY) {
-            throw new IllegalArgumentException("Only HOURLY pricing policies are supported at the moment.");
-        }
+        // Hỗ trợ HOURLY / DAILY / MONTHLY (xem ghi chú ở createPricing).
 
         // Giá và các loại phí không được âm
         if (dto.getPrice().compareTo(BigDecimal.ZERO) < 0 ||
