@@ -9,9 +9,10 @@ import java.math.BigDecimal;
 @AllArgsConstructor
 @Builder
 public class PaymentResponseDto {
-    private String id;
-    private String sessionId;
+    private Long id;
+    private String sessionId; // giữ String: chứa ticketCode (mã vé), không phải khóa số
     private BigDecimal amount;
     private String method;
     private LocalDateTime paidAt; // mapped to paidAt in FE PaymentRecord
+    private String collectedByUsername;
 }

@@ -14,7 +14,7 @@ public class PricingResponseDto {
 
     private Long id;
 
-    private String vehicleTypeId;
+    private Long vehicleTypeId;
     private String vehicleTypeName;
 
     private PricingTimeUnit timeUnit;

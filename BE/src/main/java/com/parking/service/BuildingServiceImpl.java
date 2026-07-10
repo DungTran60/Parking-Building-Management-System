@@ -4,7 +4,7 @@ import com.parking.dto.BuildingRequestDto;
 import com.parking.dto.BuildingResponseDto;
 import com.parking.entity.Building;
 import com.parking.exception.ResourceNotFoundException;
-import com.parking.exception.ResourceConflictException;
+import com.parking.exception.ConflictException;
 import com.parking.repository.BuildingRepository;
 import com.parking.repository.FloorRepository;
 import lombok.RequiredArgsConstructor;
@@ -80,7 +80,7 @@ public class BuildingServiceImpl implements BuildingService {
             throw new ResourceNotFoundException("Building not found with ID: " + id);
         }
         if (floorRepository.existsByBuildingId(id)) {
-            throw new ResourceConflictException("Cannot delete building because it still contains floors");
+            throw new ConflictException("Cannot delete building because it still contains floors");
         }
         buildingRepository.deleteById(id);
     }

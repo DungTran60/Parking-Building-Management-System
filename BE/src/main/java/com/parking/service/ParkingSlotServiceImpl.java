@@ -139,10 +139,10 @@ public class ParkingSlotServiceImpl implements ParkingSlotService {
 
     private ParkingSlotResponseDto convertToDto(ParkingSlot slot) {
         return ParkingSlotResponseDto.builder()
-                .id(String.valueOf(slot.getId()))
+                .id(slot.getId())
                 .code(slot.getCode())
-                .floorId(String.valueOf(slot.getFloor().getId()))
-                .vehicleTypeId(String.valueOf(slot.getVehicleType().getId()))
+                .floorId(slot.getFloor().getId())
+                .vehicleTypeId(slot.getVehicleType().getId())
                 .status(slot.getStatus())
                 .updatedAt(slot.getUpdatedAt())
                 .build();

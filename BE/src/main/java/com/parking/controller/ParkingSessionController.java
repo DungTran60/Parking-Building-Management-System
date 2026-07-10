@@ -126,29 +126,25 @@ public class ParkingSessionController {
     public ResponseEntity<ParkingSessionResponseDto> updateStatus(
             @PathVariable Long id,
             @Valid @RequestBody SessionStatusUpdateRequestDto request) {
-        // Implementation will be added in the service layer
-        return ResponseEntity.ok().build();
+        return ResponseEntity.ok(parkingSessionService.updateStatus(id, request));
     }
 
     @PostMapping("/{id}/reopen")
     @PreAuthorize("hasAuthority('sessions:manage')")
     public ResponseEntity<ParkingSessionResponseDto> reopenSession(@PathVariable Long id) {
-        // Implementation will be added in the service layer
-        return ResponseEntity.ok().build();
+        return ResponseEntity.ok(parkingSessionService.reopenSession(id));
     }
 
     @PostMapping("/{id}/mark-unpaid")
     @PreAuthorize("hasAuthority('sessions:manage')")
     public ResponseEntity<ParkingSessionResponseDto> markAsUnpaid(@PathVariable Long id) {
-        // Implementation will be added in the service layer
-        return ResponseEntity.ok().build();
+        return ResponseEntity.ok(parkingSessionService.markAsUnpaid(id));
     }
 
     @PostMapping("/{id}/waive-fee")
     @PreAuthorize("hasAuthority('sessions:manage')")
     public ResponseEntity<ParkingSessionResponseDto> waiveFee(@PathVariable Long id) {
-        // Implementation will be added in the service layer
-        return ResponseEntity.ok().build();
+        return ResponseEntity.ok(parkingSessionService.waiveFee(id));
     }
 
     @PostMapping("/{id}/notes")
@@ -156,7 +152,6 @@ public class ParkingSessionController {
     public ResponseEntity<ParkingSessionResponseDto> addNote(
             @PathVariable Long id,
             @Valid @RequestBody SessionNoteRequestDto request) {
-        // Implementation will be added in the service layer
-        return ResponseEntity.ok().build();
+        return ResponseEntity.ok(parkingSessionService.addNote(id, request));
     }
 }

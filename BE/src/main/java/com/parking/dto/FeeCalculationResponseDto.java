@@ -21,7 +21,7 @@ public class FeeCalculationResponseDto {
     private String plateNumber;
 
     /** Loại phương tiện */
-    private String vehicleTypeId;
+    private Long vehicleTypeId;
     private String vehicleTypeName;
 
     /** Thời gian vào */

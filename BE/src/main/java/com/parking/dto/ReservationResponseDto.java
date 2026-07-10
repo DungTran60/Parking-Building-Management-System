@@ -17,7 +17,7 @@ public class ReservationResponseDto {
     private String plateNumber;
 
     // Vehicle type info
-    private String vehicleTypeId;
+    private Long vehicleTypeId;
     private String vehicleTypeName;
 
     // Slot info

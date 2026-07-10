@@ -149,7 +149,8 @@ public class ParkingSessionServiceImpl implements ParkingSessionService {
                 .checkInAt(LocalDateTime.now())
                 .status("ACTIVE")
                 .reservation(reservation)
-                .fee(0.0)
+                .createdBy(authenticationService.getCurrentUser())
+                .fee(BigDecimal.ZERO)
                 .build();
         return parkingSessionRepository.save(session);
     }
@@ -196,7 +197,7 @@ public class ParkingSessionServiceImpl implements ParkingSessionService {
                 checkOutTime);
 
         session.setCheckOutAt(checkOutTime);
-        session.setFee(fee.doubleValue());
+        session.setFee(fee);
         session.setStatus("COMPLETED");
         ParkingSession saved = parkingSessionRepository.save(session);
 
@@ -293,7 +294,7 @@ public class ParkingSessionServiceImpl implements ParkingSessionService {
 
         // Cập nhật session với status đặc biệt để phân biệt checkout thông thường
         session.setCheckOutAt(checkOutTime);
-        session.setFee(totalFee.doubleValue());
+        session.setFee(totalFee);
         session.setStatus("LOST_TICKET");
         ParkingSession saved = parkingSessionRepository.save(session);
 
@@ -329,8 +330,8 @@ public class ParkingSessionServiceImpl implements ParkingSessionService {
         
         // Cập nhật phí nếu có
         if (request.getExtraFee() != null && request.getExtraFee().compareTo(BigDecimal.ZERO) > 0) {
-            double currentFee = session.getFee() != null ? session.getFee() : 0.0;
-            session.setFee(currentFee + request.getExtraFee().doubleValue());
+            BigDecimal currentFee = session.getFee() != null ? session.getFee() : BigDecimal.ZERO;
+            session.setFee(currentFee.add(request.getExtraFee()));
             parkingSessionRepository.save(session);
         }
 
@@ -372,7 +373,7 @@ public class ParkingSessionServiceImpl implements ParkingSessionService {
 
         session.setStatus("ACTIVE");
         session.setCheckOutAt(null);
-        session.setFee(0.0);
+        session.setFee(BigDecimal.ZERO);
         parkingSessionRepository.save(session);
 
         // Re-occupy the slot
@@ -403,7 +404,7 @@ public class ParkingSessionServiceImpl implements ParkingSessionService {
         ParkingSession session = parkingSessionRepository.findById(id)
                 .orElseThrow(() -> new ResourceNotFoundException("Session not found with id: " + id));
 
-        session.setFee(0.0);
+        session.setFee(BigDecimal.ZERO);
         parkingSessionRepository.save(session);
 
         addSystemNote(session, "Fee has been waived.");
@@ -418,9 +419,10 @@ public class ParkingSessionServiceImpl implements ParkingSessionService {
                 .orElseThrow(() -> new ResourceNotFoundException("Session not found with id: " + id));
         
         User currentUser = authenticationService.getCurrentUser();
+        String actor = currentUser != null ? currentUser.getUsername() : "SYSTEM";
         String newNote = String.format("[%s] by %s: %s",
                 LocalDateTime.now().format(DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm")),
-                currentUser.getUsername(),
+                actor,
                 request.getNote());
 
         String existingNotes = session.getNotes() == null ? "" : session.getNotes() + "\n";
@@ -474,12 +476,12 @@ public class ParkingSessionServiceImpl implements ParkingSessionService {
         Reservation reservation = session.getReservation();
 
         return ParkingSessionResponseDto.builder()
-                .id(String.valueOf(session.getId()))
+                .id(session.getId())
                 .ticketCode(session.getTicketCode())
                 .plateNumber(session.getPlateNumber())
-                .vehicleTypeId(String.valueOf(session.getVehicleType().getId()))
+                .vehicleTypeId(session.getVehicleType().getId())
                 .vehicleTypeName(session.getVehicleType().getName())
-                .slotId(String.valueOf(slot.getId()))
+                .slotId(slot.getId())
                 .slotCode(slot.getCode())
                 .floorId(floor.getId())
                 .floorName(floor.getName())
@@ -490,6 +492,7 @@ public class ParkingSessionServiceImpl implements ParkingSessionService {
                 .fee(session.getFee())
                 .status(session.getStatus())
                 .notes(session.getNotes())
+                .createdByUsername(session.getCreatedBy() != null ? session.getCreatedBy().getUsername() : null)
                 .build();
     }
 

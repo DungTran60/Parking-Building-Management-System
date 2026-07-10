@@ -37,7 +37,8 @@ public class DataInitializer implements CommandLineRunner {
         List<String> permissionNames = Arrays.asList(
                 "sessions:view",
                 "sessions:checkout",
-                "sessions:exception"
+                "sessions:exception",
+                "sessions:manage"
         );
         for (String permissionName : permissionNames) {
             if (permissionRepository.findByName(permissionName).isEmpty()) {
@@ -49,11 +50,16 @@ public class DataInitializer implements CommandLineRunner {
         Permission view_session = permissionRepository.findByName("sessions:view").orElseThrow();
         Permission checkout_session = permissionRepository.findByName("sessions:checkout").orElseThrow();
         Permission exception_session = permissionRepository.findByName("sessions:exception").orElseThrow();
+        Permission manage_session = permissionRepository.findByName("sessions:manage").orElseThrow();
 
+        // Driver: chỉ xem lượt gửi.
         Set<Permission> driverPermissions = new HashSet<>(Collections.singletonList(view_session));
+        // Staff: xem, check-in/out, xử lý ngoại lệ.
         Set<Permission> staffPermissions = new HashSet<>(Arrays.asList(view_session, checkout_session, exception_session));
-        Set<Permission> managerPermissions = new HashSet<>(Arrays.asList(view_session, checkout_session, exception_session)); // Managers get all staff permissions
-        Set<Permission> adminPermissions = new HashSet<>(Arrays.asList(view_session, checkout_session, exception_session)); // Admins get all permissions
+        // Manager: quyền của Staff + quản lý session (updateStatus/reopen/mark-unpaid/waive-fee/note).
+        Set<Permission> managerPermissions = new HashSet<>(Arrays.asList(view_session, checkout_session, exception_session, manage_session));
+        // Admin: toàn bộ permission.
+        Set<Permission> adminPermissions = new HashSet<>(Arrays.asList(view_session, checkout_session, exception_session, manage_session));
 
         seedRole("DRIVER", driverPermissions);
         seedRole("STAFF", staffPermissions);
@@ -181,7 +187,7 @@ public class DataInitializer implements CommandLineRunner {
                             .entryGate("Gate " + (1 + random.nextInt(3)))
                             .checkInAt(entryTime)
                             .checkOutAt(exitTime)
-                            .fee(fee)
+                            .fee(BigDecimal.valueOf(fee))
                             .status("COMPLETED")
                             .build();
                     
@@ -197,7 +203,7 @@ public class DataInitializer implements CommandLineRunner {
             for (ParkingSession session : savedSessions) {
                 Payment payment = Payment.builder()
                         .session(session)
-                        .amount(BigDecimal.valueOf(session.getFee()))
+                        .amount(session.getFee())
                         .method(methods[random.nextInt(methods.length)])
                         .paymentTime(session.getCheckOutAt().plusMinutes(1 + random.nextInt(5)))
                         .build();
@@ -230,7 +236,7 @@ public class DataInitializer implements CommandLineRunner {
                         .slot(slot)
                         .entryGate("Gate " + (1 + random.nextInt(3)))
                         .checkInAt(entryTime)
-                        .fee(0.0)
+                        .fee(BigDecimal.ZERO)
                         .status("ACTIVE")
                         .build();
                 parkingSessionRepository.save(activeSession);

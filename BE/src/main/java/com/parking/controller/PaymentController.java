@@ -3,8 +3,11 @@ package com.parking.controller;
 import com.parking.dto.PaymentRequestDto;
 import com.parking.dto.PaymentResponseDto;
 import com.parking.service.PaymentService;
+import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
+import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
 import java.util.List;
 
@@ -16,11 +19,13 @@ public class PaymentController {
     private final PaymentService paymentService;
 
     @PostMapping
-    public ResponseEntity<PaymentResponseDto> createPayment(@RequestBody PaymentRequestDto request) {
-        return ResponseEntity.ok(paymentService.createPayment(request));
+    @PreAuthorize("hasAnyRole('STAFF', 'MANAGER', 'ADMIN')")
+    public ResponseEntity<PaymentResponseDto> createPayment(@Valid @RequestBody PaymentRequestDto request) {
+        return new ResponseEntity<>(paymentService.createPayment(request), HttpStatus.CREATED);
     }
 
     @GetMapping
+    @PreAuthorize("hasAnyRole('STAFF', 'MANAGER', 'ADMIN')")
     public ResponseEntity<List<PaymentResponseDto>> getPaymentHistory() {
         return ResponseEntity.ok(paymentService.getPaymentHistory());
     }

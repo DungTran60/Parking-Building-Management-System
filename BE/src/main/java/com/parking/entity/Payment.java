@@ -31,4 +31,9 @@ public class Payment {
 
     @Column(name = "payment_time", nullable = false)
     private LocalDateTime paymentTime;
+
+    /** Nhân viên/thu ngân đã thực hiện thu phí (nullable cho dữ liệu seed/không xác định). */
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "collected_by_user_id")
+    private User collectedBy;
 }

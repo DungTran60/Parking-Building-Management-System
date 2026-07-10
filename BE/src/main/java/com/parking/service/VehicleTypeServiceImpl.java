@@ -4,7 +4,7 @@ import com.parking.dto.VehicleTypeRequestDto;
 import com.parking.dto.VehicleTypeResponseDto;
 import com.parking.entity.VehicleType;
 import com.parking.entity.VehicleTypeStatus;
-import com.parking.exception.ResourceConflictException;
+import com.parking.exception.ConflictException;
 import com.parking.exception.ResourceNotFoundException;
 import com.parking.repository.ParkingSessionRepository;
 import com.parking.repository.ParkingSlotRepository;
@@ -38,10 +38,10 @@ public class VehicleTypeServiceImpl implements VehicleTypeService {
         String name = dto.getName().trim();
 
         if (vehicleTypeRepository.existsByCode(code)) {
-            throw new ResourceConflictException("Vehicle type with code '" + code + "' already exists");
+            throw new ConflictException("Vehicle type with code '" + code + "' already exists");
         }
         if (vehicleTypeRepository.existsByName(name)) {
-            throw new ResourceConflictException("Vehicle type with name '" + name + "' already exists");
+            throw new ConflictException("Vehicle type with name '" + name + "' already exists");
         }
 
         VehicleType vehicleType = VehicleType.builder()
@@ -67,11 +67,11 @@ public class VehicleTypeServiceImpl implements VehicleTypeService {
 
         // Check duplicate code (exclude self)
         if (vehicleTypeRepository.existsByCodeAndIdNot(code, id)) {
-            throw new ResourceConflictException("Vehicle type with code '" + code + "' already exists");
+            throw new ConflictException("Vehicle type with code '" + code + "' already exists");
         }
         // Check duplicate name (exclude self)
         if (vehicleTypeRepository.existsByNameAndIdNot(name, id)) {
-            throw new ResourceConflictException("Vehicle type with name '" + name + "' already exists");
+            throw new ConflictException("Vehicle type with name '" + name + "' already exists");
         }
 
         vehicleType.setCode(code);
@@ -94,19 +94,19 @@ public class VehicleTypeServiceImpl implements VehicleTypeService {
 
         // Check if in use
         if (pricingRepository.existsByVehicleTypeId(id)) {
-            throw new ResourceConflictException(
+            throw new ConflictException(
                     "Cannot delete vehicle type '" + vehicleType.getName() + "': it is referenced by Pricing records");
         }
         if (reservationRepository.existsByVehicleTypeId(id)) {
-            throw new ResourceConflictException(
+            throw new ConflictException(
                     "Cannot delete vehicle type '" + vehicleType.getName() + "': it is referenced by Reservation records");
         }
         if (parkingSessionRepository.existsByVehicleTypeId(id)) {
-            throw new ResourceConflictException(
+            throw new ConflictException(
                     "Cannot delete vehicle type '" + vehicleType.getName() + "': it is referenced by Parking Session records");
         }
         if (parkingSlotRepository.existsByVehicleTypeId(id)) {
-            throw new ResourceConflictException(
+            throw new ConflictException(
                     "Cannot delete vehicle type '" + vehicleType.getName() + "': it is referenced by Parking Slot records");
         }
 

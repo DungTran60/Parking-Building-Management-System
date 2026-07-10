@@ -1,6 +1,6 @@
 package com.parking.controller;
 
-import com.parking.entity.AuditLog;
+import com.parking.dto.AuditLogResponseDto;
 import com.parking.service.AuditService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
@@ -21,11 +21,10 @@ public class AuditLogController {
 
     @GetMapping
     @PreAuthorize("hasRole('ADMIN')")
-    public ResponseEntity<List<AuditLog>> getAuditLogs(
+    public ResponseEntity<List<AuditLogResponseDto>> getAuditLogs(
             @RequestParam String resource,
             @RequestParam Long resourceId
     ) {
-        List<AuditLog> auditLogs = auditService.getAuditLogs(resource, resourceId);
-        return ResponseEntity.ok(auditLogs);
+        return ResponseEntity.ok(auditService.getAuditLogs(resource, resourceId));
     }
 }

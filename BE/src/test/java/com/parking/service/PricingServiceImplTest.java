@@ -7,7 +7,7 @@ import com.parking.entity.Pricing;
 import com.parking.entity.PricingTimeUnit;
 import com.parking.entity.VehicleType;
 import com.parking.entity.VehicleTypeStatus;
-import com.parking.exception.ResourceConflictException;
+import com.parking.exception.ConflictException;
 import com.parking.exception.ResourceNotFoundException;
 import com.parking.repository.PricingRepository;
 import com.parking.repository.VehicleTypeRepository;
@@ -184,7 +184,8 @@ class PricingServiceImplTest {
         LostTicketFeeResponseDto result = pricingService.calculateLostTicketFee(vehicleTypeId);
 
         assertNotNull(result);
-        assertEquals(vehicleTypeId, result.getVehicleType());
+        // Service trả về mã chuẩn hoá (canonical code) của loại xe đã resolve, không phải echo input.
+        assertEquals("CAR", result.getVehicleType());
         assertEquals(BigDecimal.valueOf(100000), result.getLostTicketFee());
         assertEquals(BigDecimal.valueOf(100000), result.getTotal());
     }
@@ -200,7 +201,7 @@ class PricingServiceImplTest {
         when(vehicleTypeRepository.findById(1L)).thenReturn(Optional.of(mockCar));
         when(pricingRepository.existsByVehicleTypeIdAndTimeUnit(1L, PricingTimeUnit.HOURLY)).thenReturn(true);
 
-        assertThrows(ResourceConflictException.class, () -> {
+        assertThrows(ConflictException.class, () -> {
             pricingService.createPricing(dto);
         });
     }

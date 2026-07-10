@@ -41,8 +41,8 @@ public class ParkingSession {
     @Column(name = "check_out_at")
     private LocalDateTime checkOutAt;
 
-    @Column(name = "fee")
-    private Double fee;
+    @Column(name = "fee", precision = 12, scale = 2)
+    private BigDecimal fee;
 
     @Column(nullable = false, length = 30)
     private String status; // "ACTIVE", "COMPLETED"
@@ -50,6 +50,11 @@ public class ParkingSession {
     @OneToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "reservation_id")
     private Reservation reservation;
+
+    /** Nhân viên đã tạo/ xử lý lượt gửi xe này (nullable cho dữ liệu seed/không xác định). */
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "created_by_user_id")
+    private User createdBy;
 
     @Column(columnDefinition = "TEXT")
     private String notes;

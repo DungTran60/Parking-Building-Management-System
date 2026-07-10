@@ -5,7 +5,7 @@ import com.parking.dto.IncidentRequestDto;
 import com.parking.dto.IncidentResolveDto;
 import com.parking.dto.IncidentResponseDto;
 import com.parking.entity.*;
-import com.parking.exception.ResourceConflictException;
+import com.parking.exception.ConflictException;
 import com.parking.exception.ResourceNotFoundException;
 import com.parking.repository.*;
 import com.parking.repository.spec.IncidentSpecification;
@@ -147,7 +147,7 @@ public class IncidentServiceImpl implements IncidentService {
 
         // Chỉ cho phép phân công khi sự cố đang mở hoặc đang xử lý
         if (incident.getStatus() != IncidentStatus.OPEN && incident.getStatus() != IncidentStatus.IN_PROGRESS) {
-            throw new ResourceConflictException("Only OPEN or IN_PROGRESS incidents can be assigned. Current status: " + incident.getStatus());
+            throw new ConflictException("Only OPEN or IN_PROGRESS incidents can be assigned. Current status: " + incident.getStatus());
         }
 
         User assignee = userRepository.findById(dto.getAssigneeId())
@@ -179,12 +179,12 @@ public class IncidentServiceImpl implements IncidentService {
 
         // Chỉ xử lý sự cố đang ở trạng thái OPEN
         if (incident.getStatus() != IncidentStatus.OPEN) {
-            throw new ResourceConflictException("Only OPEN incidents can be processed. Current status: " + incident.getStatus());
+            throw new ConflictException("Only OPEN incidents can be processed. Current status: " + incident.getStatus());
         }
 
         // Kiểm tra xem đã có người xử lý chưa
         if (incident.getAssignee() != null) {
-            throw new ResourceConflictException("Incident is already being processed by " + incident.getAssignee().getUsername());
+            throw new ConflictException("Incident is already being processed by " + incident.getAssignee().getUsername());
         }
 
         incident.setAssignee(assignee);
@@ -204,7 +204,7 @@ public class IncidentServiceImpl implements IncidentService {
         
         // Chỉ cho phép giải quyết khi sự cố đang được xử lý
         if (incident.getStatus() != IncidentStatus.IN_PROGRESS) {
-            throw new ResourceConflictException(
+            throw new ConflictException(
                     "Incident must be IN_PROGRESS to be resolved. Current status: " + incident.getStatus());
         }
         
@@ -222,7 +222,7 @@ public class IncidentServiceImpl implements IncidentService {
     public IncidentResponseDto closeIncident(Long id) {
         Incident incident = findOrThrow(id);
         if (incident.getStatus() != IncidentStatus.RESOLVED) {
-            throw new ResourceConflictException(
+            throw new ConflictException(
                     "Only RESOLVED incidents can be closed. Current status: " + incident.getStatus());
         }
         incident.setStatus(IncidentStatus.CLOSED);

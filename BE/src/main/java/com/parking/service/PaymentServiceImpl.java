@@ -6,6 +6,7 @@ import com.parking.entity.ParkingSession;
 import com.parking.entity.ParkingSlot;
 import com.parking.entity.Payment;
 import com.parking.entity.SlotStatus;
+import com.parking.entity.User;
 import com.parking.exception.ResourceNotFoundException;
 import com.parking.repository.ParkingSessionRepository;
 import com.parking.repository.ParkingSlotRepository;
@@ -27,6 +28,7 @@ public class PaymentServiceImpl implements PaymentService {
     private final PaymentRepository paymentRepository;
     private final ParkingSessionRepository parkingSessionRepository;
     private final ParkingSlotRepository parkingSlotRepository;
+    private final AuthenticationService authenticationService;
 
     @Override
     @Transactional
@@ -42,7 +44,7 @@ public class PaymentServiceImpl implements PaymentService {
             double fee = hours * hourlyRate;
 
             session.setCheckOutAt(checkOutTime);
-            session.setFee(fee);
+            session.setFee(BigDecimal.valueOf(fee));
             session.setStatus("COMPLETED");
             parkingSessionRepository.save(session);
 
@@ -51,11 +53,14 @@ public class PaymentServiceImpl implements PaymentService {
             parkingSlotRepository.save(slot);
         }
 
+        User collectedBy = authenticationService.getCurrentUser();
+
         Payment payment = Payment.builder()
                 .session(session)
-                .amount(BigDecimal.valueOf(session.getFee()))
+                .amount(session.getFee() != null ? session.getFee() : BigDecimal.ZERO)
                 .method(request.getMethod())
                 .paymentTime(LocalDateTime.now())
+                .collectedBy(collectedBy)
                 .build();
 
         Payment saved = paymentRepository.save(payment);
@@ -72,11 +77,12 @@ public class PaymentServiceImpl implements PaymentService {
 
     private PaymentResponseDto convertToDto(Payment payment) {
         return PaymentResponseDto.builder()
-                .id(String.valueOf(payment.getId()))
+                .id(payment.getId())
                 .sessionId(payment.getSession().getTicketCode() != null ? payment.getSession().getTicketCode() : String.valueOf(payment.getSession().getId()))
                 .amount(payment.getAmount())
                 .method(payment.getMethod())
                 .paidAt(payment.getPaymentTime())
+                .collectedByUsername(payment.getCollectedBy() != null ? payment.getCollectedBy().getUsername() : null)
                 .build();
     }
 }

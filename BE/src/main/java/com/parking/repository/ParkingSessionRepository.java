@@ -35,8 +35,6 @@ public interface ParkingSessionRepository extends JpaRepository<ParkingSession, 
             @Param("plateNumber") String plateNumber,
             @Param("status") String status);
 
-    Optional<ParkingSession> findFirstByTicketCodeOrPlateNumberAndStatusOrderByIdDesc(String ticketCode, String plateNumber, String status);
-
     /** Kiểm tra VehicleType có đang được dùng trong ParkingSession không */
     boolean existsByVehicleTypeId(Long vehicleTypeId);
 
@@ -48,7 +46,7 @@ public interface ParkingSessionRepository extends JpaRepository<ParkingSession, 
 
     long countByCheckOutAtIsNull();
 
-    @Query("SELECT new com.parking.dto.RevenueByVehicleTypeDto(ps.vehicleType.id, ps.vehicleType.name, CAST(SUM(ps.fee) AS big_decimal)) " +
+    @Query("SELECT new com.parking.dto.RevenueByVehicleTypeDto(ps.vehicleType.id, ps.vehicleType.name, SUM(ps.fee)) " +
            "FROM ParkingSession ps " +
            "WHERE ps.checkOutAt BETWEEN :startDate AND :endDate AND ps.status = 'COMPLETED' " +
            "GROUP BY ps.vehicleType.id, ps.vehicleType.name")

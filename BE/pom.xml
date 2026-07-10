@@ -62,6 +62,15 @@
 			<artifactId>mysql-connector-j</artifactId>
 			<scope>runtime</scope>
 		</dependency>
+		<!-- Flyway: quản lý schema migration cho môi trường thật (MySQL) -->
+		<dependency>
+			<groupId>org.flywaydb</groupId>
+			<artifactId>flyway-core</artifactId>
+		</dependency>
+		<dependency>
+			<groupId>org.flywaydb</groupId>
+			<artifactId>flyway-mysql</artifactId>
+		</dependency>
 		<!-- In-memory DB for local development and tests -->
 		<dependency>
 			<groupId>com.h2database</groupId>
@@ -157,8 +166,8 @@
 					</execution>
 				</executions>
 				<configuration>
-					<source>25</source>
-					<target>25</target>
+					<source>21</source>
+					<target>21</target>
 				</configuration>
 			</plugin>
 		</plugins>

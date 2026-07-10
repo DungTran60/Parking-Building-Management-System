@@ -7,6 +7,7 @@ import com.parking.entity.Status;
 import com.parking.repository.RoleRepository;
 import com.parking.repository.UserRepository;
 import org.springframework.context.annotation.Lazy;
+import org.springframework.security.core.GrantedAuthority;
 import org.springframework.security.core.authority.SimpleGrantedAuthority;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.security.core.userdetails.UserDetails;
@@ -16,7 +17,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDateTime;
-import java.util.Collections;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.stream.Collectors;
 
@@ -46,9 +47,21 @@ public class UserServiceImpl implements UserService {
         User user = userRepository.findByUsername(username)
                 .orElseThrow(() -> new UsernameNotFoundException("User not found with username: " + username));
 
-        String roleWithPrefix = "ROLE_" + user.getRole().getName().toUpperCase();
-
         boolean isEnabled = user.getStatus() == Status.ACTIVE;
+
+        // Cấp cả role authority (ROLE_*) lẫn các permission của role.
+        // Nhờ đó @PreAuthorize("hasRole(...)") và @PreAuthorize("hasAuthority('sessions:*')")
+        // đều hoạt động. Role.permissions là EAGER nên không có nguy cơ LazyInitializationException.
+        List<GrantedAuthority> authorities = new ArrayList<>();
+        Role role = user.getRole();
+        if (role != null) {
+            authorities.add(new SimpleGrantedAuthority("ROLE_" + role.getName().toUpperCase()));
+            if (role.getPermissions() != null) {
+                role.getPermissions().stream()
+                        .filter(p -> p != null && p.getName() != null)
+                        .forEach(p -> authorities.add(new SimpleGrantedAuthority(p.getName())));
+            }
+        }
 
         return new org.springframework.security.core.userdetails.User(
                 user.getUsername(),
@@ -57,7 +70,7 @@ public class UserServiceImpl implements UserService {
                 true, // accountNonExpired
                 true, // credentialsNonExpired
                 true, // accountNonLocked
-                Collections.singletonList(new SimpleGrantedAuthority(roleWithPrefix))
+                authorities
         );
     }
 

@@ -1,6 +1,7 @@
 package com.parking.dto;
 
 import lombok.*;
+import java.math.BigDecimal;
 import java.time.LocalDateTime;
 
 @Data
@@ -8,12 +9,12 @@ import java.time.LocalDateTime;
 @AllArgsConstructor
 @Builder
 public class ParkingSessionResponseDto {
-    private String id;
+    private Long id;
     private String ticketCode;
     private String plateNumber;
-    private String vehicleTypeId;
+    private Long vehicleTypeId;
     private String vehicleTypeName;
-    private String slotId;
+    private Long slotId;
     private String slotCode;
     private Long floorId;
     private String floorName;
@@ -21,7 +22,8 @@ public class ParkingSessionResponseDto {
     private String entryGate;
     private LocalDateTime checkInAt;
     private LocalDateTime checkOutAt;
-    private Double fee;
+    private BigDecimal fee;
     private String status;
     private String notes;
+    private String createdByUsername;
 }

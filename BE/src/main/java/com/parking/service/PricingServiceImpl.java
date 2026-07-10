@@ -7,7 +7,7 @@ import com.parking.dto.PricingResponseDto;
 import com.parking.entity.Pricing;
 import com.parking.entity.PricingTimeUnit;
 import com.parking.entity.VehicleType;
-import com.parking.exception.ResourceConflictException;
+import com.parking.exception.ConflictException;
 import com.parking.exception.ResourceNotFoundException;
 import com.parking.repository.PricingRepository;
 import com.parking.repository.VehicleTypeRepository;
@@ -49,7 +49,7 @@ public class PricingServiceImpl implements PricingService {
 
         // Mỗi cặp (vehicleType, timeUnit) phải là duy nhất
         if (pricingRepository.existsByVehicleTypeIdAndTimeUnit(vehicleType.getId(), dto.getTimeUnit())) {
-            throw new ResourceConflictException("Pricing already exists for this vehicle type and time unit.");
+            throw new ConflictException("Pricing already exists for this vehicle type and time unit.");
         }
 
         Pricing pricing = Pricing.builder()
@@ -143,7 +143,7 @@ public class PricingServiceImpl implements PricingService {
         // Kiểm tra trùng lặp với bản ghi KHÁC (loại trừ chính bản ghi đang sửa)
         if (pricingRepository.existsByVehicleTypeIdAndTimeUnitAndIdNot(
                 vehicleType.getId(), dto.getTimeUnit(), id)) {
-            throw new ResourceConflictException("Pricing already exists for this vehicle type and time unit.");
+            throw new ConflictException("Pricing already exists for this vehicle type and time unit.");
         }
 
         pricing.setVehicleType(vehicleType);
@@ -318,7 +318,7 @@ public class PricingServiceImpl implements PricingService {
     private PricingResponseDto mapToResponse(Pricing p) {
         return PricingResponseDto.builder()
                 .id(p.getId())
-                .vehicleTypeId(String.valueOf(p.getVehicleType().getId()))
+                .vehicleTypeId(p.getVehicleType().getId())
                 .vehicleTypeName(p.getVehicleType().getName())
                 .timeUnit(p.getTimeUnit())
                 .price(p.getPrice())

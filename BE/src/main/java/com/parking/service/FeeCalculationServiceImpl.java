@@ -60,7 +60,7 @@ public class FeeCalculationServiceImpl implements FeeCalculationService {
         return FeeCalculationResponseDto.builder()
                 .ticketCode(session.getTicketCode())
                 .plateNumber(session.getPlateNumber())
-                .vehicleTypeId(String.valueOf(vehicleType.getId()))
+                .vehicleTypeId(vehicleType.getId())
                 .vehicleTypeName(vehicleType.getName())
                 .checkInAt(session.getCheckInAt())
                 .calculatedAt(now)

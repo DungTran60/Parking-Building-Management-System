@@ -9,10 +9,10 @@ import java.time.LocalDateTime;
 @AllArgsConstructor
 @Builder
 public class ParkingSlotResponseDto {
-    private String id;
+    private Long id;
     private String code;
-    private String floorId;
-    private String vehicleTypeId;
+    private Long floorId;
+    private Long vehicleTypeId;
     private SlotStatus status;
     private LocalDateTime updatedAt;
 }

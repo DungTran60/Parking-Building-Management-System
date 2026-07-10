@@ -152,7 +152,7 @@ public class ReservationServiceImpl implements ReservationService {
         return ReservationResponseDto.builder()
                 .id(r.getId())
                 .plateNumber(r.getPlateNumber())
-                .vehicleTypeId(String.valueOf(r.getVehicleType().getId()))
+                .vehicleTypeId(r.getVehicleType().getId())
                 .vehicleTypeName(r.getVehicleType().getName())
                 .slotId(r.getSlot().getId())
                 .slotCode(r.getSlot().getCode())
