@@ -27,19 +27,18 @@ public class SystemSettingsServiceImpl implements SystemSettingsService {
     @Override
     @Transactional
     public SystemSettingsResponseDto updateSettings(SystemSettingsRequestDto request) {
-        // Validate: openingTime và closingTime không được giống nhau
-        if (request.getOpeningTime().equals(request.getClosingTime())) {
-            throw new BadRequestException("Opening time and closing time must not be the same");
-        }
 
         SystemSettings settings = systemSettingsRepository.findById(SINGLETON_ID)
                 .orElse(SystemSettings.builder().id(SINGLETON_ID).build());
 
         settings.setSystemName(request.getSystemName());
-        settings.setOpeningTime(request.getOpeningTime());
-        settings.setClosingTime(request.getClosingTime());
-        settings.setPaymentMode(request.getPaymentMode());
-        settings.setAutoBlockOverdueSlots(request.getAutoBlockOverdueSlots());
+        settings.setPasswordPolicy(request.getPasswordPolicy());
+        settings.setSessionTimeout(request.getSessionTimeout());
+        settings.setLogoUrl(request.getLogoUrl());
+        settings.setVersion(request.getVersion());
+        settings.setThemeColor(request.getThemeColor());
+        settings.setTimezone(request.getTimezone());
+        settings.setDateFormat(request.getDateFormat());
 
         SystemSettings saved = systemSettingsRepository.save(settings);
         return toDto(saved);
@@ -48,10 +47,13 @@ public class SystemSettingsServiceImpl implements SystemSettingsService {
     private SystemSettingsResponseDto toDto(SystemSettings s) {
         return SystemSettingsResponseDto.builder()
                 .systemName(s.getSystemName())
-                .openingTime(s.getOpeningTime())
-                .closingTime(s.getClosingTime())
-                .paymentMode(s.getPaymentMode())
-                .autoBlockOverdueSlots(s.isAutoBlockOverdueSlots())
+                .passwordPolicy(s.getPasswordPolicy())
+                .sessionTimeout(s.getSessionTimeout())
+                .logoUrl(s.getLogoUrl())
+                .version(s.getVersion())
+                .themeColor(s.getThemeColor())
+                .timezone(s.getTimezone())
+                .dateFormat(s.getDateFormat())
                 .updatedAt(s.getUpdatedAt())
                 .build();
     }

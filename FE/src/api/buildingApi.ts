@@ -1,37 +1,34 @@
-import { httpClient } from "./httpClient";
+import { httpClient } from "@/api/httpClient";
+
+export type PaymentMode = "CASH" | "CASHLESS" | "HYBRID";
 
 export interface Building {
   id?: number;
   buildingName: string;
   address: string;
   totalFloors: number;
+  hotline?: string;
+  email?: string;
+  openingTime?: string;
+  closingTime?: string;
+  description?: string;
+  parkingRules?: string;
+  paymentMode?: PaymentMode;
+  autoBlockOverdueSlots?: boolean;
+  avatarUrl?: string;
   createdAt?: string;
 }
 
-export type BuildingPayload = Pick<Building, "buildingName" | "address">;
+export type BuildingPayload = Pick<Building, "buildingName" | "address" | "hotline" | "email" | "openingTime" | "closingTime" | "description" | "parkingRules" | "paymentMode" | "autoBlockOverdueSlots" | "avatarUrl">;
 
 export const buildingApi = {
-  getAll: async (): Promise<Building[]> => {
-    const response = await httpClient.get<Building[]>("/buildings");
+  get: async (): Promise<Building> => {
+    const response = await httpClient.get<Building>("/building");
     return response.data;
   },
 
-  getById: async (id: number): Promise<Building> => {
-    const response = await httpClient.get<Building>(`/buildings/${id}`);
+  update: async (building: BuildingPayload): Promise<Building> => {
+    const response = await httpClient.put<Building>("/building", building);
     return response.data;
-  },
-
-  create: async (building: BuildingPayload): Promise<Building> => {
-    const response = await httpClient.post<Building>("/buildings", building);
-    return response.data;
-  },
-
-  update: async (id: number, building: BuildingPayload): Promise<Building> => {
-    const response = await httpClient.put<Building>(`/buildings/${id}`, building);
-    return response.data;
-  },
-
-  delete: async (id: number): Promise<void> => {
-    await httpClient.delete(`/buildings/${id}`);
   }
 };

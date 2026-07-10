@@ -1,10 +1,10 @@
-﻿import { useMemo, useState } from "react";
+import { useMemo, useState } from "react";
 import { Link } from "react-router-dom";
 import { useQuery } from "@tanstack/react-query";
 import { ArrowRight, BatteryCharging, CalendarClock, Car, Check, Clock, MessageCircle, Phone, RefreshCw, Truck } from "lucide-react";
 import { floorApi } from "@/api/floorApi";
-import { pricingApi, type Pricing } from "@/api/pricingApi";
-import { settingApi, type SystemSettingsResponse } from "@/api/settingApi";
+import { pricingApi, Pricing } from "@/api/pricingApi";
+import { buildingApi, Building, PaymentMode } from "@/api/buildingApi";
 import { slotApi } from "@/api/slotApi";
 import { vehicleTypeApi } from "@/api/vehicleTypeApi";
 import { Card, CardContent, CardHeader } from "@/components/common/Card";
@@ -20,7 +20,7 @@ const vehicleIcons: Record<string, typeof Car> = {
   COACH: Truck
 };
 
-const PAYMENT_MODE_LABELS: Record<SystemSettingsResponse["paymentMode"], string> = {
+const PAYMENT_MODE_LABELS: Record<PaymentMode, string> = {
   CASH: "Tiền mặt",
   CASHLESS: "Không tiền mặt",
   HYBRID: "Kết hợp"
@@ -43,7 +43,7 @@ export function ParkingInfoPage() {
 
   const settingsQuery = useQuery({
     queryKey: ["parking-info", "settings"],
-    queryFn: settingApi.get
+    queryFn: buildingApi.get
   });
   const floorsQuery = useQuery({
     queryKey: ["parking-info", "floors"],
@@ -101,13 +101,13 @@ export function ParkingInfoPage() {
   }), [floors, slots]);
   const lastUpdatedAt = useMemo(() => {
     const timestamps = [
-      settings?.updatedAt,
+      settings?.createdAt,
       ...slots.map((slot) => slot.updatedAt),
       ...pricingRows.map((pricing) => pricing.updatedAt)
     ].filter(Boolean) as string[];
     if (timestamps.length === 0) return new Date().toISOString();
     return timestamps.reduce((latest, current) => (current > latest ? current : latest), timestamps[0]);
-  }, [pricingRows, settings?.updatedAt, slots]);
+  }, [pricingRows, settings?.createdAt, slots]);
 
   if (firstError) {
     return <>
@@ -130,9 +130,9 @@ export function ParkingInfoPage() {
     </>;
   }
 
-  const operatingHours = `${settings.openingTime} - ${settings.closingTime}`;
-  const paymentModeLabel = PAYMENT_MODE_LABELS[settings.paymentMode];
-  const autoBlockLabel = settings.autoBlockOverdueSlots ? "Bật" : "Tắt";
+  const operatingHours = `${settings.openingTime ?? "06:00"} - ${settings.closingTime ?? "23:00"}`;
+  const paymentModeLabel = PAYMENT_MODE_LABELS[settings.paymentMode ?? "HYBRID"];
+  const autoBlockLabel = (settings.autoBlockOverdueSlots ?? true) ? "Bật" : "Tắt";
 
   return (
     <>
@@ -141,7 +141,7 @@ export function ParkingInfoPage() {
       <Card className="mb-6 overflow-hidden border-blue-200 bg-gradient-to-r from-blue-600 to-blue-700 text-white">
         <CardContent className="flex flex-col gap-5 sm:flex-row sm:items-center sm:justify-between">
           <div>
-            <p className="text-lg font-semibold">{settings.systemName}</p>
+            <p className="text-lg font-semibold">{settings.buildingName}</p>
             <p className="mt-1 text-sm text-blue-100">Giữ chỗ trước để tiết kiệm thời gian; nhân viên sẽ tạo lượt gửi khi bạn đến.</p>
           </div>
           <Link to="/app/reservations" className="inline-flex h-10 items-center justify-center gap-2 rounded-md bg-white px-4 text-sm font-medium text-blue-700 transition hover:bg-blue-50">
@@ -160,9 +160,9 @@ export function ParkingInfoPage() {
       <Card className="mt-6">
         <CardHeader title="Cấu hình hệ thống" />
         <CardContent className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
-          <InfoCard label="Tên hệ thống" value={settings.systemName} />
-          <InfoCard label="Giờ mở cửa" value={settings.openingTime} />
-          <InfoCard label="Giờ đóng cửa" value={settings.closingTime} />
+          <InfoCard label="Tên hệ thống" value={settings.buildingName} />
+          <InfoCard label="Giờ mở cửa" value={settings.openingTime ?? "06:00"} />
+          <InfoCard label="Giờ đóng cửa" value={settings.closingTime ?? "23:00"} />
           <InfoCard label="Phương thức thanh toán" value={paymentModeLabel} />
           <InfoCard label="Tự động khóa slot quá hạn" value={autoBlockLabel} />
           <InfoCard label="Cập nhật cuối" value={dateTime(lastUpdatedAt)} />

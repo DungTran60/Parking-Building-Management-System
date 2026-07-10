@@ -1,5 +1,5 @@
 import { useCallback, useMemo, useState, type FormEvent } from "react";
-import { Building2, CarFront, Layers3, MapPin, Pencil, Plus, SquareParking } from "lucide-react";
+import { Layers3, MapPin, Pencil, Plus, SquareParking, CarFront } from "lucide-react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { floorApi } from "@/api/floorApi";
 import { vehicleTypeApi } from "@/api/vehicleTypeApi";
@@ -12,36 +12,17 @@ import { PageHeader } from "@/components/layout/PageHeader";
 import { getApiErrorMessage } from "@/utils/apiError";
 import type { Floor } from "@/types/domain";
 
-// ─── Types ───────────────────────────────────────────────────────────────────
-
-interface ApiBuildingItem {
-  id?: number | string;
-  buildingName?: string;
-  name?: string;
-  address?: string;
-}
-
-function normalizeBuildingId(raw: ApiBuildingItem): string {
-  return String(raw.id ?? "");
-}
-
-function normalizeBuildingName(raw: ApiBuildingItem): string {
-  return (raw.buildingName ?? raw.name ?? "").toString();
-}
-
-// ─── Component ───────────────────────────────────────────────────────────────
-
 export function FloorsPage() {
   const queryClient = useQueryClient();
 
   // ── Remote data ──────────────────────────────────────────────────────────
   const {
-    data: buildings = [],
-    isLoading: buildingsLoading,
-    isError: buildingsError
+    data: building,
+    isLoading: buildingLoading,
+    isError: buildingError
   } = useQuery({
-    queryKey: ["buildings"],
-    queryFn: () => buildingApi.getAll()
+    queryKey: ["building"],
+    queryFn: () => buildingApi.get()
   });
 
   const { data: vehicleTypes = [] } = useQuery({
@@ -49,14 +30,7 @@ export function FloorsPage() {
     queryFn: () => vehicleTypeApi.getAll()
   });
 
-  // ── Selected building ────────────────────────────────────────────────────
-  const [selectedBuildingId, setSelectedBuildingId] = useState<string>("");
-
-  const activeBuildingId = useMemo(() => {
-    if (selectedBuildingId) return selectedBuildingId;
-    if (buildings.length > 0) return normalizeBuildingId(buildings[0] as ApiBuildingItem);
-    return "";
-  }, [selectedBuildingId, buildings]);
+  const activeBuildingId = building?.id ? String(building.id) : "";
 
   // ── Floors for selected building ─────────────────────────────────────────
   const {
@@ -139,12 +113,6 @@ export function FloorsPage() {
     setFormOpen(true);
   }, []);
 
-  const selectBuilding = useCallback((id: string) => {
-    setSelectedBuildingId(id);
-    setSelectedFloorId(null);
-    setDeleteError(null);
-  }, []);
-
   const submitFloor = useCallback(
     (event: FormEvent<HTMLFormElement>) => {
       event.preventDefault();
@@ -194,22 +162,22 @@ export function FloorsPage() {
   }, [selectedFloor, selectedFloorStats]);
 
   // ── Render ───────────────────────────────────────────────────────────────
-  if (buildingsLoading) {
+  if (buildingLoading) {
     return (
       <>
-        <PageHeader title="Phân tầng" description="Chọn tòa nhà để quản lý danh sách tầng." />
+        <PageHeader title="Phân tầng" description="Cấu hình danh sách tầng, khu vực, sức chứa và loại xe hỗ trợ." />
         <Card><CardContent className="py-12 text-center text-sm text-slate-500">Đang tải dữ liệu...</CardContent></Card>
       </>
     );
   }
 
-  if (buildingsError) {
+  if (buildingError) {
     return (
       <>
-        <PageHeader title="Phân tầng" description="Chọn tòa nhà để quản lý danh sách tầng." />
+        <PageHeader title="Phân tầng" description="Cấu hình danh sách tầng, khu vực, sức chứa và loại xe hỗ trợ." />
         <Card>
           <CardContent className="grid justify-items-center gap-3 py-12 text-center">
-            <p className="text-sm text-red-600">Không thể tải danh sách tòa nhà. Vui lòng thử lại.</p>
+            <p className="text-sm text-red-600">Không thể tải cấu hình tòa nhà. Vui lòng thiết lập cấu hình tòa nhà trước.</p>
           </CardContent>
         </Card>
       </>
@@ -218,88 +186,60 @@ export function FloorsPage() {
 
   return (
     <>
-      <PageHeader title="Phân tầng" description="Chọn tòa nhà để quản lý danh sách tầng, khu vực, sức chứa và loại xe hỗ trợ." />
-      <div className="grid items-start gap-6 lg:grid-cols-[minmax(240px,30%)_minmax(0,70%)]">
-        {/* Building list */}
-        <Card className="lg:sticky lg:top-20">
-          <CardHeader title="Tòa nhà" />
-          <CardContent className="grid gap-2">
-            {buildings.map((building) => {
-              const bld = building as ApiBuildingItem;
-              const bldId = normalizeBuildingId(bld);
-              const active = bldId === activeBuildingId;
-              return (
-                <button
-                  key={bldId}
-                  type="button"
-                  onClick={() => selectBuilding(bldId)}
-                  className={`flex items-center gap-3 rounded-lg border p-3 text-left transition ${active ? "border-primary bg-blue-50 ring-1 ring-primary/20" : "border-border hover:bg-slate-50"}`}
-                >
-                  <span className={`flex h-9 w-9 shrink-0 items-center justify-center rounded-lg ${active ? "bg-primary text-white" : "bg-slate-100 text-slate-500"}`}>
-                    <Building2 size={18} />
-                  </span>
-                  <span className="min-w-0">
-                    <span className="block truncate text-sm font-semibold text-slate-800">{normalizeBuildingName(bld)}</span>
-                    <span className="text-xs text-slate-500">{bld.address ?? ""}</span>
-                  </span>
-                </button>
-              );
-            })}
+      <PageHeader title="Phân tầng" description="Cấu hình danh sách tầng, khu vực, sức chứa và loại xe hỗ trợ." />
+      <div className="mt-6 grid gap-6 xl:grid-cols-[1fr_360px]">
+        {/* Floor list */}
+        <Card>
+          <CardHeader
+            title="Danh sách tầng"
+            action={<Button onClick={openCreate}><Plus size={17} /> Tạo tầng mới</Button>}
+          />
+          <CardContent>
+            {deleteError && (
+              <div role="alert" className="mb-4 rounded-lg border border-red-200 bg-red-50 px-3 py-2.5 text-sm text-red-700">
+                {deleteError}
+              </div>
+            )}
+            {floorsLoading ? (
+              <p className="py-8 text-center text-sm text-slate-500">Đang tải tầng...</p>
+            ) : floorsError ? (
+              <div className="grid justify-items-center gap-3 py-8 text-center">
+                <p className="text-sm text-red-600">Không thể tải danh sách tầng.</p>
+                <Button variant="secondary" onClick={() => void refetchFloors()}>Thử lại</Button>
+              </div>
+            ) : floors.length ? (
+              <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
+                {floors.map((floor) => {
+                  const active = selectedFloor?.id === floor.id;
+                  return (
+                    <button
+                      key={floor.id}
+                      type="button"
+                      onClick={() => setSelectedFloorId(floor.id)}
+                      className={`rounded-lg border p-4 text-left transition ${active ? "border-primary bg-blue-50 ring-1 ring-primary/20" : "border-border hover:border-slate-300 hover:bg-slate-50"}`}
+                    >
+                      <div className="flex items-start justify-between gap-3">
+                        <span className="flex h-10 w-10 flex-shrink-0 items-center justify-center rounded-lg bg-white text-primary shadow-sm"><Layers3 size={20} /></span>
+                        <span className="rounded-full flex-shrink-0 bg-slate-100 px-2.5 py-1 text-xs font-medium text-slate-600">{floor.slotCount} slot</span>
+                      </div>
+                      <p className="mt-3 text-lg font-semibold text-slate-900">{floor.name}</p>
+                      <p className="mt-1 truncate text-sm text-slate-500">{floor.zone}</p>
+                    </button>
+                  );
+                })}
+              </div>
+            ) : (
+              <div className="rounded-lg border border-dashed border-slate-300 py-12 text-center">
+                <Layers3 className="mx-auto text-slate-300" size={36} />
+                <p className="mt-2 text-sm font-medium text-slate-600">Tòa nhà chưa có tầng</p>
+                <button type="button" onClick={openCreate} className="mt-2 text-sm font-medium text-primary">Tạo tầng đầu tiên</button>
+              </div>
+            )}
           </CardContent>
         </Card>
 
-        <div className="grid gap-6">
-          {/* Floor list */}
-          <Card>
-            <CardHeader
-              title={activeBuildingId ? (normalizeBuildingName((buildings.find((b) => normalizeBuildingId(b as ApiBuildingItem) === activeBuildingId) ?? {}) as ApiBuildingItem) || "Danh sách tầng") : "Danh sách tầng"}
-              action={<Button onClick={openCreate}><Plus size={17} /> Tạo tầng mới</Button>}
-            />
-            <CardContent>
-              {deleteError && (
-                <div role="alert" className="mb-4 rounded-lg border border-red-200 bg-red-50 px-3 py-2.5 text-sm text-red-700">
-                  {deleteError}
-                </div>
-              )}
-              {floorsLoading ? (
-                <p className="py-8 text-center text-sm text-slate-500">Đang tải tầng...</p>
-              ) : floorsError ? (
-                <div className="grid justify-items-center gap-3 py-8 text-center">
-                  <p className="text-sm text-red-600">Không thể tải danh sách tầng.</p>
-                  <Button variant="secondary" onClick={() => void refetchFloors()}>Thử lại</Button>
-                </div>
-              ) : floors.length ? (
-                <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-3">
-                  {floors.map((floor) => {
-                    const active = selectedFloor?.id === floor.id;
-                    return (
-                      <button
-                        key={floor.id}
-                        type="button"
-                        onClick={() => setSelectedFloorId(floor.id)}
-                        className={`rounded-lg border p-4 text-left transition ${active ? "border-primary bg-blue-50 ring-1 ring-primary/20" : "border-border hover:border-slate-300 hover:bg-slate-50"}`}
-                      >
-                        <div className="flex items-start justify-between gap-3">
-                          <span className="flex h-10 w-10 items-center justify-center rounded-lg bg-white text-primary shadow-sm"><Layers3 size={20} /></span>
-                          <span className="rounded-full bg-slate-100 px-2.5 py-1 text-xs font-medium text-slate-600">{floor.slotCount} slot</span>
-                        </div>
-                        <p className="mt-3 text-lg font-semibold text-slate-900">{floor.name}</p>
-                        <p className="mt-1 truncate text-sm text-slate-500">{floor.zone}</p>
-                      </button>
-                    );
-                  })}
-                </div>
-              ) : (
-                <div className="rounded-lg border border-dashed border-slate-300 py-12 text-center">
-                  <Layers3 className="mx-auto text-slate-300" size={36} />
-                  <p className="mt-2 text-sm font-medium text-slate-600">Tòa nhà chưa có tầng</p>
-                  <button onClick={openCreate} className="mt-2 text-sm font-medium text-primary">Tạo tầng đầu tiên</button>
-                </div>
-              )}
-            </CardContent>
-          </Card>
-
-          {/* Floor detail */}
+        {/* Floor detail sidebar */}
+        <div className="grid content-start gap-6">
           {selectedFloor && (
             <Card>
               <CardHeader
@@ -324,7 +264,7 @@ export function FloorsPage() {
                 }
               />
               <CardContent className="grid gap-5">
-                <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
+                <div className="grid gap-3 grid-cols-2">
                   <Stat icon={<MapPin size={18} />} label="Khu vực" value={selectedFloor.zone || "—"} />
                   <Stat icon={<SquareParking size={18} />} label="Tổng số slot" value={String(floorStats.total)} />
                   <Stat icon={<Layers3 size={18} />} label="Loại xe hỗ trợ" value={String(selectedFloor.supportedVehicleTypes.length)} />
@@ -369,7 +309,7 @@ export function FloorsPage() {
             <legend className="mb-2 text-sm font-medium text-slate-700">Loại xe hỗ trợ</legend>
             <div className="grid gap-2 sm:grid-cols-3">
               {vehicleTypes.map((vt) => (
-                <label key={vt.id} className="flex items-center gap-2 rounded-md border border-border p-3 text-sm cursor-pointer">
+                <label key={vt.id} className="flex flex-1 items-center gap-2 rounded-md border border-border p-3 text-sm cursor-pointer whitespace-nowrap overflow-hidden text-ellipsis">
                   <input
                     name="vehicleTypes"
                     type="checkbox"

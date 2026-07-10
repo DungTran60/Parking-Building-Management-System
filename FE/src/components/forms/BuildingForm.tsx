@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from "react";
-import { X, Building2, MapPin, Save } from "lucide-react";
+import { X, Building2, MapPin, Save, Phone, Mail, FileText, FileWarning, Image as ImageIcon } from "lucide-react";
 import type { Building, BuildingPayload } from "@/api/buildingApi";
 
 interface BuildingFormProps {
@@ -17,15 +17,30 @@ export const BuildingForm: React.FC<BuildingFormProps> = ({
 }) => {
     const [buildingName, setBuildingName] = useState("");
     const [address, setAddress] = useState("");
+    const [hotline, setHotline] = useState("");
+    const [email, setEmail] = useState("");
+    const [description, setDescription] = useState("");
+    const [parkingRules, setParkingRules] = useState("");
+    const [avatarUrl, setAvatarUrl] = useState("");
     const [errors, setErrors] = useState<Record<string, string>>({});
 
     useEffect(() => {
         if (building) {
             setBuildingName(building.buildingName);
             setAddress(building.address);
+            setHotline(building.hotline || "");
+            setEmail(building.email || "");
+            setDescription(building.description || "");
+            setParkingRules(building.parkingRules || "");
+            setAvatarUrl(building.avatarUrl || "");
         } else {
             setBuildingName("");
             setAddress("");
+            setHotline("");
+            setEmail("");
+            setDescription("");
+            setParkingRules("");
+            setAvatarUrl("");
         }
         setErrors({});
     }, [building]);
@@ -53,7 +68,12 @@ export const BuildingForm: React.FC<BuildingFormProps> = ({
         if (validate()) {
             onSubmit({
                 buildingName: buildingName.trim(),
-                address: address.trim()
+                address: address.trim(),
+                hotline: hotline.trim(),
+                email: email.trim(),
+                description: description.trim(),
+                parkingRules: parkingRules.trim(),
+                avatarUrl: avatarUrl.trim()
             });
         }
     };
@@ -114,6 +134,83 @@ export const BuildingForm: React.FC<BuildingFormProps> = ({
                                 }`}
                         />
                         {errors.address && <p className="mt-1 text-xs text-red-500">{errors.address}</p>}
+                    </div>
+
+                    <div className="grid gap-4 md:grid-cols-2">
+                        {/* Hotline */}
+                        <div>
+                            <label className="block text-sm font-medium text-slate-700 mb-1.5 flex items-center gap-1">
+                                <Phone className="h-4 w-4 text-slate-400" />
+                                Hotline
+                            </label>
+                            <input
+                                type="tel"
+                                value={hotline}
+                                onChange={(e) => setHotline(e.target.value)}
+                                placeholder="090123..."
+                                className="w-full rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm text-slate-800 placeholder-slate-400 focus:outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-100 transition"
+                            />
+                        </div>
+
+                        {/* Email */}
+                        <div>
+                            <label className="block text-sm font-medium text-slate-700 mb-1.5 flex items-center gap-1">
+                                <Mail className="h-4 w-4 text-slate-400" />
+                                Email
+                            </label>
+                            <input
+                                type="email"
+                                value={email}
+                                onChange={(e) => setEmail(e.target.value)}
+                                placeholder="abc@email.com"
+                                className="w-full rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm text-slate-800 placeholder-slate-400 focus:outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-100 transition"
+                            />
+                        </div>
+                    </div>
+
+                    {/* Avatar URL */}
+                    <div>
+                        <label className="block text-sm font-medium text-slate-700 mb-1.5 flex items-center gap-1">
+                            <ImageIcon className="h-4 w-4 text-slate-400" />
+                            Ảnh đại diện (URL)
+                        </label>
+                        <input
+                            type="text"
+                            value={avatarUrl}
+                            onChange={(e) => setAvatarUrl(e.target.value)}
+                            placeholder="https://..."
+                            className="w-full rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm text-slate-800 placeholder-slate-400 focus:outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-100 transition"
+                        />
+                    </div>
+
+                    {/* Mô tả */}
+                    <div>
+                        <label className="block text-sm font-medium text-slate-700 mb-1.5 flex items-center gap-1">
+                            <FileText className="h-4 w-4 text-slate-400" />
+                            Mô tả tòa nhà
+                        </label>
+                        <textarea
+                            value={description}
+                            onChange={(e) => setDescription(e.target.value)}
+                            placeholder="Nhập mô tả..."
+                            rows={3}
+                            className="w-full rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm text-slate-800 placeholder-slate-400 focus:outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-100 transition resize-none"
+                        />
+                    </div>
+
+                    {/* Rules */}
+                    <div>
+                        <label className="block text-sm font-medium text-slate-700 mb-1.5 flex items-center gap-1">
+                            <FileWarning className="h-4 w-4 text-slate-400" />
+                            Quy định gửi xe
+                        </label>
+                        <textarea
+                            value={parkingRules}
+                            onChange={(e) => setParkingRules(e.target.value)}
+                            placeholder="Nhập quy định..."
+                            rows={3}
+                            className="w-full rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm text-slate-800 placeholder-slate-400 focus:outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-100 transition resize-none"
+                        />
                     </div>
 
                     {/* Actions */}

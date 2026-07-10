@@ -10,9 +10,12 @@ import java.time.LocalDateTime;
 @Builder
 public class SystemSettingsResponseDto {
     private String systemName;
-    private String openingTime;
-    private String closingTime;
-    private PaymentMode paymentMode;
-    private boolean autoBlockOverdueSlots;
+    private String passwordPolicy;
+    private Integer sessionTimeout;
+    private String logoUrl;
+    private String version;
+    private String themeColor;
+    private String timezone;
+    private String dateFormat;
     private LocalDateTime updatedAt;
 }
