@@ -13,47 +13,25 @@ import org.springframework.web.bind.annotation.*;
 import java.util.List;
 
 @RestController
-@RequestMapping("/api/buildings")
+@RequestMapping("/api/building")
 @RequiredArgsConstructor
 public class BuildingController {
 
     private final BuildingService buildingService;
 
-    @PostMapping
-    @PreAuthorize("hasRole('MANAGER')")
-    public ResponseEntity<BuildingResponseDto> createBuilding(@Valid @RequestBody BuildingRequestDto dto) {
-        BuildingResponseDto created = buildingService.createBuilding(dto);
-        return new ResponseEntity<>(created, HttpStatus.CREATED);
-    }
-
-    @GetMapping("/{id}")
+    @GetMapping
     @PreAuthorize("isAuthenticated()")
-    public ResponseEntity<BuildingResponseDto> getBuildingById(@PathVariable Long id) {
-        BuildingResponseDto building = buildingService.getBuildingById(id);
+    public ResponseEntity<BuildingResponseDto> getBuilding() {
+        BuildingResponseDto building = buildingService.getBuilding();
         return ResponseEntity.ok(building);
     }
 
-    @GetMapping
-    @PreAuthorize("isAuthenticated()")
-    public ResponseEntity<List<BuildingResponseDto>> getAllBuildings() {
-        List<BuildingResponseDto> buildings = buildingService.getAllBuildings();
-        return ResponseEntity.ok(buildings);
-    }
-
-    @PutMapping("/{id}")
+    @PutMapping
     @PreAuthorize("hasRole('MANAGER')")
     public ResponseEntity<BuildingResponseDto> updateBuilding(
-            @PathVariable Long id,
             @Valid @RequestBody BuildingRequestDto dto
     ) {
-        BuildingResponseDto updated = buildingService.updateBuilding(id, dto);
+        BuildingResponseDto updated = buildingService.updateBuilding(dto);
         return ResponseEntity.ok(updated);
-    }
-
-    @DeleteMapping("/{id}")
-    @PreAuthorize("hasRole('MANAGER')")
-    public ResponseEntity<Void> deleteBuilding(@PathVariable Long id) {
-        buildingService.deleteBuilding(id);
-        return ResponseEntity.noContent().build();
     }
 }

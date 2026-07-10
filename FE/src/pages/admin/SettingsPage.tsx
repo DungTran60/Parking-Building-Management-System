@@ -1,7 +1,7 @@
 import { type FormEvent, useEffect, useMemo, useState } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import axios from "axios";
-import { CheckCircle2, Clock3, CreditCard, RotateCcw, Save, Settings2 } from "lucide-react";
+import { CheckCircle2, Clock3, CreditCard, RotateCcw, Save, Settings2, ShieldCheck, Palette, Globe } from "lucide-react";
 import { settingApi, type SystemSettingsResponse, type UpdateSystemSettingsRequest } from "@/api/settingApi";
 import { Button } from "@/components/common/Button";
 import { Card, CardContent, CardHeader } from "@/components/common/Card";
@@ -10,10 +10,13 @@ import { Field, Input, Select } from "@/components/forms/FormField";
 
 const FALLBACK_SETTINGS: UpdateSystemSettingsRequest = {
   systemName: "Parking Building Management",
-  openingTime: "06:00",
-  closingTime: "23:00",
-  paymentMode: "HYBRID",
-  autoBlockOverdueSlots: true
+  passwordPolicy: "medium",
+  sessionTimeout: 30,
+  logoUrl: "",
+  version: "1.0.0",
+  themeColor: "#blue",
+  timezone: "Asia/Ho_Chi_Minh",
+  dateFormat: "DD/MM/YYYY"
 };
 
 export function SettingsPage() {
@@ -29,10 +32,13 @@ export function SettingsPage() {
     if (savedSettings) {
       setForm({
         systemName: savedSettings.systemName,
-        openingTime: savedSettings.openingTime,
-        closingTime: savedSettings.closingTime,
-        paymentMode: savedSettings.paymentMode,
-        autoBlockOverdueSlots: savedSettings.autoBlockOverdueSlots
+        passwordPolicy: savedSettings.passwordPolicy,
+        sessionTimeout: savedSettings.sessionTimeout,
+        logoUrl: savedSettings.logoUrl,
+        version: savedSettings.version,
+        themeColor: savedSettings.themeColor,
+        timezone: savedSettings.timezone,
+        dateFormat: savedSettings.dateFormat
       });
     } else if (isError) {
       setForm({ ...FALLBACK_SETTINGS });
@@ -48,21 +54,18 @@ export function SettingsPage() {
   });
 
   const errors = useMemo(() => ({
-    systemName: form?.systemName.trim() ? "" : "Tên hệ thống không được để trống.",
-    openingTime: form?.openingTime ? "" : "Vui lòng chọn giờ mở cửa.",
-    closingTime: !form?.closingTime
-      ? "Vui lòng chọn giờ đóng cửa."
-      : form.closingTime === form.openingTime
-        ? "Giờ đóng cửa phải khác giờ mở cửa."
-        : ""
+    systemName: form?.systemName.trim() ? "" : "Tên hệ thống không được để trống."
   }), [form]);
   const isValid = !Object.values(errors).some(Boolean);
   const savedForm = savedSettings ? {
     systemName: savedSettings.systemName,
-    openingTime: savedSettings.openingTime,
-    closingTime: savedSettings.closingTime,
-    paymentMode: savedSettings.paymentMode,
-    autoBlockOverdueSlots: savedSettings.autoBlockOverdueSlots
+    passwordPolicy: savedSettings.passwordPolicy,
+    sessionTimeout: savedSettings.sessionTimeout,
+    logoUrl: savedSettings.logoUrl,
+    version: savedSettings.version,
+    themeColor: savedSettings.themeColor,
+    timezone: savedSettings.timezone,
+    dateFormat: savedSettings.dateFormat
   } : null;
   const isDirty = Boolean(form && savedForm && JSON.stringify(form) !== JSON.stringify(savedForm));
   const isReadOnly = !savedSettings;
@@ -129,27 +132,39 @@ export function SettingsPage() {
         </Card>
 
         <Card>
-          <CardHeader title="Thời gian hoạt động" action={<Clock3 size={19} className="text-slate-400" />} />
+          <CardHeader title="Bảo mật & Phiên" action={<ShieldCheck size={19} className="text-slate-400" />} />
           <CardContent className="grid gap-4 md:grid-cols-2">
-            <Field label="Giờ mở cửa" error={submitted ? errors.openingTime : undefined}><Input type="time" value={form.openingTime} onChange={(event) => update("openingTime", event.target.value)} disabled={isReadOnly} /></Field>
-            <Field label="Giờ đóng cửa" error={submitted ? errors.closingTime : undefined}><Input type="time" value={form.closingTime} onChange={(event) => update("closingTime", event.target.value)} disabled={isReadOnly} /></Field>
-            <p className="text-xs text-slate-500 md:col-span-2">Giờ đóng cửa nhỏ hơn giờ mở cửa được hiểu là lịch hoạt động qua đêm.</p>
+            <Field label="Chính sách mật khẩu">
+              <Select value={form.passwordPolicy ?? "medium"} onChange={(event) => update("passwordPolicy", event.target.value)} disabled={isReadOnly}>
+                <option value="low">Thấp</option>
+                <option value="medium">Trung bình</option>
+                <option value="high">Cao</option>
+              </Select>
+            </Field>
+            <Field label="Thời gian Timeout phiên (phút)">
+              <Input type="number" value={form.sessionTimeout ?? 30} onChange={(event) => update("sessionTimeout", parseInt(event.target.value, 10) || 30)} disabled={isReadOnly} />
+            </Field>
           </CardContent>
         </Card>
 
         <Card>
-          <CardHeader title="Thanh toán và vận hành" action={<CreditCard size={19} className="text-slate-400" />} />
+          <CardHeader title="Hệ thống & Hiển thị" action={<Palette size={19} className="text-slate-400" />} />
           <CardContent className="grid gap-4 md:grid-cols-2">
-            <Field label="Phương thức thanh toán">
-              <Select value={form.paymentMode} onChange={(event) => update("paymentMode", event.target.value as UpdateSystemSettingsRequest["paymentMode"])} disabled={isReadOnly}><option value="CASH">Tiền mặt</option><option value="CASHLESS">Không tiền mặt</option><option value="HYBRID">Kết hợp</option></Select>
+            <Field label="Múi giờ">
+              <Input value={form.timezone ?? "Asia/Ho_Chi_Minh"} onChange={(event) => update("timezone", event.target.value)} disabled={isReadOnly} />
             </Field>
-            <Field label="Tự động khóa slot quá hạn">
-              <Select value={form.autoBlockOverdueSlots ? "true" : "false"} onChange={(event) => update("autoBlockOverdueSlots", event.target.value === "true")} disabled={isReadOnly}><option value="true">Bật</option><option value="false">Tắt</option></Select>
+            <Field label="Định dạng ngày">
+              <Input value={form.dateFormat ?? "DD/MM/YYYY"} onChange={(event) => update("dateFormat", event.target.value)} disabled={isReadOnly} />
             </Field>
-            {/* <div className="flex gap-3 rounded-lg border border-blue-100 bg-blue-50 p-4 text-sm text-blue-800 md:col-span-2">
-              <Settings2 size={19} className="mt-0.5 shrink-0" />
-              <p>Khi bật, hệ thống sẽ tự động chuyển slot giữ chỗ quá hạn sang trạng thái bị khóa để nhân viên kiểm tra.</p>
-            </div> */}
+            <Field label="Logo URL">
+              <Input value={form.logoUrl ?? ""} onChange={(event) => update("logoUrl", event.target.value)} placeholder="https://example.com/logo.png" disabled={isReadOnly} />
+            </Field>
+            <Field label="Theme Color">
+              <Input type="color" value={form.themeColor ?? "#3b82f6"} onChange={(event) => update("themeColor", event.target.value)} disabled={isReadOnly} className="h-10 p-1" />
+            </Field>
+            <Field label="Phiên bản hệ thống">
+              <Input value={form.version ?? "1.0.0"} onChange={(event) => update("version", event.target.value)} disabled={isReadOnly} />
+            </Field>
           </CardContent>
         </Card>
 

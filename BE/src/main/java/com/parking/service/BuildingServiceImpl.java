@@ -21,68 +21,42 @@ public class BuildingServiceImpl implements BuildingService {
     private final BuildingRepository buildingRepository;
     private final FloorRepository floorRepository;
 
-    @Override
-    @Transactional
-    public BuildingResponseDto createBuilding(BuildingRequestDto dto) {
-        if (buildingRepository.findByBuildingName(dto.getBuildingName()).isPresent()) {
-            throw new IllegalArgumentException("Building name already exists: " + dto.getBuildingName());
-        }
-
-        Building building = Building.builder()
-                .buildingName(dto.getBuildingName())
-                .address(dto.getAddress())
-                .build();
-
-        Building savedBuilding = buildingRepository.save(building);
-        return mapToResponseDto(savedBuilding);
-    }
+    private static final Long SINGLETON_ID = 1L;
 
     @Override
     @Transactional(readOnly = true)
-    public BuildingResponseDto getBuildingById(Long id) {
-        Building building = buildingRepository.findById(id)
-                .orElseThrow(() -> new ResourceNotFoundException("Building not found with ID: " + id));
+    public BuildingResponseDto getBuilding() {
+        Building building = buildingRepository.findById(SINGLETON_ID)
+                .orElseGet(() -> {
+                    Building defaultBuilding = Building.builder()
+                            .buildingName("Main Building")
+                            .address("Default Address")
+                            .build();
+                    return buildingRepository.save(defaultBuilding);
+                });
         return mapToResponseDto(building);
     }
 
     @Override
-    @Transactional(readOnly = true)
-    public List<BuildingResponseDto> getAllBuildings() {
-        return buildingRepository.findAll().stream()
-                .map(this::mapToResponseDto)
-                .collect(Collectors.toList());
-    }
-
-    @Override
     @Transactional
-    public BuildingResponseDto updateBuilding(Long id, BuildingRequestDto dto) {
-        Building building = buildingRepository.findById(id)
-                .orElseThrow(() -> new ResourceNotFoundException("Building not found with ID: " + id));
-
-        // If the name is changed, verify it doesn't collide with other buildings
-        if (!building.getBuildingName().equals(dto.getBuildingName())) {
-            if (buildingRepository.findByBuildingName(dto.getBuildingName()).isPresent()) {
-                throw new IllegalArgumentException("Building name already exists: " + dto.getBuildingName());
-            }
-            building.setBuildingName(dto.getBuildingName());
-        }
-
+    public BuildingResponseDto updateBuilding(BuildingRequestDto dto) {
+        Building building = buildingRepository.findById(SINGLETON_ID)
+                .orElse(Building.builder().buildingName(dto.getBuildingName()).address(dto.getAddress()).build());
+        
+        building.setBuildingName(dto.getBuildingName());
         building.setAddress(dto.getAddress());
+        building.setHotline(dto.getHotline());
+        building.setEmail(dto.getEmail());
+        building.setOpeningTime(dto.getOpeningTime());
+        building.setClosingTime(dto.getClosingTime());
+        building.setDescription(dto.getDescription());
+        building.setParkingRules(dto.getParkingRules());
+        building.setPaymentMode(dto.getPaymentMode());
+        building.setAutoBlockOverdueSlots(dto.getAutoBlockOverdueSlots());
+        building.setAvatarUrl(dto.getAvatarUrl());
 
         Building updatedBuilding = buildingRepository.save(building);
         return mapToResponseDto(updatedBuilding);
-    }
-
-    @Override
-    @Transactional
-    public void deleteBuilding(Long id) {
-        if (!buildingRepository.existsById(id)) {
-            throw new ResourceNotFoundException("Building not found with ID: " + id);
-        }
-        if (floorRepository.existsByBuildingId(id)) {
-            throw new ResourceConflictException("Cannot delete building because it still contains floors");
-        }
-        buildingRepository.deleteById(id);
     }
 
     private BuildingResponseDto mapToResponseDto(Building building) {
@@ -90,7 +64,16 @@ public class BuildingServiceImpl implements BuildingService {
                 .id(building.getId())
                 .buildingName(building.getBuildingName())
                 .address(building.getAddress())
-                .totalFloors(building.getFloors().size())
+                .hotline(building.getHotline())
+                .email(building.getEmail())
+                .openingTime(building.getOpeningTime())
+                .closingTime(building.getClosingTime())
+                .description(building.getDescription())
+                .parkingRules(building.getParkingRules())
+                .paymentMode(building.getPaymentMode())
+                .autoBlockOverdueSlots(building.getAutoBlockOverdueSlots())
+                .avatarUrl(building.getAvatarUrl())
+                .totalFloors(building.getFloors() != null ? building.getFloors().size() : 0)
                 .createdAt(building.getCreatedAt())
                 .build();
     }

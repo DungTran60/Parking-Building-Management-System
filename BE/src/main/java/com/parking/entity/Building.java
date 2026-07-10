@@ -25,6 +25,34 @@ public class Building {
     @Column(nullable = false, length = 255)
     private String address;
 
+    @Column(length = 20)
+    private String hotline;
+
+    @Column(length = 100)
+    private String email;
+
+    @Column(name = "opening_time", length = 10)
+    private String openingTime;
+
+    @Column(name = "closing_time", length = 10)
+    private String closingTime;
+
+    @Column(columnDefinition = "TEXT")
+    private String description;
+
+    @Column(name = "parking_rules", columnDefinition = "TEXT")
+    private String parkingRules;
+
+    @Enumerated(EnumType.STRING)
+    @Column(name = "payment_mode", length = 20)
+    private PaymentMode paymentMode;
+
+    @Column(name = "auto_block_overdue_slots")
+    private Boolean autoBlockOverdueSlots;
+
+    @Column(name = "avatar_url", length = 500)
+    private String avatarUrl;
+
     @Builder.Default
     @OneToMany(mappedBy = "building", cascade = CascadeType.ALL, orphanRemoval = true, fetch = FetchType.LAZY)
     private List<Floor> floors = new ArrayList<>();

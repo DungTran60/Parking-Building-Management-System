@@ -1,13 +1,14 @@
 import { httpClient } from "@/api/httpClient";
 
-export type PaymentMode = "CASH" | "CASHLESS" | "HYBRID";
-
 export interface SystemSettingsResponse {
   systemName: string;
-  openingTime: string;
-  closingTime: string;
-  paymentMode: PaymentMode;
-  autoBlockOverdueSlots: boolean;
+  passwordPolicy?: string;
+  sessionTimeout?: number;
+  logoUrl?: string;
+  version?: string;
+  themeColor?: string;
+  timezone?: string;
+  dateFormat?: string;
   updatedAt: string;
 }
 
