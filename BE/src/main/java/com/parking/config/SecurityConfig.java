@@ -35,10 +35,8 @@ public class SecurityConfig {
                 .csrf(AbstractHttpConfigurer::disable)
                 .authorizeHttpRequests(authorize -> authorize
                         .requestMatchers("/api/auth/**").permitAll()
-                        .requestMatchers(HttpMethod.POST, "/api/slots/**").hasAnyAuthority("ADMIN", "MANAGER")
-                        .requestMatchers(HttpMethod.PUT, "/api/slots/**").hasAnyAuthority("ADMIN", "MANAGER")
-                        .requestMatchers(HttpMethod.DELETE, "/api/slots/**").hasAnyAuthority("ADMIN", "MANAGER")
-                        .requestMatchers(HttpMethod.PATCH, "/api/slots/{id}/status").hasAnyAuthority("ADMIN", "MANAGER", "STAFF")
+                        // Slot mutations are enforced via @PreAuthorize at ParkingSlotController (hasRole/hasAnyRole).
+                        // The previous hasAnyAuthority("ADMIN", ...) rules never matched: JWT grants "ROLE_ADMIN", not "ADMIN".
                         .requestMatchers(HttpMethod.GET, "/api/slots/**").authenticated() // Assuming authenticated for now. If public is needed, change to permitAll()
                         .anyRequest().authenticated()
                 )

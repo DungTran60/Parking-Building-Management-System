@@ -21,7 +21,6 @@ export type Permission =
   | "reservations:selfManage"
   | "reports:view"
   | "users:manage"
-  | "roles:manage"
   | "settings:manage"
   | "buildings:manage"
   | "ai:view";
