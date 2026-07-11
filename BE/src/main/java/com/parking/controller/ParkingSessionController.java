@@ -18,7 +18,9 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.validation.annotation.Validated;
 import org.springframework.web.bind.annotation.*;
+import java.security.Principal;
 import java.time.LocalDateTime;
+import java.util.List;
 
 /**
  * REST controller cho Parking Session Management.
@@ -73,6 +75,21 @@ public class ParkingSessionController {
     @PreAuthorize("hasAnyRole('STAFF', 'MANAGER', 'ADMIN')")
     public ResponseEntity<ParkingSessionResponseDto> checkOut(@RequestParam String query) {
         return ResponseEntity.ok(parkingSessionService.checkOut(query));
+    }
+
+    /**
+     * Lượt gửi của Driver hiện tại (scope theo user đăng nhập).
+     * Dùng cho trang "Theo dõi lượt gửi xe" của Driver.
+     * Quyền: DRIVER
+     *
+     * Ví dụ: GET /api/sessions/my?status=ACTIVE
+     */
+    @GetMapping("/my")
+    @PreAuthorize("hasRole('DRIVER')")
+    public ResponseEntity<List<ParkingSessionResponseDto>> getMySessions(
+            @RequestParam(required = false) String status,
+            Principal principal) {
+        return ResponseEntity.ok(parkingSessionService.getMySessions(status, principal));
     }
 
     @GetMapping("/{id}")

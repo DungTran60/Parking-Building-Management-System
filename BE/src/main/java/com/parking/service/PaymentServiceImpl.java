@@ -6,16 +6,19 @@ import com.parking.entity.ParkingSession;
 import com.parking.entity.ParkingSlot;
 import com.parking.entity.Payment;
 import com.parking.entity.SlotStatus;
+import com.parking.entity.User;
 import com.parking.exception.ResourceNotFoundException;
 import com.parking.repository.ParkingSessionRepository;
 import com.parking.repository.ParkingSlotRepository;
 import com.parking.repository.PaymentRepository;
+import com.parking.repository.UserRepository;
 import lombok.RequiredArgsConstructor;
+import org.springframework.security.access.AccessDeniedException;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.math.BigDecimal;
-import java.time.Duration;
+import java.security.Principal;
 import java.time.LocalDateTime;
 import java.util.List;
 import java.util.stream.Collectors;
@@ -27,19 +30,38 @@ public class PaymentServiceImpl implements PaymentService {
     private final PaymentRepository paymentRepository;
     private final ParkingSessionRepository parkingSessionRepository;
     private final ParkingSlotRepository parkingSlotRepository;
+    private final PricingService pricingService;
+    private final UserRepository userRepository;
+
+    /** Resolve User hiện tại từ Principal */
+    private User getCurrentUser(Principal principal) {
+        return userRepository.findByUsername(principal.getName())
+                .orElseThrow(() -> new ResourceNotFoundException("User not found: " + principal.getName()));
+    }
+
+    private boolean isDriver(User user) {
+        return user.getRole() != null && "DRIVER".equalsIgnoreCase(user.getRole().getName());
+    }
 
     @Override
     @Transactional
-    public PaymentResponseDto createPayment(PaymentRequestDto request) {
+    public PaymentResponseDto createPayment(PaymentRequestDto request, Principal principal) {
         ParkingSession session = parkingSessionRepository.findById(Long.valueOf(request.getSessionId()))
                 .orElseThrow(() -> new ResourceNotFoundException("Parking session not found with id: " + request.getSessionId()));
 
+        // Driver chỉ thanh toán được lượt của chính mình; Staff/Manager/Admin thu hộ mọi lượt
+        User currentUser = getCurrentUser(principal);
+        if (isDriver(currentUser) && (session.getDriver() == null || !session.getDriver().getId().equals(currentUser.getId()))) {
+            throw new AccessDeniedException("Bạn không có quyền thanh toán lượt gửi này.");
+        }
+
         if ("ACTIVE".equals(session.getStatus())) {
             LocalDateTime checkOutTime = LocalDateTime.now();
-            long seconds = Duration.between(session.getCheckInAt(), checkOutTime).getSeconds();
-            double hours = Math.max(1.0, Math.ceil(seconds / 3600.0));
-            double hourlyRate = session.getVehicleType().getHourlyRate() != null ? session.getVehicleType().getHourlyRate() : 5000.0;
-            double fee = hours * hourlyRate;
+            double fee = pricingService.calculateOvernightFee(
+                    session.getCheckInAt(),
+                    checkOutTime,
+                    String.valueOf(session.getVehicleType().getId())
+            ).getTotal().doubleValue();
 
             session.setCheckOutAt(checkOutTime);
             session.setFee(fee);
@@ -64,8 +86,12 @@ public class PaymentServiceImpl implements PaymentService {
 
     @Override
     @Transactional(readOnly = true)
-    public List<PaymentResponseDto> getPaymentHistory() {
-        return paymentRepository.findAllByOrderByPaymentTimeDesc().stream()
+    public List<PaymentResponseDto> getPaymentHistory(Principal principal) {
+        User currentUser = getCurrentUser(principal);
+        List<Payment> payments = isDriver(currentUser)
+                ? paymentRepository.findBySessionDriverIdOrderByPaymentTimeDesc(currentUser.getId())
+                : paymentRepository.findAllByOrderByPaymentTimeDesc();
+        return payments.stream()
                 .map(this::convertToDto)
                 .collect(Collectors.toList());
     }

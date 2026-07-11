@@ -21,6 +21,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.math.BigDecimal;
+import java.security.Principal;
 import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
 import java.util.List;
@@ -38,6 +39,7 @@ public class ParkingSessionServiceImpl implements ParkingSessionService {
     private final PricingRepository             pricingRepository;
     private final ReservationRepository         reservationRepository;
     private final ParkingSessionSpecification   parkingSessionSpecification;
+    private final UserRepository                userRepository;
     private final ParkingSessionExceptionRepository parkingSessionExceptionRepository;
     private final AuthenticationService authenticationService;
 
@@ -149,9 +151,28 @@ public class ParkingSessionServiceImpl implements ParkingSessionService {
                 .checkInAt(LocalDateTime.now())
                 .status("ACTIVE")
                 .reservation(reservation)
+                .driver(reservation != null ? reservation.getDriver() : null)
                 .fee(0.0)
                 .build();
         return parkingSessionRepository.save(session);
+    }
+
+    /** Resolve User hiện tại từ Principal */
+    private User getCurrentUser(Principal principal) {
+        return userRepository.findByUsername(principal.getName())
+                .orElseThrow(() -> new ResourceNotFoundException("User not found: " + principal.getName()));
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public List<ParkingSessionResponseDto> getMySessions(String status, Principal principal) {
+        User driver = getCurrentUser(principal);
+        List<ParkingSession> sessions = (status != null && !status.isBlank())
+                ? parkingSessionRepository.findByDriverIdAndStatus(driver.getId(), status)
+                : parkingSessionRepository.findByDriverId(driver.getId());
+        return sessions.stream()
+                .map(this::convertToDto)
+                .toList();
     }
 
     private void updateEntitiesOnCheckIn(ParkingSlot slot, Reservation reservation) {

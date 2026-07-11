@@ -6,11 +6,14 @@ import com.parking.entity.*;
 import com.parking.exception.ResourceNotFoundException;
 import com.parking.repository.ParkingSlotRepository;
 import com.parking.repository.ReservationRepository;
+import com.parking.repository.UserRepository;
 import com.parking.repository.VehicleTypeRepository;
 import lombok.RequiredArgsConstructor;
+import org.springframework.security.access.AccessDeniedException;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.security.Principal;
 import java.util.List;
 import java.util.stream.Collectors;
 
@@ -21,13 +24,21 @@ public class ReservationServiceImpl implements ReservationService {
     private final ReservationRepository reservationRepository;
     private final ParkingSlotRepository  parkingSlotRepository;
     private final VehicleTypeRepository  vehicleTypeRepository;
+    private final UserRepository         userRepository;
+
+    /** Resolve Driver hiện tại từ Principal */
+    private com.parking.entity.User getCurrentUser(Principal principal) {
+        return userRepository.findByUsername(principal.getName())
+                .orElseThrow(() -> new ResourceNotFoundException("User not found: " + principal.getName()));
+    }
 
     /* ─────────────────────────────────────────────────────
        Tạo đặt chỗ mới
     ───────────────────────────────────────────────────── */
     @Override
     @Transactional
-    public ReservationResponseDto createReservation(ReservationRequestDto dto) {
+    public ReservationResponseDto createReservation(ReservationRequestDto dto, Principal principal) {
+        com.parking.entity.User driver = getCurrentUser(principal);
 
         // 1. Validate thời gian
         if (!dto.getEndAt().isAfter(dto.getStartAt())) {
@@ -63,6 +74,7 @@ public class ReservationServiceImpl implements ReservationService {
                 .plateNumber(dto.getPlateNumber())
                 .vehicleType(vehicleType)
                 .slot(slot)
+                .driver(driver)
                 .startAt(dto.getStartAt())
                 .endAt(dto.getEndAt())
                 .status(ReservationStatus.PENDING)
@@ -88,25 +100,16 @@ public class ReservationServiceImpl implements ReservationService {
     }
 
     /* ─────────────────────────────────────────────────────
-       Lấy tất cả
+       Danh sách đặt chỗ của Driver hiện tại (scope theo user)
     ───────────────────────────────────────────────────── */
     @Override
     @Transactional(readOnly = true)
-    public List<ReservationResponseDto> getAllReservations() {
-        return reservationRepository.findAll()
-                .stream()
-                .map(this::mapToResponse)
-                .collect(Collectors.toList());
-    }
-
-    /* ─────────────────────────────────────────────────────
-       Lọc theo trạng thái
-    ───────────────────────────────────────────────────── */
-    @Override
-    @Transactional(readOnly = true)
-    public List<ReservationResponseDto> getReservationsByStatus(ReservationStatus status) {
-        return reservationRepository.findByStatus(status)
-                .stream()
+    public List<ReservationResponseDto> getMyReservations(ReservationStatus status, Principal principal) {
+        com.parking.entity.User driver = getCurrentUser(principal);
+        List<Reservation> reservations = (status != null)
+                ? reservationRepository.findByDriverIdAndStatus(driver.getId(), status)
+                : reservationRepository.findByDriverId(driver.getId());
+        return reservations.stream()
                 .map(this::mapToResponse)
                 .collect(Collectors.toList());
     }
@@ -133,11 +136,19 @@ public class ReservationServiceImpl implements ReservationService {
     ───────────────────────────────────────────────────── */
     @Override
     @Transactional
-    public ReservationResponseDto cancelReservation(Long id) {
+    public ReservationResponseDto cancelReservation(Long id, Principal principal) {
         Reservation r = findOrThrow(id);
+        com.parking.entity.User driver = getCurrentUser(principal);
 
-        if (r.getStatus() == ReservationStatus.CANCELLED) {
-            throw new IllegalArgumentException("Reservation is already cancelled");
+        // Chỉ chính Driver sở hữu đặt chỗ mới được hủy
+        if (r.getDriver() == null || !r.getDriver().getId().equals(driver.getId())) {
+            throw new AccessDeniedException("Bạn không có quyền hủy đặt chỗ này.");
+        }
+
+        // Chỉ hủy được khi chưa check-in (PENDING hoặc CONFIRMED) — workflow §4.4
+        if (r.getStatus() != ReservationStatus.PENDING && r.getStatus() != ReservationStatus.CONFIRMED) {
+            throw new IllegalArgumentException(
+                    "Chỉ có thể hủy đặt chỗ ở trạng thái PENDING hoặc CONFIRMED. Hiện tại: " + r.getStatus());
         }
 
         r.setStatus(ReservationStatus.CANCELLED);

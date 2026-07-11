@@ -1,6 +1,5 @@
 package com.parking.dto;
 
-import com.parking.dto.TrafficByHourAndVehicleTypeDto;
 import lombok.*;
 import java.util.List;
 

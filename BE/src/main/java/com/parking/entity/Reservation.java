@@ -35,6 +35,11 @@ public class Reservation {
     @JoinColumn(name = "slot_id", nullable = false)
     private ParkingSlot slot;
 
+    /** Tài khoản Driver tạo đặt chỗ (ManyToOne → User) */
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "driver_id", nullable = false)
+    private User driver;
+
     /** Thời gian bắt đầu khoảng đặt chỗ */
     @Column(name = "start_at", nullable = false)
     private LocalDateTime startAt;

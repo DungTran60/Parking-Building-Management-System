@@ -11,6 +11,7 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
 
+import java.security.Principal;
 import java.util.List;
 
 /**
@@ -37,23 +38,22 @@ public class ReservationController {
     @PostMapping
     @PreAuthorize("isAuthenticated()")
     public ResponseEntity<ReservationResponseDto> createReservation(
-            @Valid @RequestBody ReservationRequestDto dto) {
-        ReservationResponseDto created = reservationService.createReservation(dto);
+            @Valid @RequestBody ReservationRequestDto dto,
+            Principal principal) {
+        ReservationResponseDto created = reservationService.createReservation(dto, principal);
         return new ResponseEntity<>(created, HttpStatus.CREATED);
     }
 
     /**
-     * Lấy danh sách đặt chỗ, tùy chọn lọc theo trạng thái.
+     * Lấy danh sách đặt chỗ của user hiện tại, tùy chọn lọc theo trạng thái.
      * Ví dụ: GET /api/reservations?status=PENDING
      */
     @GetMapping
     @PreAuthorize("isAuthenticated()")
     public ResponseEntity<List<ReservationResponseDto>> getReservations(
-            @RequestParam(required = false) ReservationStatus status) {
-        List<ReservationResponseDto> list = (status != null)
-                ? reservationService.getReservationsByStatus(status)
-                : reservationService.getAllReservations();
-        return ResponseEntity.ok(list);
+            @RequestParam(required = false) ReservationStatus status,
+            Principal principal) {
+        return ResponseEntity.ok(reservationService.getMyReservations(status, principal));
     }
 
     /**
@@ -77,11 +77,11 @@ public class ReservationController {
 
     /**
      * Hủy đặt chỗ: PENDING / CONFIRMED → CANCELLED.
-     * Người dùng tự hủy đặt chỗ của mình; ADMIN / MANAGER có thể hủy bất kỳ.
+     * Chỉ chính Driver sở hữu đặt chỗ mới được hủy.
      */
     @PatchMapping("/{id}/cancel")
     @PreAuthorize("isAuthenticated()")
-    public ResponseEntity<ReservationResponseDto> cancelReservation(@PathVariable Long id) {
-        return ResponseEntity.ok(reservationService.cancelReservation(id));
+    public ResponseEntity<ReservationResponseDto> cancelReservation(@PathVariable Long id, Principal principal) {
+        return ResponseEntity.ok(reservationService.cancelReservation(id, principal));
     }
 }

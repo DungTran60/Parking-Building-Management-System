@@ -26,10 +26,10 @@ public class IncidentController {
 
     /**
      * POST /api/incidents
-     * Nhân viên hoặc Manager tạo sự cố mới.
+     * Driver hoặc Nhân viên tạo sự cố mới (workflow §5.3 bước 1).
      */
     @PostMapping
-    @PreAuthorize("hasAnyRole('ADMIN', 'MANAGER', 'STAFF')")
+    @PreAuthorize("hasAnyRole('ADMIN', 'STAFF', 'DRIVER')")
     public ResponseEntity<IncidentResponseDto> createIncident(
             @Valid @RequestBody IncidentRequestDto dto,
             Principal principal) {
@@ -89,7 +89,7 @@ public class IncidentController {
      * Bắt đầu xử lý: OPEN → IN_PROGRESS.
      */
     @PatchMapping("/{id}/process")
-    @PreAuthorize("hasAnyRole('ADMIN', 'MANAGER', 'STAFF')")
+    @PreAuthorize("hasAnyRole('ADMIN', 'STAFF')")
     public ResponseEntity<IncidentResponseDto> startProcessing(@PathVariable Long id, Principal principal) {
         return ResponseEntity.ok(incidentService.startProcessing(id, principal));
     }
@@ -99,7 +99,7 @@ public class IncidentController {
      * Giải quyết sự cố: → RESOLVED.
      */
     @PatchMapping("/{id}/resolve")
-    @PreAuthorize("hasAnyRole('ADMIN', 'MANAGER', 'STAFF')")
+    @PreAuthorize("hasAnyRole('ADMIN', 'STAFF')")
     public ResponseEntity<IncidentResponseDto> resolveIncident(
             @PathVariable Long id,
             @Valid @RequestBody IncidentResolveDto dto) {

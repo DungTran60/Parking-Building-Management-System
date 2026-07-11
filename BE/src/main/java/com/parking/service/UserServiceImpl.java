@@ -240,7 +240,7 @@ public class UserServiceImpl implements UserService {
                 .orElseThrow(() -> new UsernameNotFoundException("User not found with username: " + username));
 
         // 1. Cập nhật username mới (nếu có thay đổi)
-        if (dto.getUsername() != null && !dto.getUsername().trim().isEmpty() 
+        if (dto.getUsername() != null && !dto.getUsername().trim().isEmpty()
                 && !dto.getUsername().equals(user.getUsername())) {
             if (userRepository.existsByUsername(dto.getUsername())) {
                 throw new IllegalArgumentException("Username already exists: " + dto.getUsername());
@@ -248,7 +248,15 @@ public class UserServiceImpl implements UserService {
             user.setUsername(dto.getUsername());
         }
 
-        // 2. Cập nhật mật khẩu mới (nếu có cung cấp)
+        // 2. Cập nhật email / số điện thoại (thông tin liên hệ, không cần mật khẩu)
+        if (dto.getEmail() != null) {
+            user.setEmail(dto.getEmail().trim());
+        }
+        if (dto.getPhoneNumber() != null) {
+            user.setPhoneNumber(dto.getPhoneNumber().trim());
+        }
+
+        // 3. Cập nhật mật khẩu mới (nếu có cung cấp)
         if (dto.getNewPassword() != null && !dto.getNewPassword().trim().isEmpty()) {
             if (dto.getCurrentPassword() == null || dto.getCurrentPassword().trim().isEmpty()) {
                 throw new IllegalArgumentException("Current password is required to change password");

@@ -19,6 +19,12 @@ public interface ReservationRepository extends JpaRepository<Reservation, Long> 
     /** Lấy tất cả đặt chỗ của một slot cụ thể */
     List<Reservation> findBySlotId(Long slotId);
 
+    /** Lấy tất cả đặt chỗ của một Driver (theo user id) */
+    List<Reservation> findByDriverId(Long driverId);
+
+    /** Lấy đặt chỗ của một Driver theo trạng thái */
+    List<Reservation> findByDriverIdAndStatus(Long driverId, ReservationStatus status);
+
     /** Tìm các reservation chưa check-in và đã quá giờ dự kiến (startAt < cutoff) — phục vụ no-show expiry */
     List<Reservation> findByStatusInAndStartAtBefore(List<ReservationStatus> statuses, LocalDateTime cutoff);
 
