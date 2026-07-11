@@ -6,19 +6,17 @@ import { Button } from "@/components/common/Button";
 import { Card, CardContent, CardHeader } from "@/components/common/Card";
 import { PageHeader } from "@/components/layout/PageHeader";
 import { Field, Input, Select } from "@/components/forms/FormField";
-import { incidentApi } from "@/api/incidentApi";
+import { feedbackApi, type FeedbackResponse } from "@/api/feedbackApi";
 import { getApiErrorMessage } from "@/utils/apiError";
-import type { Incident, IncidentType } from "@/types/domain";
 
-// FeedbackType maps to IncidentType values supported by BE
-type FeedbackType = "LOST_TICKET" | "UNPAID" | "WRONG_ZONE" | "FACILITY_ISSUE" | "VEHICLE_DAMAGE";
+type FeedbackType = "LOST_TICKET" | "WRONG_FEE" | "HARD_TO_FIND" | "SLOT_OCCUPIED" | "OTHER";
 
 const feedbackTypes: { label: string; value: FeedbackType }[] = [
   { label: "Mất thẻ xe / mã gửi xe", value: "LOST_TICKET" },
-  { label: "Sai phí gửi xe", value: "UNPAID" },
-  { label: "Khó tìm xe / gửi sai khu vực", value: "WRONG_ZONE" },
-  { label: "Vấn đề an ninh / vệ sinh", value: "FACILITY_ISSUE" },
-  { label: "Xe bị hỏng / va chạm", value: "VEHICLE_DAMAGE" }
+  { label: "Sai phí gửi xe", value: "WRONG_FEE" },
+  { label: "Khó tìm xe / gửi sai khu vực", value: "HARD_TO_FIND" },
+  { label: "Slot bị chiếm", value: "SLOT_OCCUPIED" },
+  { label: "Vấn đề khác", value: "OTHER" }
 ];
 
 const MAX_MESSAGE = 1000;
@@ -27,12 +25,12 @@ export function FeedbackPage() {
   const [type, setType] = useState<FeedbackType>("LOST_TICKET");
   const [message, setMessage] = useState("");
   const [formError, setFormError] = useState<string | null>(null);
-  const [created, setCreated] = useState<Incident | null>(null);
+  const [created, setCreated] = useState<FeedbackResponse | null>(null);
 
   const submitMutation = useMutation({
-    mutationFn: () => incidentApi.create({
-      type: type as IncidentType,
-      description: message.trim()
+    mutationFn: () => feedbackApi.create({
+      type,
+      content: message.trim()
     }),
     onSuccess: (data) => {
       setCreated(data);

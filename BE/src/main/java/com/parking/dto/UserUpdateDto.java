@@ -17,9 +17,11 @@ public class UserUpdateDto {
     private String username;
 
     @Email(message = "Email should be valid")
+    @Size(min = 1, message = "Email must not be blank")
     private String email;
 
     private String phoneNumber;
 
+    @Size(min = 1, message = "Role name must not be blank")
     private String roleName;
 }

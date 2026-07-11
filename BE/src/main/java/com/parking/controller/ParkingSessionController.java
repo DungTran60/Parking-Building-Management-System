@@ -56,7 +56,7 @@ public class ParkingSessionController {
      * Quyền: STAFF, MANAGER, ADMIN
      */
     @PostMapping("/checkin")
-    @PreAuthorize("hasAuthority('sessions:checkout')")
+    @PreAuthorize("hasAnyAuthority('sessions:checkin', 'checkin:create')")
     public ResponseEntity<ParkingSessionResponseDto> checkIn(
             @Valid @RequestBody CheckInRequestDto request) {
         return ResponseEntity.ok(parkingSessionService.checkIn(request));
@@ -70,7 +70,7 @@ public class ParkingSessionController {
      *        /api/sessions/checkout?query=51G-88888
      */
     @PostMapping("/checkout")
-    @PreAuthorize("hasAuthority('sessions:checkout')")
+    @PreAuthorize("hasAnyAuthority('sessions:checkout', 'checkout:create')")
     public ResponseEntity<ParkingSessionResponseDto> checkOut(@RequestParam String query) {
         return ResponseEntity.ok(parkingSessionService.checkOut(query));
     }
@@ -98,7 +98,7 @@ public class ParkingSessionController {
      * Ví dụ: GET /api/sessions/lost-ticket-preview?plateNumber=51G-88888
      */
     @GetMapping("/lost-ticket-preview")
-    @PreAuthorize("hasAuthority('sessions:exception')")
+    @PreAuthorize("hasAnyAuthority('sessions:exception', 'exceptions:manage')")
     public ResponseEntity<LostTicketFeeResponseDto> previewLostTicketFee(
             @RequestParam @NotBlank(message = "Plate number is required") String plateNumber) {
         return ResponseEntity.ok(parkingSessionService.previewLostTicketFee(plateNumber));
@@ -112,7 +112,7 @@ public class ParkingSessionController {
      * Body: { "plateNumber": "51G-88888", "paymentMethod": "CASH" }
      */
     @PostMapping("/lost-ticket-checkout")
-    @PreAuthorize("hasAuthority('sessions:exception')")
+    @PreAuthorize("hasAnyAuthority('sessions:exception', 'exceptions:manage')")
     public ResponseEntity<ParkingSessionResponseDto> lostTicketCheckout(
             @Valid @RequestBody LostTicketCheckoutRequestDto request) {
         return ResponseEntity.ok(parkingSessionService.lostTicketCheckout(request));
@@ -123,7 +123,7 @@ public class ParkingSessionController {
      * Quyền: STAFF, MANAGER, ADMIN
      */
     @PostMapping("/{id}/exceptions")
-    @PreAuthorize("hasAuthority('sessions:exception')")
+    @PreAuthorize("hasAnyAuthority('sessions:exception', 'exceptions:manage')")
     public ResponseEntity<ParkingSessionResponseDto> handleException(
             @PathVariable Long id,
             @Valid @RequestBody SessionExceptionRequestDto request) {

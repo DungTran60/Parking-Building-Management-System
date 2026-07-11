@@ -23,7 +23,7 @@ public class SlotRecommendationController {
     private final SlotRecommendationService slotRecommendationService;
 
     @GetMapping
-    @PreAuthorize("isAuthenticated()")
+    @PreAuthorize("hasAuthority('ai:view')")
     public ResponseEntity<SlotRecommendationResponseDto> recommend(
             @RequestParam Long vehicleTypeId) {
         return ResponseEntity.ok(slotRecommendationService.recommend(vehicleTypeId));

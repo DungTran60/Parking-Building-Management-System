@@ -1,15 +1,22 @@
 import { useState } from "react";
+import { useQuery } from "@tanstack/react-query";
 import { Bot, Sparkles } from "lucide-react";
 import { Button } from "@/components/common/Button";
 import { Card, CardContent, CardHeader } from "@/components/common/Card";
 import { PageHeader } from "@/components/layout/PageHeader";
 import { Field, Input, Select } from "@/components/forms/FormField";
-import { vehicleTypes } from "@/api/mockData";
-import { optimizeParking } from "@/services/mockRepository";
-import type { AiOptimizationResult } from "@/types/domain";
+import { recommendationApi, type SlotRecommendation } from "@/api/recommendationApi";
+import { vehicleTypeApi } from "@/api/vehicleTypeApi";
 
 export function AiOptimizationPage() {
-  const [result, setResult] = useState<AiOptimizationResult | null>(null);
+  const [result, setResult] = useState<SlotRecommendation | null>(null);
+  const [loading, setLoading] = useState(false);
+
+  const { data: vehicleTypes = [] } = useQuery({
+    queryKey: ["vehicleTypes"],
+    queryFn: () => vehicleTypeApi.getAll()
+  });
+
   return (
     <>
       <PageHeader title="AI Parking Optimization" description="Tối ưu phân bổ chỗ đỗ, dự đoán tỷ lệ lấp đầy và giờ cao điểm." />
@@ -19,13 +26,20 @@ export function AiOptimizationPage() {
           <CardContent>
             <form className="grid gap-4" onSubmit={async (event) => {
               event.preventDefault();
-              const data = new FormData(event.currentTarget);
-              setResult(await optimizeParking({ currentVehicles: Number(data.get("currentVehicles")), emptySlots: Number(data.get("emptySlots")), vehicleTypeId: String(data.get("vehicleTypeId")) }));
+              setLoading(true);
+              try {
+                const data = new FormData(event.currentTarget);
+                const vehicleTypeId = String(data.get("vehicleTypeId"));
+                const recommendation = await recommendationApi.recommend(vehicleTypeId);
+                setResult(recommendation);
+              } finally {
+                setLoading(false);
+              }
             }}>
-              <Field label="Số lượng xe hiện tại"><Input name="currentVehicles" type="number" defaultValue={420} /></Field>
-              <Field label="Số slot trống"><Input name="emptySlots" type="number" defaultValue={160} /></Field>
-              <Field label="Loại xe"><Select name="vehicleTypeId">{vehicleTypes.map((type) => <option key={type.id} value={type.id}>{type.name}</option>)}</Select></Field>
-              <Button><Sparkles size={17} /> Tối ưu</Button>
+              <Field label="Loại xe"><Select name="vehicleTypeId" required>
+                {vehicleTypes.map((type) => <option key={type.id} value={type.id}>{type.name}</option>)}
+              </Select></Field>
+              <Button disabled={loading}><Sparkles size={17} /> {loading ? "Đang tối ưu..." : "Tối ưu"}</Button>
             </form>
           </CardContent>
         </Card>
@@ -34,14 +48,23 @@ export function AiOptimizationPage() {
           <CardContent>
             {result ? (
               <div className="grid gap-4 md:grid-cols-2">
-                <AiTile label="Tầng phù hợp" value={result.floorSuggestion} />
-                <AiTile label="Slot phù hợp" value={result.slotSuggestion} />
-                <AiTile label="Dự đoán lấp đầy" value={`${result.occupancyForecast}%`} />
-                <AiTile label="Giờ cao điểm" value={result.peakHourForecast} />
-                <AiTile label="Độ tin cậy" value={`${result.confidence}%`} />
+                <AiTile label="Trạng thái" value={result.available ? "Có slot trống" : "Hết slot"} />
+                {result.available ? (
+                  <>
+                    <AiTile label="Tầng đề xuất" value={result.floorName || "—"} />
+                    <AiTile label="Slot đề xuất" value={result.recommendedSlotCode || "—"} />
+                    <AiTile label="Loại xe" value={result.vehicleTypeName} />
+                    <AiTile label="Điểm ưu tiên" value={String(result.score)} />
+                    <AiTile label="Chiến lược" value={result.strategy} />
+                  </>
+                ) : (
+                  <div className="md:col-span-2 rounded-md bg-amber-50 p-4 text-sm text-amber-800">
+                    {result.message}
+                  </div>
+                )}
               </div>
             ) : (
-              <div className="grid min-h-64 place-items-center text-center text-slate-500"><Bot size={48} /><p>Nhập dữ liệu vận hành để nhận đề xuất.</p></div>
+              <div className="grid min-h-64 place-items-center text-center text-slate-500"><Bot size={48} /><p>Chọn loại xe và nhấn "Tối ưu" để nhận đề xuất.</p></div>
             )}
           </CardContent>
         </Card>

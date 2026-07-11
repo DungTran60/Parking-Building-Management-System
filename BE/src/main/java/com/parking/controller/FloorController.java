@@ -29,7 +29,7 @@ public class FloorController {
     private final FloorService floorService;
 
     @GetMapping
-    @PreAuthorize("isAuthenticated()")
+    @PreAuthorize("hasAuthority('parkingInfo:view')")
     public ResponseEntity<List<FloorResponseDto>> getFloorsByBuildingId(@RequestParam(required = false) Long buildingId) {
         List<FloorResponseDto> floors;
         if (buildingId != null) {
@@ -41,35 +41,35 @@ public class FloorController {
     }
 
     @GetMapping("/{id}")
-    @PreAuthorize("isAuthenticated()")
+    @PreAuthorize("hasAuthority('parkingInfo:view')")
     public ResponseEntity<FloorResponseDto> getFloorById(@PathVariable Long id) {
         FloorResponseDto floor = floorService.getFloorById(id);
         return ResponseEntity.ok(floor);
     }
 
     @PostMapping
-    @PreAuthorize("hasAnyRole('ADMIN', 'MANAGER')")
+    @PreAuthorize("hasAuthority('floors:manage')")
     public ResponseEntity<FloorResponseDto> createFloor(@Valid @RequestBody FloorRequestDto request) {
         FloorResponseDto createdFloor = floorService.createFloor(request);
         return new ResponseEntity<>(createdFloor, HttpStatus.CREATED);
     }
 
     @PutMapping("/{id}")
-    @PreAuthorize("hasAnyRole('ADMIN', 'MANAGER')")
+    @PreAuthorize("hasAuthority('floors:manage')")
     public ResponseEntity<FloorResponseDto> updateFloor(@PathVariable Long id, @Valid @RequestBody FloorRequestDto request) {
         FloorResponseDto updatedFloor = floorService.updateFloor(id, request);
         return ResponseEntity.ok(updatedFloor);
     }
 
     @DeleteMapping("/{id}")
-    @PreAuthorize("hasAnyRole('ADMIN', 'MANAGER')")
+    @PreAuthorize("hasAuthority('floors:manage')")
     public ResponseEntity<Void> deleteFloor(@PathVariable Long id) {
         floorService.deleteFloor(id);
         return ResponseEntity.noContent().build();
     }
 
     @GetMapping("/{id}/stats")
-    @PreAuthorize("isAuthenticated()")
+    @PreAuthorize("hasAuthority('parkingInfo:view')")
     public ResponseEntity<FloorStatsDto> getFloorStats(@PathVariable Long id) {
         FloorStatsDto stats = floorService.getFloorStats(id);
         return ResponseEntity.ok(stats);

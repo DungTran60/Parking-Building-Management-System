@@ -29,56 +29,37 @@ public class VehicleTypeController {
 
     private final VehicleTypeService vehicleTypeService;
 
-    /**
-     * GET /api/vehicle-types
-     * Optional filter: ?status=ACTIVE or ?status=INACTIVE
-     */
     @GetMapping
-    @PreAuthorize("isAuthenticated()")
+    @PreAuthorize("hasAuthority('parkingInfo:view')")
     public ResponseEntity<List<VehicleTypeResponseDto>> getAllVehicleTypes(
             @RequestParam(required = false) VehicleTypeStatus status) {
         return ResponseEntity.ok(vehicleTypeService.getAllVehicleTypes(status));
     }
 
-    /**
-     * GET /api/vehicle-types/{id}
-     */
     @GetMapping("/{id}")
-    @PreAuthorize("isAuthenticated()")
+    @PreAuthorize("hasAuthority('parkingInfo:view')")
     public ResponseEntity<VehicleTypeResponseDto> getVehicleTypeById(@PathVariable Long id) {
         return ResponseEntity.ok(vehicleTypeService.getVehicleType(id));
     }
 
-    /**
-     * POST /api/vehicle-types
-     * Admin or Manager only
-     */
     @PostMapping
-    @PreAuthorize("hasAnyRole('ADMIN', 'MANAGER')")
+    @PreAuthorize("hasAuthority('vehicleTypes:manage')")
     public ResponseEntity<VehicleTypeResponseDto> createVehicleType(
             @Valid @RequestBody VehicleTypeRequestDto dto) {
         VehicleTypeResponseDto created = vehicleTypeService.createVehicleType(dto);
         return new ResponseEntity<>(created, HttpStatus.CREATED);
     }
 
-    /**
-     * PUT /api/vehicle-types/{id}
-     * Admin or Manager only
-     */
     @PutMapping("/{id}")
-    @PreAuthorize("hasAnyRole('ADMIN', 'MANAGER')")
+    @PreAuthorize("hasAuthority('vehicleTypes:manage')")
     public ResponseEntity<VehicleTypeResponseDto> updateVehicleType(
             @PathVariable Long id,
             @Valid @RequestBody VehicleTypeRequestDto dto) {
         return ResponseEntity.ok(vehicleTypeService.updateVehicleType(id, dto));
     }
 
-    /**
-     * DELETE /api/vehicle-types/{id}
-     * Admin or Manager only - returns 409 if vehicle type is in use
-     */
     @DeleteMapping("/{id}")
-    @PreAuthorize("hasAnyRole('ADMIN', 'MANAGER')")
+    @PreAuthorize("hasAuthority('vehicleTypes:manage')")
     public ResponseEntity<Void> deleteVehicleType(@PathVariable Long id) {
         vehicleTypeService.deleteVehicleType(id);
         return ResponseEntity.noContent().build();

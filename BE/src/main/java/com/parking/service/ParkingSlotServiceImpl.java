@@ -173,6 +173,9 @@ public class ParkingSlotServiceImpl implements ParkingSlotService {
         if (newStatus == null) {
             throw new ConflictException("Slot status is required");
         }
+        if (newStatus == SlotStatus.OCCUPIED) {
+            throw new ConflictException("Cannot set OCCUPIED status directly. Use check-in flow instead.");
+        }
         if ((currentStatus == SlotStatus.OCCUPIED || currentStatus == SlotStatus.RESERVED)
                 && (newStatus == SlotStatus.MAINTENANCE || newStatus == SlotStatus.BLOCKED)) {
             throw new ConflictException("Cannot put an OCCUPIED or RESERVED slot into maintenance or blocked state");

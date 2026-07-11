@@ -130,6 +130,18 @@ export interface FeedbackTicket {
   status: "OPEN" | "IN_REVIEW" | "RESOLVED";
 }
 
+export interface Vehicle {
+  id: string;
+  plateNumber: string;
+  vehicleTypeId: string;
+  vehicleTypeName?: string;
+  ownerUserId?: string;
+  ownerUsername?: string;
+  color?: string;
+  createdAt?: string;
+  updatedAt?: string;
+}
+
 export interface User {
   id: string;
   username: string;

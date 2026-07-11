@@ -3,8 +3,10 @@ package com.parking.repository;
 import com.parking.dto.RevenueByVehicleTypeDto;
 import com.parking.entity.ParkingSession;
 import com.parking.entity.SessionStatus;
+import jakarta.persistence.LockModeType;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.JpaSpecificationExecutor;
+import org.springframework.data.jpa.repository.Lock;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 import org.springframework.stereotype.Repository;
@@ -38,6 +40,10 @@ public interface ParkingSessionRepository extends JpaRepository<ParkingSession, 
     Optional<ParkingSession> findFirstActiveByPlateNumberIgnoreCase(
             @Param("plateNumber") String plateNumber,
             @Param("status") SessionStatus status);
+
+    @Lock(LockModeType.PESSIMISTIC_WRITE)
+    @Query("SELECT ps FROM ParkingSession ps WHERE ps.id = :id")
+    Optional<ParkingSession> findByIdWithLock(@Param("id") Long id);
 
     /** Kiểm tra VehicleType có đang được dùng trong ParkingSession không */
     boolean existsByVehicleTypeId(Long vehicleTypeId);

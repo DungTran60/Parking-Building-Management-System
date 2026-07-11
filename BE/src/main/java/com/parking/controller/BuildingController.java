@@ -20,28 +20,28 @@ public class BuildingController {
     private final BuildingService buildingService;
 
     @PostMapping
-    @PreAuthorize("hasAnyRole('ADMIN', 'MANAGER')")
+    @PreAuthorize("hasAuthority('buildings:manage')")
     public ResponseEntity<BuildingResponseDto> createBuilding(@Valid @RequestBody BuildingRequestDto dto) {
         BuildingResponseDto created = buildingService.createBuilding(dto);
         return new ResponseEntity<>(created, HttpStatus.CREATED);
     }
 
     @GetMapping("/{id}")
-    @PreAuthorize("isAuthenticated()")
+    @PreAuthorize("hasAuthority('parkingInfo:view')")
     public ResponseEntity<BuildingResponseDto> getBuildingById(@PathVariable Long id) {
         BuildingResponseDto building = buildingService.getBuildingById(id);
         return ResponseEntity.ok(building);
     }
 
     @GetMapping
-    @PreAuthorize("isAuthenticated()")
+    @PreAuthorize("hasAuthority('parkingInfo:view')")
     public ResponseEntity<List<BuildingResponseDto>> getAllBuildings() {
         List<BuildingResponseDto> buildings = buildingService.getAllBuildings();
         return ResponseEntity.ok(buildings);
     }
 
     @PutMapping("/{id}")
-    @PreAuthorize("hasAnyRole('ADMIN', 'MANAGER')")
+    @PreAuthorize("hasAuthority('buildings:manage')")
     public ResponseEntity<BuildingResponseDto> updateBuilding(
             @PathVariable Long id,
             @Valid @RequestBody BuildingRequestDto dto
@@ -51,7 +51,7 @@ public class BuildingController {
     }
 
     @DeleteMapping("/{id}")
-    @PreAuthorize("hasAnyRole('ADMIN', 'MANAGER')")
+    @PreAuthorize("hasAuthority('buildings:manage')")
     public ResponseEntity<Void> deleteBuilding(@PathVariable Long id) {
         buildingService.deleteBuilding(id);
         return ResponseEntity.noContent().build();

@@ -18,18 +18,18 @@ export function Sidebar() {
       {sidebarOpen && <button className="fixed inset-0 z-40 bg-slate-950/30 lg:hidden" onClick={closeSidebar} aria-label="Đóng menu" />}
       <aside
         className={cn(
-          "fixed inset-y-0 left-0 z-50 w-72 -translate-x-full border-r border-slate-800 bg-slate-950 text-white transition lg:translate-x-0",
+          "fixed inset-y-0 left-0 z-50 flex w-72 -translate-x-full flex-col border-r border-slate-800 bg-slate-950 text-white transition lg:translate-x-0",
           sidebarOpen && "translate-x-0"
         )}
       >
-        <div className="flex h-16 items-center gap-3 border-b border-slate-800 px-5">
+        <div className="flex h-16 shrink-0 items-center gap-3 border-b border-slate-800 px-5">
           <ParkingCircle className="text-blue-400" />
           <div>
             <p className="font-semibold">Parking Admin</p>
             <p className="text-xs text-slate-400">Enterprise Control</p>
           </div>
         </div>
-        <nav className="grid gap-1 p-3">
+        <nav className="grid flex-1 gap-1 overflow-y-auto p-3">
           {items.map((item) => {
             const Icon = item.icon;
             return (

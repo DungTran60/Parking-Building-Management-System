@@ -143,7 +143,7 @@ public class FloorServiceImpl implements FloorService {
         Floor floor = floorRepository.findById(id)
                 .orElseThrow(() -> new ResourceNotFoundException("Floor not found with id: " + id));
 
-        long totalSlots = floor.getSlotCount();
+        long totalSlots = parkingSlotRepository.countByFloorId(id);
         long occupiedSlots = parkingSlotRepository.countByFloorIdAndStatus(id, SlotStatus.OCCUPIED);
         long availableSlots = parkingSlotRepository.countByFloorIdAndStatus(id, SlotStatus.AVAILABLE);
         long reservedSlots = parkingSlotRepository.countByFloorIdAndStatus(id, SlotStatus.RESERVED);

@@ -19,13 +19,13 @@ public class PaymentController {
     private final PaymentService paymentService;
 
     @PostMapping
-    @PreAuthorize("hasAnyRole('STAFF', 'MANAGER', 'ADMIN')")
+    @PreAuthorize("hasAnyAuthority('payments:collect', 'payments:pay')")
     public ResponseEntity<PaymentResponseDto> createPayment(@Valid @RequestBody PaymentRequestDto request) {
         return new ResponseEntity<>(paymentService.createPayment(request), HttpStatus.CREATED);
     }
 
     @GetMapping
-    @PreAuthorize("hasAnyRole('STAFF', 'MANAGER', 'ADMIN')")
+    @PreAuthorize("hasAnyAuthority('payments:collect', 'payments:pay')")
     public ResponseEntity<List<PaymentResponseDto>> getPaymentHistory() {
         return ResponseEntity.ok(paymentService.getPaymentHistory());
     }

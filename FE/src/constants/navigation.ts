@@ -4,6 +4,7 @@ import {
   Building2,
   CalendarClock,
   Car,
+  ClipboardList,
   CreditCard,
   DoorClosed,
   Gauge,
@@ -15,6 +16,7 @@ import {
   Settings,
   Shield,
   SquareParking,
+  Truck,
   Users,
   WalletCards
 } from "lucide-react";
@@ -33,6 +35,7 @@ export const NAV_ITEMS: NavItem[] = [
   { label: "Tòa nhà", path: "/app/buildings", permission: "buildings:manage", icon: Building2 },
   { label: "Tổng quan", path: "/app/parking-info", permission: "parkingInfo:view", icon: SquareParking },
   { label: "Loại xe", path: "/app/vehicle-types", permission: "vehicleTypes:manage", icon: Car },
+  { label: "Phương tiện", path: "/app/vehicles", permission: "vehicles:manage", icon: Truck },
   { label: "Phân tầng", path: "/app/floors", permission: "floors:manage", icon: DoorClosed },
   { label: "Vị trí đỗ", path: "/app/slots", permission: "slots:view", icon: LayoutGrid },
   { label: "Bảng giá", path: "/app/pricing", permission: "pricing:manage", icon: CreditCard },
@@ -48,5 +51,6 @@ export const NAV_ITEMS: NavItem[] = [
   { label: "AI Optimization", path: "/app/ai-optimization", permission: "ai:view", icon: Bot },
   { label: "Tài khoản", path: "/app/users", permission: "users:manage", icon: Users },
   { label: "Phân quyền", path: "/app/roles", permission: "roles:manage", icon: Shield },
-  { label: "Cài đặt", path: "/app/settings", permission: "settings:manage", icon: Settings }
+  { label: "Cài đặt", path: "/app/settings", permission: "settings:manage", icon: Settings },
+  { label: "Nhật ký", path: "/app/audit-logs", permission: "audit:view", icon: ClipboardList }
 ];

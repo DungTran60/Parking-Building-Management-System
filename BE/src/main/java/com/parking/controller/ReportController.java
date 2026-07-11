@@ -23,7 +23,7 @@ import java.time.LocalDate;
 @RestController
 @RequestMapping("/api/reports")
 @RequiredArgsConstructor
-@PreAuthorize("hasAnyRole('ADMIN', 'MANAGER')")
+@PreAuthorize("hasAuthority('reports:view')")
 public class ReportController {
 
     private final ReportService reportService;
@@ -80,6 +80,7 @@ public class ReportController {
             endDate = LocalDate.now();
         }
         validateDateRange(startDate, endDate);
+        validateEventType(eventType);
 
         Pageable pageable = PageRequest.of(Math.max(page, 0), Math.min(Math.max(size, 1), 100));
         return ResponseEntity.ok(reportService.getTrafficEvents(startDate, endDate, eventType, pageable));
@@ -88,6 +89,15 @@ public class ReportController {
     private void validateDateRange(LocalDate startDate, LocalDate endDate) {
         if (startDate.isAfter(endDate)) {
             throw new BadRequestException("startDate must not be after endDate");
+        }
+    }
+
+    private void validateEventType(String eventType) {
+        if (eventType != null) {
+            String upper = eventType.trim().toUpperCase();
+            if (!"ALL".equals(upper) && !"CHECK_IN".equals(upper) && !"CHECK_OUT".equals(upper)) {
+                throw new BadRequestException("Invalid eventType. Allowed values: ALL, CHECK_IN, CHECK_OUT");
+            }
         }
     }
 }

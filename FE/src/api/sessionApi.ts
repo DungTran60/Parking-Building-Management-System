@@ -187,5 +187,10 @@ export const sessionApi = {
   lostTicketCheckout: async (payload: LostTicketCheckoutRequest): Promise<ParkingSession> => {
     const response = await httpClient.post<SessionResponse>("/sessions/lost-ticket-checkout", payload);
     return normalizeSession(response.data);
+  },
+
+  handleException: async (id: string | number, payload: { type: string; reason?: string; extraFee?: number }): Promise<ParkingSession> => {
+    const response = await httpClient.post<SessionResponse>(`/sessions/${id}/exceptions`, payload);
+    return normalizeSession(response.data);
   }
 };

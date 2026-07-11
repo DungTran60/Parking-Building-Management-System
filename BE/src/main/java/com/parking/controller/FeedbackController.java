@@ -24,31 +24,27 @@ public class FeedbackController {
 
     private final FeedbackService feedbackService;
 
-    /** Driver gửi phản hồi mới. */
     @PostMapping
-    @PreAuthorize("isAuthenticated()")
+    @PreAuthorize("hasAuthority('feedback:create')")
     public ResponseEntity<FeedbackResponseDto> create(@Valid @RequestBody FeedbackRequestDto dto) {
         return new ResponseEntity<>(feedbackService.createFeedback(dto), HttpStatus.CREATED);
     }
 
-    /** Phản hồi của chính tài khoản đang đăng nhập. */
     @GetMapping("/me")
     @PreAuthorize("isAuthenticated()")
     public ResponseEntity<List<FeedbackResponseDto>> getMine() {
         return ResponseEntity.ok(feedbackService.getMyFeedbacks());
     }
 
-    /** Manager/Admin xem toàn bộ phản hồi (tùy chọn lọc theo trạng thái). */
     @GetMapping
-    @PreAuthorize("hasAnyRole('ADMIN', 'MANAGER')")
+    @PreAuthorize("hasAuthority('feedback:resolve')")
     public ResponseEntity<List<FeedbackResponseDto>> getAll(
             @RequestParam(required = false) FeedbackStatus status) {
         return ResponseEntity.ok(feedbackService.getAllFeedbacks(status));
     }
 
-    /** Manager/Admin xử lý & phản hồi lại. */
     @PatchMapping("/{id}/resolve")
-    @PreAuthorize("hasAnyRole('ADMIN', 'MANAGER')")
+    @PreAuthorize("hasAuthority('feedback:resolve')")
     public ResponseEntity<FeedbackResponseDto> resolve(
             @PathVariable Long id, @Valid @RequestBody FeedbackResolveDto dto) {
         return ResponseEntity.ok(feedbackService.resolveFeedback(id, dto));

@@ -5,7 +5,6 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
-import org.springframework.http.HttpMethod;
 import org.springframework.security.authentication.AuthenticationManager;
 import org.springframework.security.authentication.AuthenticationProvider;
 import org.springframework.security.authentication.dao.DaoAuthenticationProvider;
@@ -50,12 +49,6 @@ public class SecurityConfig {
                             "/v3/api-docs/**",
                             "/swagger-ui.html"
                         ).permitAll()
-                        // hasAnyRole tự thêm tiền tố ROLE_ để khớp authority thực tế (ROLE_ADMIN, ...).
-                        .requestMatchers(HttpMethod.POST, "/api/slots/**").hasAnyRole("ADMIN", "MANAGER")
-                        .requestMatchers(HttpMethod.PUT, "/api/slots/**").hasAnyRole("ADMIN", "MANAGER")
-                        .requestMatchers(HttpMethod.DELETE, "/api/slots/**").hasAnyRole("ADMIN", "MANAGER")
-                        .requestMatchers(HttpMethod.PATCH, "/api/slots/{id}/status").hasAnyRole("ADMIN", "MANAGER", "STAFF")
-                        .requestMatchers(HttpMethod.GET, "/api/slots/**").authenticated() // Assuming authenticated for now. If public is needed, change to permitAll()
                         .anyRequest().authenticated()
                 )
                 .sessionManagement(session -> session.sessionCreationPolicy(SessionCreationPolicy.STATELESS))

@@ -90,7 +90,7 @@ public class BuildingServiceImpl implements BuildingService {
                 .id(building.getId())
                 .buildingName(building.getBuildingName())
                 .address(building.getAddress())
-                .totalFloors(building.getFloors().size())
+                .totalFloors((int) floorRepository.countByBuildingId(building.getId()))
                 .createdAt(building.getCreatedAt())
                 .build();
     }

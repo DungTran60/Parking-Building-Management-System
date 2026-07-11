@@ -65,7 +65,7 @@ public class UserController {
      * Quyá»n truy cáº­p: ADMIN, MANAGER
      */
     @GetMapping("/staff")
-    @PreAuthorize("hasAnyRole('ADMIN', 'MANAGER')")
+    @PreAuthorize("hasAuthority('users:view')")
     public ResponseEntity<List<UserResponseDto>> getActiveStaffUsers() {
         return ResponseEntity.ok(userService.getActiveStaffUsers());
     }

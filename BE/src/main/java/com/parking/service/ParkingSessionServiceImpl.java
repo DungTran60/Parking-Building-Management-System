@@ -121,9 +121,8 @@ public class ParkingSessionServiceImpl implements ParkingSessionService {
     private ParkingSlot getSlotFromReservation(Reservation reservation) {
         ParkingSlot slot = parkingSlotRepository.findByIdWithLock(reservation.getSlot().getId())
                 .orElseThrow(() -> new ResourceNotFoundException("Slot đặt chỗ không tồn tại."));
-        // Slot của reservation phải là RESERVED (đã xác nhận) hoặc AVAILABLE (chưa xác nhận nhưng vẫn cho vào).
-        if (slot.getStatus() == SlotStatus.OCCUPIED) {
-            throw new ConflictException("Slot đặt chỗ đã có xe khác chiếm.");
+        if (slot.getStatus() != SlotStatus.AVAILABLE && slot.getStatus() != SlotStatus.RESERVED) {
+            throw new ConflictException("Slot đặt chỗ không khả dụng (trạng thái: " + slot.getStatus() + ").");
         }
         return slot;
     }
@@ -190,9 +189,13 @@ public class ParkingSessionServiceImpl implements ParkingSessionService {
                     .findFirstActiveByPlateNumberIgnoreCase(query, SessionStatus.ACTIVE);
         }
 
-        ParkingSession session = sessionOpt.orElseThrow(() ->
+        Long sessionId = sessionOpt.orElseThrow(() ->
                 new ResourceNotFoundException(
-                        "Không tìm thấy lượt gửi xe đang hoạt động phù hợp với mã vé hoặc biển số: " + query));
+                        "Không tìm thấy lượt gửi xe đang hoạt động phù hợp với mã vé hoặc biển số: " + query)).getId();
+
+        // Re-read with pessimistic lock to prevent double checkout
+        ParkingSession session = parkingSessionRepository.findByIdWithLock(sessionId)
+                .orElseThrow(() -> new ResourceNotFoundException("Session not found with id: " + sessionId));
 
         // Tính phí giờ
         LocalDateTime checkOutTime = LocalDateTime.now();
@@ -331,7 +334,7 @@ public class ParkingSessionServiceImpl implements ParkingSessionService {
     @Override
     @Transactional
     public ParkingSessionResponseDto handleException(Long id, SessionExceptionRequestDto request) {
-        ParkingSession session = parkingSessionRepository.findById(id)
+        ParkingSession session = parkingSessionRepository.findByIdWithLock(id)
                 .orElseThrow(() -> new ResourceNotFoundException("Session not found with id: " + id));
 
         User currentUser = authenticationService.getCurrentUser();
@@ -411,6 +414,7 @@ public class ParkingSessionServiceImpl implements ParkingSessionService {
         session.setStatus(SessionStatus.ACTIVE);
         session.setCheckOutAt(null);
         session.setFee(BigDecimal.ZERO);
+        session.setNotes(null);
         parkingSessionRepository.save(session);
 
         // Re-occupy the slot

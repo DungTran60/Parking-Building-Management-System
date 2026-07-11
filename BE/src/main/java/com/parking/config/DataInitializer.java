@@ -59,10 +59,58 @@ public class DataInitializer implements CommandLineRunner {
 
         // Seed Permissions
         List<String> permissionNames = Arrays.asList(
+                // Dashboard & Info
+                "dashboard:view",
+                "parkingInfo:view",
+                "currentSession:view",
+                "ai:view",
+                // Sessions (backend names)
                 "sessions:view",
+                "sessions:checkin",
                 "sessions:checkout",
                 "sessions:exception",
-                "sessions:manage"
+                "sessions:manage",
+                // Checkin/Checkout (frontend alias names)
+                "checkin:create",
+                "checkout:create",
+                "exceptions:manage",
+                // Payments
+                "payments:pay",
+                "payments:collect",
+                // Feedback
+                "feedback:create",
+                "feedback:resolve",
+                // Slots
+                "slots:view",
+                "slots:manage",
+                "slots:updateStatus",
+                // Vehicles
+                "vehicles:manage",
+                // Vehicle Types
+                "vehicleTypes:manage",
+                // Floors
+                "floors:manage",
+                // Buildings
+                "buildings:manage",
+                // Pricing
+                "pricing:manage",
+                // Incidents
+                "incidents:handle",
+                "incidents:manage",
+                // Reservations
+                "reservations:selfManage",
+                "reservations:manage",
+                // Reports
+                "reports:view",
+                // Users
+                "users:view",
+                "users:manage",
+                // Roles
+                "roles:manage",
+                // Settings
+                "settings:manage",
+                // Audit
+                "audit:view"
         );
         for (String permissionName : permissionNames) {
             if (permissionRepository.findByName(permissionName).isEmpty()) {
@@ -70,20 +118,87 @@ public class DataInitializer implements CommandLineRunner {
             }
         }
 
-        // Seed Roles with Permissions
-        Permission view_session = permissionRepository.findByName("sessions:view").orElseThrow();
-        Permission checkout_session = permissionRepository.findByName("sessions:checkout").orElseThrow();
-        Permission exception_session = permissionRepository.findByName("sessions:exception").orElseThrow();
-        Permission manage_session = permissionRepository.findByName("sessions:manage").orElseThrow();
+        // Fetch all seeded permissions
+        Permission dashboard_view = permissionRepository.findByName("dashboard:view").orElseThrow();
+        Permission parkingInfo_view = permissionRepository.findByName("parkingInfo:view").orElseThrow();
+        Permission currentSession_view = permissionRepository.findByName("currentSession:view").orElseThrow();
+        Permission ai_view = permissionRepository.findByName("ai:view").orElseThrow();
+        Permission sessions_view = permissionRepository.findByName("sessions:view").orElseThrow();
+        Permission sessions_checkin = permissionRepository.findByName("sessions:checkin").orElseThrow();
+        Permission sessions_checkout = permissionRepository.findByName("sessions:checkout").orElseThrow();
+        Permission sessions_exception = permissionRepository.findByName("sessions:exception").orElseThrow();
+        Permission sessions_manage = permissionRepository.findByName("sessions:manage").orElseThrow();
+        Permission payments_pay = permissionRepository.findByName("payments:pay").orElseThrow();
+        Permission payments_collect = permissionRepository.findByName("payments:collect").orElseThrow();
+        Permission checkin_create = permissionRepository.findByName("checkin:create").orElseThrow();
+        Permission checkout_create = permissionRepository.findByName("checkout:create").orElseThrow();
+        Permission exceptions_manage = permissionRepository.findByName("exceptions:manage").orElseThrow();
+        Permission feedback_create = permissionRepository.findByName("feedback:create").orElseThrow();
+        Permission feedback_resolve = permissionRepository.findByName("feedback:resolve").orElseThrow();
+        Permission slots_view = permissionRepository.findByName("slots:view").orElseThrow();
+        Permission slots_manage = permissionRepository.findByName("slots:manage").orElseThrow();
+        Permission slots_updateStatus = permissionRepository.findByName("slots:updateStatus").orElseThrow();
+        Permission vehicles_manage = permissionRepository.findByName("vehicles:manage").orElseThrow();
+        Permission vehicleTypes_manage = permissionRepository.findByName("vehicleTypes:manage").orElseThrow();
+        Permission floors_manage = permissionRepository.findByName("floors:manage").orElseThrow();
+        Permission buildings_manage = permissionRepository.findByName("buildings:manage").orElseThrow();
+        Permission pricing_manage = permissionRepository.findByName("pricing:manage").orElseThrow();
+        Permission incidents_handle = permissionRepository.findByName("incidents:handle").orElseThrow();
+        Permission incidents_manage = permissionRepository.findByName("incidents:manage").orElseThrow();
+        Permission reservations_selfManage = permissionRepository.findByName("reservations:selfManage").orElseThrow();
+        Permission reservations_manage = permissionRepository.findByName("reservations:manage").orElseThrow();
+        Permission reports_view = permissionRepository.findByName("reports:view").orElseThrow();
+        Permission users_view = permissionRepository.findByName("users:view").orElseThrow();
+        Permission users_manage = permissionRepository.findByName("users:manage").orElseThrow();
+        Permission roles_manage = permissionRepository.findByName("roles:manage").orElseThrow();
+        Permission settings_manage = permissionRepository.findByName("settings:manage").orElseThrow();
+        Permission audit_view = permissionRepository.findByName("audit:view").orElseThrow();
 
-        // Driver: chỉ xem lượt gửi.
-        Set<Permission> driverPermissions = new HashSet<>(Collections.singletonList(view_session));
-        // Staff: xem, check-in/out, xử lý ngoại lệ.
-        Set<Permission> staffPermissions = new HashSet<>(Arrays.asList(view_session, checkout_session, exception_session));
-        // Manager: quyền của Staff + quản lý session (updateStatus/reopen/mark-unpaid/waive-fee/note).
-        Set<Permission> managerPermissions = new HashSet<>(Arrays.asList(view_session, checkout_session, exception_session, manage_session));
-        // Admin: toàn bộ permission.
-        Set<Permission> adminPermissions = new HashSet<>(Arrays.asList(view_session, checkout_session, exception_session, manage_session));
+        // DRIVER: xem thông tin, quản lý đặt chỗ cá nhân, gửi phản hồi, thanh toán
+        Set<Permission> driverPermissions = new HashSet<>(Arrays.asList(
+                dashboard_view, parkingInfo_view, currentSession_view,
+                slots_view, sessions_view, ai_view,
+                feedback_create, reservations_selfManage,
+                payments_pay
+        ));
+        // STAFF: DRIVER + checkin/checkout, xử lý ngoại lệ, thu phí, cập nhật slot, quản lý xe
+        Set<Permission> staffPermissions = new HashSet<>(Arrays.asList(
+                dashboard_view, parkingInfo_view, currentSession_view,
+                slots_view, slots_updateStatus, sessions_view,
+                sessions_checkin, sessions_checkout, sessions_exception,
+                checkin_create, checkout_create, exceptions_manage,
+                payments_collect, payments_pay, vehicles_manage, ai_view,
+                feedback_create, reservations_selfManage, incidents_handle
+        ));
+        // MANAGER: STAFF + quản lý (session, tòa nhà, tầng, loại xe, slot, giá, báo cáo, feedback, sự cố)
+        Set<Permission> managerPermissions = new HashSet<>(Arrays.asList(
+                dashboard_view, parkingInfo_view, currentSession_view,
+                slots_view, slots_manage, slots_updateStatus,
+                sessions_view, sessions_checkin, sessions_checkout,
+                sessions_exception, sessions_manage,
+                checkin_create, checkout_create, exceptions_manage,
+                payments_collect, payments_pay, vehicles_manage, vehicleTypes_manage,
+                floors_manage, buildings_manage, pricing_manage,
+                ai_view, feedback_create, feedback_resolve,
+                reservations_selfManage, reservations_manage,
+                reports_view, users_view, incidents_handle, incidents_manage,
+                audit_view
+        ));
+        // ADMIN: toàn bộ quyền
+        Set<Permission> adminPermissions = new HashSet<>(Arrays.asList(
+                dashboard_view, parkingInfo_view, currentSession_view,
+                slots_view, slots_manage, slots_updateStatus,
+                sessions_view, sessions_checkin, sessions_checkout,
+                sessions_exception, sessions_manage,
+                checkin_create, checkout_create, exceptions_manage,
+                payments_collect, payments_pay, vehicles_manage, vehicleTypes_manage,
+                floors_manage, buildings_manage, pricing_manage,
+                ai_view, feedback_create, feedback_resolve,
+                reservations_selfManage, reservations_manage,
+                reports_view, users_view, users_manage,
+                roles_manage, settings_manage,
+                incidents_handle, incidents_manage, audit_view
+        ));
 
         seedRole("DRIVER", driverPermissions);
         seedRole("STAFF", staffPermissions);
@@ -334,8 +449,6 @@ public class DataInitializer implements CommandLineRunner {
      * fail-fast để tránh tài khoản admin bị đoán mật khẩu.
      */
     private void guardAdminPassword() {
-        System.out.println("Profiles = " + Arrays.toString(environment.getActiveProfiles()));
-        System.out.println("Admin password = " + adminPassword);
         boolean isDevOrTest = Arrays.stream(environment.getActiveProfiles())
                 .anyMatch(p -> p.equalsIgnoreCase("dev") || p.equalsIgnoreCase("test"));
         if (!isDevOrTest && "admin123".equals(adminPassword)) {

@@ -21,7 +21,7 @@ public class SystemSettingsController {
      * Quyền: ADMIN hoặc MANAGER
      */
     @GetMapping
-    @PreAuthorize("isAuthenticated()")
+    @PreAuthorize("hasAnyAuthority('settings:manage', 'parkingInfo:view')")
     public ResponseEntity<SystemSettingsResponseDto> getSettings() {
         return ResponseEntity.ok(systemSettingsService.getSettings());
     }
@@ -31,7 +31,7 @@ public class SystemSettingsController {
      * Quyền: chỉ ADMIN
      */
     @PutMapping
-    @PreAuthorize("hasRole('ADMIN')")
+    @PreAuthorize("hasAuthority('settings:manage')")
     public ResponseEntity<SystemSettingsResponseDto> updateSettings(
             @Valid @RequestBody SystemSettingsRequestDto request) {
         return ResponseEntity.ok(systemSettingsService.updateSettings(request));

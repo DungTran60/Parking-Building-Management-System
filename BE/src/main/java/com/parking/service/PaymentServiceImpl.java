@@ -35,7 +35,7 @@ public class PaymentServiceImpl implements PaymentService {
     @Override
     @Transactional
     public PaymentResponseDto createPayment(PaymentRequestDto request) {
-        ParkingSession session = parkingSessionRepository.findById(Long.valueOf(request.getSessionId()))
+        ParkingSession session = parkingSessionRepository.findByIdWithLock(Long.valueOf(request.getSessionId()))
                 .orElseThrow(() -> new ResourceNotFoundException("Parking session not found with id: " + request.getSessionId()));
 
         // Idempotency: mỗi lượt gửi xe chỉ được thu phí một lần (chống tạo Payment trùng).

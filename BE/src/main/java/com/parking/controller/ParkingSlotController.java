@@ -19,11 +19,13 @@ public class ParkingSlotController {
     private final ParkingSlotService parkingSlotService;
 
     @GetMapping
+    @PreAuthorize("hasAuthority('slots:view')")
     public ResponseEntity<List<ParkingSlotResponseDto>> getAllSlots() {
         return ResponseEntity.ok(parkingSlotService.getAllSlots());
     }
 
     @GetMapping("/available")
+    @PreAuthorize("hasAuthority('slots:view')")
     public ResponseEntity<List<ParkingSlotResponseDto>> getAvailableSlots(
             @RequestParam(required = false) String vehicleTypeId
     ) {
@@ -31,13 +33,13 @@ public class ParkingSlotController {
     }
 
     @PostMapping
-    @PreAuthorize("hasAnyRole('ADMIN', 'MANAGER')")
+    @PreAuthorize("hasAuthority('slots:manage')")
     public ResponseEntity<ParkingSlotResponseDto> createSlot(@Valid @RequestBody ParkingSlotRequestDto request) {
         return ResponseEntity.ok(parkingSlotService.createSlot(request));
     }
 
     @PutMapping("/{id}")
-    @PreAuthorize("hasAnyRole('ADMIN', 'MANAGER')")
+    @PreAuthorize("hasAuthority('slots:manage')")
     public ResponseEntity<ParkingSlotResponseDto> updateSlot(
             @PathVariable Long id,
             @Valid @RequestBody ParkingSlotRequestDto request
@@ -46,14 +48,14 @@ public class ParkingSlotController {
     }
 
     @DeleteMapping("/{id}")
-    @PreAuthorize("hasAnyRole('ADMIN', 'MANAGER')")
+    @PreAuthorize("hasAuthority('slots:manage')")
     public ResponseEntity<Void> deleteSlot(@PathVariable Long id) {
         parkingSlotService.deleteSlot(id);
         return ResponseEntity.noContent().build();
     }
 
     @PatchMapping("/{id}/status")
-    @PreAuthorize("hasAnyRole('ADMIN', 'MANAGER', 'STAFF')")
+    @PreAuthorize("hasAuthority('slots:updateStatus')")
     public ResponseEntity<ParkingSlotResponseDto> updateSlotStatus(
             @PathVariable Long id,
             @Valid @RequestBody SlotStatusUpdateRequestDto request

@@ -15,6 +15,7 @@ public interface FloorRepository extends JpaRepository<Floor, Long> {
 
     boolean existsByNameAndBuildingId(String name, Long buildingId);
     boolean existsByBuildingId(Long buildingId);
+    long countByBuildingId(Long buildingId);
 
     @Query("SELECT ps FROM ParkingSlot ps WHERE ps.floor.id = :floorId")
     List<ParkingSlot> findParkingSlotsByFloorId(@Param("floorId") Long floorId);

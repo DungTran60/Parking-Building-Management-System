@@ -23,34 +23,22 @@ public class PricingController {
 
     private final PricingService pricingService;
 
-    /**
-     * POST /api/pricing
-     * Tạo bảng giá mới. Chỉ ADMIN / MANAGER mới được phép.
-     */
     @PostMapping
-    @PreAuthorize("hasAnyRole('ADMIN', 'MANAGER')")
+    @PreAuthorize("hasAuthority('pricing:manage')")
     public ResponseEntity<PricingResponseDto> createPricing(
             @Valid @RequestBody PricingRequestDto dto) {
         PricingResponseDto created = pricingService.createPricing(dto);
         return new ResponseEntity<>(created, HttpStatus.CREATED);
     }
 
-    /**
-     * GET /api/pricing/{id}
-     * Lấy thông tin bảng giá theo ID.
-     */
     @GetMapping("/{id}")
-    @PreAuthorize("isAuthenticated()")
+    @PreAuthorize("hasAuthority('parkingInfo:view')")
     public ResponseEntity<PricingResponseDto> getPricingById(@PathVariable Long id) {
         return ResponseEntity.ok(pricingService.getPricingById(id));
     }
 
-    /**
-     * GET /api/pricing
-     * Lấy tất cả bảng giá. Query param ?active=true để lọc bảng giá đang áp dụng.
-     */
     @GetMapping
-    @PreAuthorize("isAuthenticated()")
+    @PreAuthorize("hasAuthority('parkingInfo:view')")
     public ResponseEntity<List<PricingResponseDto>> getAllPricings(
             @RequestParam(required = false) Boolean active) {
         List<PricingResponseDto> result = Boolean.TRUE.equals(active)
@@ -59,12 +47,8 @@ public class PricingController {
         return ResponseEntity.ok(result);
     }
 
-    /**
-     * GET /api/pricing/vehicle-type/{vehicleTypeId}
-     * Lấy bảng giá theo loại phương tiện. Query param ?active=true để lọc.
-     */
     @GetMapping("/vehicle-type/{vehicleTypeId}")
-    @PreAuthorize("isAuthenticated()")
+    @PreAuthorize("hasAuthority('parkingInfo:view')")
     public ResponseEntity<List<PricingResponseDto>> getPricingsByVehicleType(
             @PathVariable String vehicleTypeId,
             @RequestParam(required = false) Boolean active) {
@@ -74,45 +58,29 @@ public class PricingController {
         return ResponseEntity.ok(result);
     }
 
-    /**
-     * PUT /api/pricing/{id}
-     * Cập nhật toàn bộ thông tin bảng giá. Chỉ ADMIN / MANAGER mới được phép.
-     */
     @PutMapping("/{id}")
-    @PreAuthorize("hasAnyRole('ADMIN', 'MANAGER')")
+    @PreAuthorize("hasAuthority('pricing:manage')")
     public ResponseEntity<PricingResponseDto> updatePricing(
             @PathVariable Long id,
             @Valid @RequestBody PricingRequestDto dto) {
         return ResponseEntity.ok(pricingService.updatePricing(id, dto));
     }
 
-    /**
-     * PATCH /api/pricing/{id}/toggle
-     * Bật/tắt trạng thái áp dụng bảng giá. Chỉ ADMIN / MANAGER mới được phép.
-     */
     @PatchMapping("/{id}/toggle")
-    @PreAuthorize("hasAnyRole('ADMIN', 'MANAGER')")
+    @PreAuthorize("hasAuthority('pricing:manage')")
     public ResponseEntity<PricingResponseDto> togglePricingStatus(@PathVariable Long id) {
         return ResponseEntity.ok(pricingService.togglePricingStatus(id));
     }
 
-    /**
-     * DELETE /api/pricing/{id}
-     * Xóa bảng giá. Chỉ ADMIN mới được phép.
-     */
     @DeleteMapping("/{id}")
-    @PreAuthorize("hasAnyRole('ADMIN', 'MANAGER')")
+    @PreAuthorize("hasAuthority('pricing:manage')")
     public ResponseEntity<Void> deletePricing(@PathVariable Long id) {
         pricingService.deletePricing(id);
         return ResponseEntity.noContent().build();
     }
 
-    /**
-     * GET /api/pricing/calculate
-     * Tính phí gửi xe qua đêm.
-     */
     @GetMapping("/calculate")
-    @PreAuthorize("isAuthenticated()")
+    @PreAuthorize("hasAuthority('parkingInfo:view')")
     public ResponseEntity<OvernightFeeResponseDto> calculateOvernightFee(
             @RequestParam @DateTimeFormat(iso = DateTimeFormat.ISO.DATE_TIME) LocalDateTime checkIn,
             @RequestParam @DateTimeFormat(iso = DateTimeFormat.ISO.DATE_TIME) LocalDateTime checkOut,
@@ -121,12 +89,8 @@ public class PricingController {
         return ResponseEntity.ok(response);
     }
 
-    /**
-     * GET /api/pricing/lost-ticket
-     * Tính phí gửi xe khi mất vé.
-     */
     @GetMapping("/lost-ticket")
-    @PreAuthorize("isAuthenticated()")
+    @PreAuthorize("hasAuthority('parkingInfo:view')")
     public ResponseEntity<LostTicketFeeResponseDto> calculateLostTicketFee(
             @RequestParam String vehicleType) {
         LostTicketFeeResponseDto response = pricingService.calculateLostTicketFee(vehicleType);

@@ -2,52 +2,54 @@ package com.parking.service;
 
 import com.parking.dto.RoleRequestDto;
 import com.parking.dto.RoleResponseDto;
+import com.parking.dto.SyncPermissionsRequestDto;
+import com.parking.entity.Permission;
 import com.parking.entity.Role;
 import com.parking.exception.ConflictException;
+import com.parking.exception.ResourceNotFoundException;
+import com.parking.repository.PermissionRepository;
 import com.parking.repository.RoleRepository;
 import com.parking.repository.UserRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.util.Collections;
+import java.util.HashSet;
 import java.util.List;
+import java.util.Set;
 import java.util.stream.Collectors;
 
-/**
- * Lớp triển khai (Implementation) của RoleService xử lý các nghiệp vụ quản lý vai trò.
- */
 @Service
 @RequiredArgsConstructor
 public class RoleServiceImpl implements RoleService {
 
-    // Tiêm (Inject) RoleRepository thông qua Constructor
     private final RoleRepository roleRepository;
     private final UserRepository userRepository;
+    private final PermissionRepository permissionRepository;
 
     @Override
     @Transactional
     public RoleResponseDto createRole(RoleRequestDto dto) {
-        // Chuyển tên vai trò thành chữ in hoa để đồng nhất chuẩn (ví dụ: ADMIN, STAFF)
         String roleNameUpper = dto.getName().toUpperCase();
-        
-        // Kiểm tra xem tên vai trò đã tồn tại chưa
+
         if (roleRepository.findByName(roleNameUpper).isPresent()) {
             throw new IllegalArgumentException("Role name already exists: " + roleNameUpper);
         }
 
-        // Tạo thực thể Role mới từ Builder
+        Set<Permission> permissions = resolvePermissions(dto.getPermissionIds());
+
         Role role = Role.builder()
                 .name(roleNameUpper)
+                .permissions(permissions)
                 .build();
 
-        // Lưu vào cơ sở dữ liệu
         Role savedRole = roleRepository.save(role);
         return mapToResponseDto(savedRole);
     }
 
     @Override
     public RoleResponseDto getRoleById(Long id) {
-        // Tìm vai trò theo ID, ném lỗi nếu không tồn tại
         Role role = roleRepository.findById(id)
                 .orElseThrow(() -> new IllegalArgumentException("Role not found with ID: " + id));
         return mapToResponseDto(role);
@@ -55,7 +57,6 @@ public class RoleServiceImpl implements RoleService {
 
     @Override
     public List<RoleResponseDto> getAllRoles() {
-        // Lấy toàn bộ danh sách vai trò và chuyển sang DTO
         return roleRepository.findAll().stream()
                 .map(this::mapToResponseDto)
                 .collect(Collectors.toList());
@@ -64,17 +65,19 @@ public class RoleServiceImpl implements RoleService {
     @Override
     @Transactional
     public RoleResponseDto updateRole(Long id, RoleRequestDto dto) {
-        // Tìm thực thể cần cập nhật
         Role role = roleRepository.findById(id)
                 .orElseThrow(() -> new IllegalArgumentException("Role not found with ID: " + id));
 
         String roleNameUpper = dto.getName().toUpperCase();
-        // Nếu tên cập nhật khác tên hiện tại thì tiến hành kiểm tra trùng lặp
         if (!roleNameUpper.equals(role.getName())) {
             if (roleRepository.findByName(roleNameUpper).isPresent()) {
                 throw new IllegalArgumentException("Role name already exists: " + roleNameUpper);
             }
             role.setName(roleNameUpper);
+        }
+
+        if (dto.getPermissionIds() != null) {
+            role.setPermissions(resolvePermissions(dto.getPermissionIds()));
         }
 
         Role updatedRole = roleRepository.save(role);
@@ -83,25 +86,60 @@ public class RoleServiceImpl implements RoleService {
 
     @Override
     @Transactional
+    public RoleResponseDto updateRolePermissions(Long id, List<Long> permissionIds) {
+        Role role = roleRepository.findById(id)
+                .orElseThrow(() -> new IllegalArgumentException("Role not found with ID: " + id));
+
+        role.setPermissions(resolvePermissions(permissionIds));
+        Role updatedRole = roleRepository.save(role);
+        return mapToResponseDto(updatedRole);
+    }
+
+    @Override
+    @Transactional
+    public void syncPermissions(SyncPermissionsRequestDto request) {
+        for (SyncPermissionsRequestDto.RolePermissionEntry entry : request.getRoles()) {
+            Role role = roleRepository.findById(entry.getRoleId())
+                    .orElseThrow(() -> new ResourceNotFoundException("Role not found with ID: " + entry.getRoleId()));
+            role.setPermissions(resolvePermissions(entry.getPermissionIds()));
+            roleRepository.save(role);
+        }
+    }
+
+    @Override
+    @Transactional
     public void deleteRole(Long id) {
-        // Kiểm tra tồn tại trước khi xóa
         if (!roleRepository.existsById(id)) {
             throw new IllegalArgumentException("Role not found with ID: " + id);
         }
-        // Không cho xóa role đang được gán cho user (tránh vỡ FK users.role_id / dữ liệu mồ côi)
         if (userRepository.existsByRole_Id(id)) {
             throw new ConflictException("Cannot delete a role that is currently assigned to one or more users");
         }
         roleRepository.deleteById(id);
     }
 
-    /**
-     * Phương thức nội bộ chuyển đổi đối tượng Entity Role sang DTO RoleResponseDto.
-     */
+    private Set<Permission> resolvePermissions(List<Long> permissionIds) {
+        if (permissionIds == null || permissionIds.isEmpty()) {
+            return Collections.emptySet();
+        }
+        List<Permission> found = permissionRepository.findAllById(permissionIds);
+        if (found.size() != permissionIds.size()) {
+            throw new IllegalArgumentException("One or more permission IDs are invalid");
+        }
+        return new HashSet<>(found);
+    }
+
     private RoleResponseDto mapToResponseDto(Role role) {
+        List<String> permissionNames = role.getPermissions() == null
+                ? Collections.emptyList()
+                : role.getPermissions().stream()
+                        .map(Permission::getName)
+                        .collect(Collectors.toList());
+
         return RoleResponseDto.builder()
                 .id(role.getId())
                 .name(role.getName())
+                .permissions(permissionNames)
                 .build();
     }
 }

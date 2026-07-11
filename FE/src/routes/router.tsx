@@ -20,7 +20,9 @@ import { RolesPage } from "@/pages/admin/RolesPage";
 import { SessionsPage } from "@/pages/shared/SessionsPage";
 import { SettingsPage } from "@/pages/admin/SettingsPage";
 import { SlotsPage } from "@/pages/shared/SlotsPage";
+import { AuditLogsPage } from "@/pages/admin/AuditLogsPage";
 import { UsersPage } from "@/pages/admin/UsersPage";
+import { VehiclesPage } from "@/pages/admin/VehiclesPage";
 import { VehicleTypesPage } from "@/pages/manager/VehicleTypesPage";
 import { ProtectedRoute } from "@/routes/ProtectedRoute";
 import { useAuthStore } from "@/stores/authStore";
@@ -63,6 +65,7 @@ export const router = createBrowserRouter([
       { path: "buildings", ...protectedChild("buildings:manage", <BuildingsPage />) },
       { path: "parking-info", ...protectedChild("parkingInfo:view", <ParkingInfoPage />) },
       { path: "vehicle-types", ...protectedChild("vehicleTypes:manage", <VehicleTypesPage />) },
+      { path: "vehicles", ...protectedChild("vehicles:manage", <VehiclesPage />) },
       { path: "floors", ...protectedChild("floors:manage", <FloorsPage />) },
       { path: "slots", ...protectedChild("slots:view", <SlotsPage />) },
       { path: "pricing", ...protectedChild("pricing:manage", <PricingPage />) },
@@ -79,6 +82,7 @@ export const router = createBrowserRouter([
       { path: "users", ...protectedChild("users:manage", <UsersPage />) },
       { path: "roles", ...protectedChild("roles:manage", <RolesPage />) },
       { path: "settings", ...protectedChild("settings:manage", <SettingsPage />) },
+      { path: "audit-logs", ...protectedChild("audit:view", <AuditLogsPage />) },
       { path: "403", element: <ForbiddenPage /> }
     ]
   }

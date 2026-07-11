@@ -2,17 +2,11 @@ package com.parking.dto;
 
 import lombok.*;
 
-import java.util.List;
-
 @Data
 @NoArgsConstructor
 @AllArgsConstructor
 @Builder
-public class RoleResponseDto {
-
+public class PermissionResponseDto {
     private Long id;
-
     private String name;
-
-    private List<String> permissions;
 }

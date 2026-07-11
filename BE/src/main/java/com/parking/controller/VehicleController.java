@@ -23,18 +23,17 @@ public class VehicleController {
     private final VehicleService vehicleService;
 
     @PostMapping
-    @PreAuthorize("hasAnyRole('ADMIN', 'MANAGER', 'STAFF')")
+    @PreAuthorize("hasAuthority('vehicles:manage')")
     public ResponseEntity<VehicleResponseDto> create(@Valid @RequestBody VehicleRequestDto dto) {
         return new ResponseEntity<>(vehicleService.createVehicle(dto), HttpStatus.CREATED);
     }
 
     @GetMapping
-    @PreAuthorize("hasAnyRole('ADMIN', 'MANAGER', 'STAFF')")
+    @PreAuthorize("hasAuthority('vehicles:manage')")
     public ResponseEntity<List<VehicleResponseDto>> getAll() {
         return ResponseEntity.ok(vehicleService.getAllVehicles());
     }
 
-    /** Xe của chính tài khoản đang đăng nhập (Driver). */
     @GetMapping("/me")
     @PreAuthorize("isAuthenticated()")
     public ResponseEntity<List<VehicleResponseDto>> getMine() {
@@ -48,13 +47,13 @@ public class VehicleController {
     }
 
     @PutMapping("/{id}")
-    @PreAuthorize("hasAnyRole('ADMIN', 'MANAGER', 'STAFF')")
+    @PreAuthorize("hasAuthority('vehicles:manage')")
     public ResponseEntity<VehicleResponseDto> update(@PathVariable Long id, @Valid @RequestBody VehicleRequestDto dto) {
         return ResponseEntity.ok(vehicleService.updateVehicle(id, dto));
     }
 
     @DeleteMapping("/{id}")
-    @PreAuthorize("hasAnyRole('ADMIN', 'MANAGER')")
+    @PreAuthorize("hasAuthority('vehicles:manage')")
     public ResponseEntity<Void> delete(@PathVariable Long id) {
         vehicleService.deleteVehicle(id);
         return ResponseEntity.noContent().build();

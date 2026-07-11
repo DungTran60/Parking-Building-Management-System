@@ -42,8 +42,9 @@ public class AuthController {
 
         String role = userDetails.getAuthorities().stream()
                 .map(GrantedAuthority::getAuthority)
-                .map(auth -> auth.startsWith("ROLE_") ? auth.substring(5) : auth)
+                .filter(auth -> auth.startsWith("ROLE_"))
                 .findFirst()
+                .map(auth -> auth.substring(5))
                 .orElse("DRIVER");
 
         LoginResponse response = LoginResponse.builder()
