@@ -19,6 +19,8 @@ export interface SessionListParams {
   page?: number;
   size?: number;
   sort?: string;
+  from?: string;
+  to?: string;
 }
 
 export interface SessionListResult {
@@ -27,7 +29,6 @@ export interface SessionListResult {
   size: number;
   totalElements: number;
   totalPages: number;
-  source: "api";
 }
 
 export interface LostTicketFeePreview {
@@ -86,7 +87,6 @@ const normalizeSessionList = (payload: unknown): SessionListResult => {
       size: content.length,
       totalElements: content.length,
       totalPages: 1,
-      source: "api"
     };
   }
 
@@ -108,7 +108,6 @@ const normalizeSessionList = (payload: unknown): SessionListResult => {
       size: typeof data.size === "number" ? data.size : content.length,
       totalElements: typeof data.totalElements === "number" ? data.totalElements : content.length,
       totalPages: typeof data.totalPages === "number" ? data.totalPages : 1,
-      source: "api"
     };
   }
 
@@ -117,8 +116,7 @@ const normalizeSessionList = (payload: unknown): SessionListResult => {
     page: 0,
     size: 0,
     totalElements: 0,
-    totalPages: 0,
-    source: "api"
+    totalPages: 0
   };
 };
 
@@ -163,10 +161,19 @@ export const sessionApi = {
           query: params?.query?.trim() || undefined,
           page: params?.page,
           size: params?.size,
-          sort: params?.sort
+          sort: params?.sort,
+          from: params?.from || undefined,
+          to: params?.to || undefined
         }
     });
     return normalizeSessionList(response.data);
+  },
+
+  getMySessions: async (status?: SessionStatus): Promise<ParkingSession[]> => {
+    const response = await httpClient.get<SessionResponse[]>("/sessions/my", {
+      params: status ? { status } : undefined
+    });
+    return (Array.isArray(response.data) ? response.data : []).map(normalizeSession);
   },
 
   previewLostTicketFee: async (plateNumber: string): Promise<LostTicketFeePreview> => {

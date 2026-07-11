@@ -4,6 +4,7 @@ import dayjs from "dayjs";
 import { Printer, ReceiptText, Search } from "lucide-react";
 import { paymentApi } from "@/api/paymentApi";
 import { sessionApi } from "@/api/sessionApi";
+import { pricingApi } from "@/api/pricingApi";
 import { Button } from "@/components/common/Button";
 import { Card, CardContent, CardHeader } from "@/components/common/Card";
 import { PageHeader } from "@/components/layout/PageHeader";
@@ -20,6 +21,7 @@ const PAYMENT_METHODS: { label: string; value: PaymentMethod }[] = [
 export function CheckOutPage() {
   const [session, setSession] = useState<ParkingSession | null>(null);
   const [payment, setPayment] = useState<PaymentRecord | null>(null);
+  const [previewFee, setPreviewFee] = useState<number | null>(null);
   const [paymentMethod, setPaymentMethod] = useState<PaymentMethod>("CASH");
   const [searchError, setSearchError] = useState("");
   const [paymentError, setPaymentError] = useState("");
@@ -32,8 +34,21 @@ export function CheckOutPage() {
     return Math.max(1, dayjs(endAt).diff(dayjs(session.checkInAt), "hour", true)).toFixed(1);
   }, [session]);
 
-  const displayFee = payment?.amount ?? session?.fee ?? 0;
+  const displayFee = payment?.amount ?? previewFee ?? session?.fee ?? 0;
   const displayStatus = payment ? "COMPLETED" : session?.status ?? "ACTIVE";
+
+  const loadFeePreview = async (active: ParkingSession) => {
+    try {
+      const result = await pricingApi.calculateOvernightFee({
+        checkIn: dayjs(active.checkInAt).format("YYYY-MM-DDTHH:mm:ss"),
+        checkOut: dayjs().format("YYYY-MM-DDTHH:mm:ss"),
+        vehicleType: active.vehicleTypeId
+      });
+      setPreviewFee(result.total);
+    } catch {
+      setPreviewFee(null);
+    }
+  };
 
   const submit = async (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault();
@@ -45,6 +60,7 @@ export function CheckOutPage() {
     setPaymentError("");
     setSession(null);
     setPayment(null);
+    setPreviewFee(null);
 
     try {
       const result = await sessionApi.list({
@@ -62,6 +78,7 @@ export function CheckOutPage() {
       }
 
       setSession(found);
+      void loadFeePreview(found);
     } catch (error) {
       if (axios.isAxiosError<{ message?: string; error?: string }>(error)) {
         if (error.response?.status === 401 || error.response?.status === 403) {

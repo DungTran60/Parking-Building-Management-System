@@ -6,6 +6,8 @@ import { Card, CardContent, CardHeader } from "@/components/common/Card";
 import { PageHeader } from "@/components/layout/PageHeader";
 import { paymentApi } from "@/api/paymentApi";
 import { sessionApi } from "@/api/sessionApi";
+import { pricingApi } from "@/api/pricingApi";
+import dayjs from "dayjs";
 import { currency, dateTime } from "@/utils/format";
 import { getApiErrorMessage } from "@/utils/apiError";
 import type { PaymentMethod } from "@/types/domain";
@@ -22,17 +24,27 @@ export function PaymentPage() {
   const [success, setSuccess] = useState(false);
   const [formError, setFormError] = useState<string | null>(null);
 
-  const { data: sessionList, isLoading: sessionLoading } = useQuery({ 
-    queryKey: ["current-session"], 
-    queryFn: () => sessionApi.list({ status: "ACTIVE" }) 
+  const { data: sessions, isLoading: sessionLoading } = useQuery({
+    queryKey: ["current-session"],
+    queryFn: () => sessionApi.getMySessions("ACTIVE")
   });
-  const { data: payments = [], isLoading: paymentsLoading } = useQuery({ 
-    queryKey: ["payments"], 
-    queryFn: paymentApi.getAll 
+  const { data: payments = [], isLoading: paymentsLoading } = useQuery({
+    queryKey: ["payments"],
+    queryFn: paymentApi.getAll
   });
 
-  const session = sessionList?.content?.[0] || null;
-  const total = session?.fee || 18000;
+  const session = sessions?.[0] ?? null;
+
+  const { data: feePreview } = useQuery({
+    queryKey: ["current-session-fee", session?.id],
+    queryFn: () => pricingApi.calculateOvernightFee({
+      checkIn: dayjs(session!.checkInAt).format("YYYY-MM-DDTHH:mm:ss"),
+      checkOut: dayjs().format("YYYY-MM-DDTHH:mm:ss"),
+      vehicleType: session!.vehicleTypeId
+    }),
+    enabled: Boolean(session?.id)
+  });
+  const total = feePreview?.total ?? session?.fee ?? 0;
 
   const submitMutation = useMutation({
     mutationFn: (payMethod: PaymentMethod) => {
@@ -75,8 +87,10 @@ export function PaymentPage() {
               {session ? (
                 <>
                   <div className="mb-4 grid gap-2 border-b border-border pb-4 text-sm">
-                    <Line label="Giờ đầu" value={currency(5000)} />
-                    <Line label="Thời gian tiếp theo" value={currency(total - 5000 > 0 ? total - 5000 : 0)} />
+                    <Line label="Phí gửi xe (theo giờ)" value={currency(feePreview?.basePrice ?? 0)} />
+                    {feePreview && feePreview.numberOfNights > 0 && (
+                      <Line label={`Phí qua đêm (${feePreview.numberOfNights} đêm)`} value={currency(feePreview.overnightFee * feePreview.numberOfNights)} />
+                    )}
                   </div>
                   <div className="flex items-center justify-between rounded-md bg-blue-50 p-4 font-semibold">
                     <span>Tổng thanh toán</span>

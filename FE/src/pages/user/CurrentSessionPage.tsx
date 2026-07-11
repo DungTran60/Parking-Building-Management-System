@@ -10,6 +10,7 @@ import { floorApi } from "@/api/floorApi";
 import { slotApi } from "@/api/slotApi";
 import { vehicleTypeApi } from "@/api/vehicleTypeApi";
 import { sessionApi } from "@/api/sessionApi";
+import { pricingApi } from "@/api/pricingApi";
 import { currency, dateTime } from "@/utils/format";
 import type { ParkingSession } from "@/types/domain";
 
@@ -17,15 +18,39 @@ export function CurrentSessionPage() {
   const { data: floors = [] } = useQuery({ queryKey: ["floors"], queryFn: floorApi.getAll });
   const { data: slotRows = [] } = useQuery({ queryKey: ["slots"], queryFn: slotApi.getAll });
   const { data: vehicleTypes = [] } = useQuery({ queryKey: ["vehicleTypes"], queryFn: () => vehicleTypeApi.getAll() });
-  const { data: sessionList, isLoading } = useQuery({ 
-    queryKey: ["current-session"], 
-    queryFn: () => sessionApi.list({ status: "ACTIVE" }) 
+  const { data: sessions, isLoading, isError } = useQuery({
+    queryKey: ["current-session"],
+    queryFn: () => sessionApi.getMySessions("ACTIVE")
   });
 
-  const session = sessionList?.content?.[0] || null;
+  const session = sessions?.[0] ?? null;
+
+  const { data: feePreview } = useQuery({
+    queryKey: ["current-session-fee", session?.id],
+    queryFn: () => pricingApi.calculateOvernightFee({
+      checkIn: dayjs(session!.checkInAt).format("YYYY-MM-DDTHH:mm:ss"),
+      checkOut: dayjs().format("YYYY-MM-DDTHH:mm:ss"),
+      vehicleType: session!.vehicleTypeId
+    }),
+    enabled: Boolean(session?.id)
+  });
 
   if (isLoading) {
     return <PageHeader title="Lượt gửi xe hiện tại" description="Đang tải thông tin lượt gửi xe." />;
+  }
+
+  if (isError) {
+    return (
+      <>
+        <PageHeader title="Lượt gửi xe hiện tại" description="Theo dõi giờ vào, vị trí gửi và phí tạm tính." />
+        <Card className="mt-8">
+          <CardContent className="flex flex-col items-center justify-center py-16 text-center text-sm text-red-600">
+            <AlertCircle size={32} className="mb-3" />
+            Không thể tải lượt gửi xe. Vui lòng thử lại sau.
+          </CardContent>
+        </Card>
+      </>
+    );
   }
 
   if (!session) {
@@ -51,7 +76,7 @@ export function CurrentSessionPage() {
   const floor = floors.find((item) => String(item.id) === String(slot?.floorId));
   const vehicle = vehicleTypes.find((item) => String(item.id) === String(session.vehicleTypeId));
   const hours = Math.max(1, dayjs().diff(dayjs(session.checkInAt), "hour", true));
-  const estimatedFee = session.fee || Math.ceil(hours) * 3000 + 5000;
+  const estimatedFee = feePreview?.total ?? session.fee ?? 0;
 
   return (
     <>

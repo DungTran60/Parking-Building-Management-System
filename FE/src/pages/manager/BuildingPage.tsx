@@ -59,9 +59,21 @@ export const BuildingsPage: React.FC = () => {
     }
   });
 
+  const trimmedEmail = form?.email?.trim() ?? "";
   const errors = {
-    buildingName: form?.buildingName.trim() ? "" : "Tên tòa nhà không được để trống.",
-    address: form?.address.trim() ? "" : "Địa chỉ không được để trống.",
+    buildingName: !form?.buildingName.trim()
+      ? "Tên tòa nhà không được để trống."
+      : form.buildingName.trim().length < 2
+        ? "Tên tòa nhà phải có ít nhất 2 ký tự."
+        : "",
+    address: !form?.address.trim()
+      ? "Địa chỉ không được để trống."
+      : form.address.trim().length < 5
+        ? "Địa chỉ phải có ít nhất 5 ký tự."
+        : "",
+    email: trimmedEmail && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(trimmedEmail)
+      ? "Email không đúng định dạng."
+      : "",
     openingTime: form?.openingTime ? "" : "Vui lòng chọn giờ mở cửa.",
     closingTime: !form?.closingTime
       ? "Vui lòng chọn giờ đóng cửa."
@@ -98,7 +110,7 @@ export const BuildingsPage: React.FC = () => {
       return;
     }
     setSubmitted(false);
-    updateMutation.mutate({ ...form, buildingName: form.buildingName.trim(), address: form.address.trim() });
+    updateMutation.mutate({ ...form, buildingName: form.buildingName.trim(), address: form.address.trim(), email: form.email?.trim() || undefined });
   };
 
   const reset = () => {
@@ -146,8 +158,8 @@ export const BuildingsPage: React.FC = () => {
             <Field label="Hotline">
               <Input type="tel" value={form.hotline} onChange={(event) => update("hotline", event.target.value)} placeholder="090123..." disabled={isReadOnly} />
             </Field>
-            <Field label="Email">
-              <Input type="email" value={form.email} onChange={(event) => update("email", event.target.value)} placeholder="abc@email.com" disabled={isReadOnly} />
+            <Field label="Email" error={submitted ? errors.email : undefined}>
+              <Input type="email" value={form.email} onChange={(event) => update("email", event.target.value)} placeholder="abc@email.com" aria-invalid={submitted && !!errors.email} disabled={isReadOnly} />
             </Field>
             <div className="md:col-span-2">
               <Field label="Ảnh đại diện (URL)">
@@ -216,7 +228,7 @@ export const BuildingsPage: React.FC = () => {
           <p className="text-sm text-slate-500">{isReadOnly ? "Chưa đồng bộ với máy chủ." : isDirty ? "Bạn có thay đổi chưa lưu." : (savedBuilding?.createdAt ? `Tạo lúc: ${new Date(savedBuilding.createdAt).toLocaleString("vi-VN")}` : "")}</p>
           <div className="flex gap-2">
             <Button type="button" variant="secondary" onClick={reset} disabled={isReadOnly || !isDirty || updateMutation.isPending}><RotateCcw size={16} /> Hoàn tác</Button>
-            <Button type="submit" disabled={isReadOnly || !isDirty || updateMutation.isPending}><Save size={17} /> {updateMutation.isPending ? "Đang lưu..." : "Lưu cấu hình"}</Button>
+            <Button type="submit" disabled={isReadOnly || !isDirty || updateMutation.isPending}><Save size={17} /> {updateMutation.isPending ? "Đang lưu..." : "Cập nhật"}</Button>
           </div>
         </div>
       </form>

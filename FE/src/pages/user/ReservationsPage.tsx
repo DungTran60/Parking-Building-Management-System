@@ -1,4 +1,4 @@
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import dayjs from "dayjs";
 import { CalendarCheck } from "lucide-react";
@@ -16,7 +16,7 @@ import { dateTime } from "@/utils/format";
 
 export function ReservationsPage() {
   const queryClient = useQueryClient();
-  const [vehicleTypeId, setVehicleTypeId] = useState("motorbike");
+  const [vehicleTypeId, setVehicleTypeId] = useState("");
   const [plateNumber, setPlateNumber] = useState("");
   const [startAt, setStartAt] = useState(dayjs().add(1, "hour").format("YYYY-MM-DDTHH:mm"));
   const [endAt, setEndAt] = useState(dayjs().add(3, "hour").format("YYYY-MM-DDTHH:mm"));
@@ -27,6 +27,12 @@ export function ReservationsPage() {
   const { data: slotRows = [] } = useQuery({ queryKey: ["slots"], queryFn: slotApi.getAll });
   const { data: vehicleTypes = [] } = useQuery({ queryKey: ["vehicleTypes"], queryFn: () => vehicleTypeApi.getAll() });
   const { data: rows = [] } = useQuery({ queryKey: ["reservations"], queryFn: () => reservationApi.getAll() });
+
+  useEffect(() => {
+    if (vehicleTypes.length > 0 && !vehicleTypes.some((type) => String(type.id) === String(vehicleTypeId))) {
+      setVehicleTypeId(String(vehicleTypes[0].id));
+    }
+  }, [vehicleTypes, vehicleTypeId]);
 
   const createMutation = useMutation({
     mutationFn: reservationApi.create,
@@ -63,6 +69,10 @@ export function ReservationsPage() {
     }
     if (dayjs(startAt).isBefore(dayjs())) {
       setFormError("Thời gian vào không được ở trong quá khứ.");
+      return;
+    }
+    if (!dayjs(endAt).isAfter(dayjs(startAt))) {
+      setFormError("Thời gian ra dự kiến phải sau thời gian vào.");
       return;
     }
     if (!selectedSlotId) {
