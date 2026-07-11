@@ -215,7 +215,7 @@ export function CheckInPage() {
                 </Field>
               </div>
 
-              {/* <div className="rounded-md bg-blue-50 p-4 text-sm text-blue-800">
+              <div className="rounded-md bg-blue-50 p-4 text-sm text-blue-800">
                 <div className="flex items-center gap-2 font-semibold">
                   <Wand2 size={17} />
                   Gợi ý tự động
@@ -233,7 +233,7 @@ export function CheckInPage() {
                 ) : (
                   <p className="mt-2">BE sẽ tự cấp slot phù hợp khi check-in nếu còn chỗ trống.</p>
                 )}
-              </div> */}
+              </div>
 
               {submitError && (
                 <div role="alert" className="rounded-md bg-red-50 p-3 text-sm text-red-700">

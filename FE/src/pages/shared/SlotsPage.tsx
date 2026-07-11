@@ -1,6 +1,6 @@
 import { useMemo, useState, type FormEvent } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { CarFront, History, LayoutGrid, Lock, Pencil, Plus, Search, Unlock } from "lucide-react";
+import { CarFront, History, LayoutGrid, Lock, Pencil, Plus, Search, Unlock, Wrench } from "lucide-react";
 import { Button } from "@/components/common/Button";
 import { Card, CardContent, CardHeader } from "@/components/common/Card";
 import { Field, Input, Select } from "@/components/forms/FormField";
@@ -87,6 +87,17 @@ export function SlotsPage() {
     if (!window.confirm(message)) return;
 
     const nextStatus: SlotStatus = unlocking ? "AVAILABLE" : "BLOCKED";
+    statusMutation.mutate({ id: slot.id, nextStatus });
+  };
+
+  const toggleMaintenanceStatus = (slot: ParkingSlot) => {
+    const clearing = slot.status === "MAINTENANCE";
+    const message = clearing
+      ? "Bạn có chắc muốn đưa slot " + slot.code + " trở lại hoạt động?"
+      : "Bạn có chắc muốn đưa slot " + slot.code + " vào bảo trì?";
+    if (!window.confirm(message)) return;
+
+    const nextStatus: SlotStatus = clearing ? "AVAILABLE" : "MAINTENANCE";
     statusMutation.mutate({ id: slot.id, nextStatus });
   };
 
@@ -198,6 +209,7 @@ export function SlotsPage() {
                 const vehicleType = vehicleTypes.find((item) => item.id === slot.vehicleTypeId);
                 const meta = statusMeta[slot.status];
                 const canToggle = canUpdateStatus && (slot.status === "AVAILABLE" || slot.status === "BLOCKED");
+                const canMaintenance = canUpdateStatus && (slot.status === "AVAILABLE" || slot.status === "BLOCKED" || slot.status === "MAINTENANCE");
                 return (
                   <article key={slot.id} className={cn("rounded-lg border-2 p-4 transition hover:shadow-md", meta.card)}>
                     <div className="flex items-start justify-between gap-2">
@@ -209,14 +221,17 @@ export function SlotsPage() {
                     </div>
                     <div className="mt-4 flex items-center gap-2 text-sm text-slate-600"><CarFront size={15} />{vehicleType?.name ?? "Chưa xác định"}</div>
                     <p className="mt-2 text-xs font-medium text-slate-500">{meta.label}</p>
-                    <div className="mt-4 flex gap-2 border-t border-black/5 pt-3">
-                      <Button variant="secondary" className="h-9 flex-1 px-2" disabled={!canManage} onClick={() => openEdit(slot)} title={canManage ? "Chỉnh sửa slot" : "Bạn không có quyền chỉnh sửa slot"} aria-label="Chỉnh sửa slot">
+                    <div className="mt-4 flex flex-wrap gap-2 border-t border-black/5 pt-3">
+                      <Button variant="secondary" className="h-9 flex-1 min-w-[2.25rem] px-2" disabled={!canManage} onClick={() => openEdit(slot)} title={canManage ? "Chỉnh sửa slot" : "Bạn không có quyền chỉnh sửa slot"} aria-label="Chỉnh sửa slot">
                         <Pencil size={15} />
                       </Button>
-                      <Button variant="secondary" className="h-9 flex-1 px-2" disabled={!canToggle} onClick={() => toggleBlockedStatus(slot)} title={canToggle ? (slot.status === "BLOCKED" ? "Mở khóa slot" : "Tạm khóa slot") : (canUpdateStatus ? "Không thể khóa slot ở trạng thái hiện tại" : "Bạn không có quyền cập nhật trạng thái slot")} aria-label={slot.status === "BLOCKED" ? "Mở khóa slot" : "Tạm khóa slot"}>
+                      <Button variant="secondary" className="h-9 flex-1 min-w-[2.25rem] px-2" disabled={!canToggle} onClick={() => toggleBlockedStatus(slot)} title={canToggle ? (slot.status === "BLOCKED" ? "Mở khóa slot" : "Tạm khóa slot") : (canUpdateStatus ? "Không thể khóa slot ở trạng thái hiện tại" : "Bạn không có quyền cập nhật trạng thái slot")} aria-label={slot.status === "BLOCKED" ? "Mở khóa slot" : "Tạm khóa slot"}>
                         {slot.status === "BLOCKED" ? <Unlock size={15} /> : <Lock size={15} />}
                       </Button>
-                      <Button variant="secondary" className="h-9 flex-1 px-2" onClick={() => setHistory(slot)} title="Xem chi tiết và lịch sử" aria-label="Xem chi tiết và lịch sử">
+                      <Button variant="secondary" className="h-9 flex-1 min-w-[2.25rem] px-2" disabled={!canMaintenance} onClick={() => toggleMaintenanceStatus(slot)} title={canMaintenance ? (slot.status === "MAINTENANCE" ? "Đưa slot trở lại hoạt động" : "Đưa slot vào bảo trì") : (canUpdateStatus ? "Không thể bảo trì slot đang được sử dụng" : "Bạn không có quyền cập nhật trạng thái slot")} aria-label={slot.status === "MAINTENANCE" ? "Kết thúc bảo trì slot" : "Đưa slot vào bảo trì"}>
+                        <Wrench size={15} />
+                      </Button>
+                      <Button variant="secondary" className="h-9 flex-1 min-w-[2.25rem] px-2" onClick={() => setHistory(slot)} title="Xem chi tiết và lịch sử" aria-label="Xem chi tiết và lịch sử">
                         <History size={15} />
                       </Button>
                     </div>

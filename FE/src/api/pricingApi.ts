@@ -65,11 +65,6 @@ export const pricingApi = {
     return response.data.map(normalizePricing);
   },
 
-  getById: async (id: string): Promise<Pricing> => {
-    const response = await httpClient.get<PricingResponse>(`/pricing/${id}`);
-    return normalizePricing(response.data);
-  },
-
   create: async (payload: PricingPayload): Promise<Pricing> => {
     const response = await httpClient.post<PricingResponse>("/pricing", payload);
     return normalizePricing(response.data);

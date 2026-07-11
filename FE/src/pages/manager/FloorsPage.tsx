@@ -21,7 +21,7 @@ export function FloorsPage() {
     isLoading: buildingLoading,
     isError: buildingError
   } = useQuery({
-    queryKey: ["building"],
+    queryKey: ["system-building"],
     queryFn: () => buildingApi.get()
   });
 
@@ -266,7 +266,7 @@ export function FloorsPage() {
               <CardContent className="grid gap-5">
                 <div className="grid gap-3 grid-cols-2">
                   <Stat icon={<MapPin size={18} />} label="Khu vực" value={selectedFloor.zone || "—"} />
-                  <Stat icon={<SquareParking size={18} />} label="Tổng số slot" value={String(floorStats.total)} />
+                  <Stat icon={<SquareParking size={18} />} label="Sức chứa" value={String(floorStats.total)} />
                   <Stat icon={<Layers3 size={18} />} label="Loại xe hỗ trợ" value={String(selectedFloor.supportedVehicleTypes.length)} />
                   <Stat icon={<CarFront size={18} />} label="Tỷ lệ lấp đầy" value={`${floorStats.occupancy}%`} />
                 </div>
@@ -302,7 +302,7 @@ export function FloorsPage() {
           <Field label="Khu vực">
             <Input name="zone" defaultValue={editingFloor?.zone ?? ""} placeholder="Ví dụ: Khu xe máy A" maxLength={100} />
           </Field>
-          <Field label="Số lượng slot">
+          <Field label="Sức chứa dự kiến" hint="Số slot tối đa theo kế hoạch — không tự tạo slot. Tạo slot thực tế ở mục Vị trí đỗ.">
             <Input name="slotCount" type="number" min={1} defaultValue={String(editingFloor?.slotCount ?? 1)} placeholder="Ví dụ: 100" required />
           </Field>
           <fieldset className="sm:col-span-2">

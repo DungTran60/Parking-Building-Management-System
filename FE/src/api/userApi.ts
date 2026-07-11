@@ -21,9 +21,11 @@ export interface CreateUserRequest {
 export type UpdateUserRequest = Partial<Pick<CreateUserRequest, "username" | "email" | "phoneNumber" | "roleName">>;
 
 export interface UpdateProfileRequest {
-  fullName: string;
-  email: string;
-  phoneNumber: string;
+  username?: string;
+  email?: string;
+  phoneNumber?: string;
+  currentPassword?: string;
+  newPassword?: string;
 }
 
 export const userApi = {

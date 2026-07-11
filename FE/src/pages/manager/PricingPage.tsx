@@ -167,12 +167,22 @@ export function PricingPage() {
     }
   };
 
+  const availableVehicleTypes = vehicleTypes.filter((vt) => !policies.some((p) => p.vehicleTypeId === vt.id));
+  const createDisabledReason = vehicleTypes.length === 0
+    ? "Chưa có loại xe — hãy tạo loại xe ở mục Loại xe trước"
+    : availableVehicleTypes.length === 0
+      ? "Tất cả loại xe đều đã có bảng giá"
+      : null;
+  const formVehicleTypes = editing
+    ? vehicleTypes.filter((vt) => vt.id === editing.vehicleTypeId)
+    : availableVehicleTypes;
+
   return (
     <>
       <PageHeader
         title="Bảng giá & tính phí"
         description="Quản lý chính sách giá và mô phỏng chi phí gửi xe trong một quy trình thống nhất."
-        action={<Button onClick={openCreate}><Plus size={17} /> Tạo bảng giá</Button>}
+        action={<Button onClick={openCreate} disabled={!!createDisabledReason} title={createDisabledReason ?? undefined}><Plus size={17} /> Tạo bảng giá</Button>}
       />
 
       <div className="mb-6 inline-flex rounded-lg border border-border bg-white p-1 shadow-sm">
@@ -189,7 +199,7 @@ export function PricingPage() {
           {loading && <p className="text-sm text-slate-500 lg:col-span-2">Đang tải bảng giá...</p>}
           {!loading && loadError && <div role="alert" className="rounded-lg border border-red-200 bg-red-50 p-4 text-sm text-red-700 lg:col-span-2"><p>{loadError}</p><Button variant="secondary" className="mt-3" onClick={() => void loadData()}><RefreshCw size={16} /> Thử lại</Button></div>}
           {!loading && !loadError && saveError && !formOpen && <div role="alert" className="rounded-lg border border-red-200 bg-red-50 p-4 text-sm text-red-700 lg:col-span-2">{saveError}</div>}
-          {!loading && !loadError && policies.length === 0 && <div className="rounded-lg border border-dashed border-slate-300 py-14 text-center lg:col-span-2"><Tags className="mx-auto text-slate-300" size={40} /><p className="mt-3 text-sm font-medium text-slate-700">Chưa có bảng giá</p><Button className="mt-4" onClick={openCreate}><Plus size={16} /> Tạo bảng giá đầu tiên</Button></div>}
+          {!loading && !loadError && policies.length === 0 && <div className="rounded-lg border border-dashed border-slate-300 py-14 text-center lg:col-span-2"><Tags className="mx-auto text-slate-300" size={40} /><p className="mt-3 text-sm font-medium text-slate-700">Chưa có bảng giá</p><Button className="mt-4" onClick={openCreate} disabled={!!createDisabledReason} title={createDisabledReason ?? undefined}><Plus size={16} /> Tạo bảng giá đầu tiên</Button></div>}
           {!loading && !loadError && policies.map((policy) => {
             return (
               <Card key={policy.id}>
@@ -247,7 +257,7 @@ export function PricingPage() {
 
       <Modal open={formOpen} title={editing ? "Cập nhật bảng giá" : "Tạo bảng giá"} onClose={closeForm}>
         <form key={editing?.id ?? "create-pricing"} className="grid gap-4 sm:grid-cols-2" onSubmit={savePolicy}>
-          <Field label="Loại xe"><Select name="vehicleTypeId" defaultValue={editing?.vehicleTypeId ?? vehicleTypes[0]?.id ?? ""} required disabled={saving}>{vehicleTypes.map((type) => <option key={type.id} value={type.id}>{type.name}</option>)}</Select></Field>
+          <Field label="Loại xe"><Select name="vehicleTypeId" defaultValue={editing ? editing.vehicleTypeId : (formVehicleTypes[0]?.id ?? "")} required disabled={saving || !!editing}>{formVehicleTypes.map((type) => <option key={type.id} value={type.id}>{type.name}</option>)}</Select></Field>
           <Field label="Đơn vị tính"><input type="hidden" name="timeUnit" value="HOURLY" /><Select value="HOURLY" disabled><option value="HOURLY">{timeUnitLabel.HOURLY}</option></Select></Field>
           <PriceInput name="price" label="Đơn giá" value={editing?.price ?? 1} min={1} disabled={saving} />
           <PriceInput name="overnightFee" label="Qua đêm" value={editing?.overnightFee ?? 0} disabled={saving} />
@@ -255,7 +265,7 @@ export function PricingPage() {
           <Field label="Mô tả"><Input name="description" defaultValue={editing?.description ?? ""} maxLength={255} disabled={saving} /></Field>
           <label className="flex items-center gap-2 text-sm text-slate-700 sm:col-span-2"><input name="active" type="checkbox" defaultChecked={editing?.active ?? true} disabled={saving} /> Áp dụng bảng giá này</label>
           {saveError && <div role="alert" className="rounded-lg border border-red-200 bg-red-50 px-3 py-2.5 text-sm text-red-700 sm:col-span-2">{saveError}</div>}
-          <div className="flex justify-end gap-3 sm:col-span-2"><Button type="button" variant="secondary" onClick={closeForm} disabled={saving}>Hủy</Button><Button type="submit" disabled={saving || vehicleTypes.length === 0}>{saving ? "Đang lưu..." : editing ? "Lưu thay đổi" : "Tạo bảng giá"}</Button></div>
+          <div className="flex justify-end gap-3 sm:col-span-2"><Button type="button" variant="secondary" onClick={closeForm} disabled={saving}>Hủy</Button><Button type="submit" disabled={saving || formVehicleTypes.length === 0}>{saving ? "Đang lưu..." : editing ? "Lưu thay đổi" : "Tạo bảng giá"}</Button></div>
         </form>
       </Modal>
     </>

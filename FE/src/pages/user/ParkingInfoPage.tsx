@@ -134,6 +134,16 @@ export function ParkingInfoPage() {
   const paymentModeLabel = PAYMENT_MODE_LABELS[settings.paymentMode ?? "HYBRID"];
   const autoBlockLabel = (settings.autoBlockOverdueSlots ?? true) ? "Bật" : "Tắt";
 
+  const configuredRules = settings.parkingRules?.trim();
+  const parkingRulesList = configuredRules
+    ? configuredRules.split(/\r?\n+/).map((line) => line.trim()).filter(Boolean)
+    : [
+        "Giữ thẻ xe hoặc mã QR trong suốt thời gian gửi.",
+        "Không để tài sản giá trị cao trong xe.",
+        "Xe gửi qua đêm tính phí theo chính sách hiện hành.",
+        `Tự động khóa slot quá hạn: ${autoBlockLabel === "Bật" ? "Hệ thống sẽ hỗ trợ khóa khi hết hạn" : "Nhân viên xử lý thủ công theo quy trình"}.`
+      ];
+
   return (
     <>
       <PageHeader title="Thông tin bãi xe" description="Theo dõi thời gian hoạt động, bảng giá, quy định và số slot trống theo khu vực." />
@@ -158,13 +168,19 @@ export function ParkingInfoPage() {
       </div>
 
       <Card className="mt-6">
-        <CardHeader title="Cấu hình hệ thống" />
+        <CardHeader title="Thông tin tòa nhà" />
         <CardContent className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
-          <InfoCard label="Tên hệ thống" value={settings.buildingName} />
+          <InfoCard label="Tên tòa nhà" value={settings.buildingName} />
+          <InfoCard label="Địa chỉ" value={settings.address || "—"} />
+          <InfoCard label="Hotline" value={settings.hotline || "—"} />
+          <InfoCard label="Email" value={settings.email || "—"} />
           <InfoCard label="Giờ mở cửa" value={settings.openingTime ?? "06:00"} />
           <InfoCard label="Giờ đóng cửa" value={settings.closingTime ?? "23:00"} />
           <InfoCard label="Phương thức thanh toán" value={paymentModeLabel} />
           <InfoCard label="Tự động khóa slot quá hạn" value={autoBlockLabel} />
+          <div className="md:col-span-2 xl:col-span-4">
+            <InfoCard label="Mô tả" value={settings.description || "—"} />
+          </div>
           <InfoCard label="Cập nhật cuối" value={dateTime(lastUpdatedAt)} />
         </CardContent>
       </Card>
@@ -254,13 +270,8 @@ export function ParkingInfoPage() {
             <CardHeader title="Quy định gửi xe" />
             <CardContent>
               <ul className="grid gap-3 text-sm text-slate-600">
-                {[
-                  "Giữ thẻ xe hoặc mã QR trong suốt thời gian gửi.",
-                  "Không để tài sản giá trị cao trong xe.",
-                  "Xe gửi qua đêm tính phí theo chính sách hiện hành.",
-                  `Tự động khóa slot quá hạn: ${autoBlockLabel === "Bật" ? "Hệ thống sẽ hỗ trợ khóa khi hết hạn" : "Nhân viên xử lý thủ công theo quy trình"}.`
-                ].map((item) => (
-                  <li key={item} className="flex gap-2">
+                {parkingRulesList.map((item, index) => (
+                  <li key={index} className="flex gap-2">
                     <Check size={16} className="mt-0.5 shrink-0 text-emerald-600" />
                     <span>{item}</span>
                   </li>
@@ -273,7 +284,7 @@ export function ParkingInfoPage() {
             <CardHeader title="Cần hỗ trợ?" />
             <CardContent className="grid gap-3">
               <div className="flex items-start gap-3"><Clock className="mt-1 text-amber-600" size={22} /><div><p className="font-semibold text-slate-900">Hỗ trợ tại quầy 24/7</p><p className="mt-1 text-sm text-slate-500">Mất thẻ, sai phí hoặc không tìm được xe.</p></div></div>
-              <a href="tel:19001234" className="flex items-center gap-2 rounded-md bg-slate-50 p-3 text-sm font-medium text-slate-700 hover:bg-slate-100"><Phone size={16} className="text-primary" /> Hotline: 1900 1234</a>
+              <a href={settings.hotline ? `tel:${settings.hotline}` : undefined} className="flex items-center gap-2 rounded-md bg-slate-50 p-3 text-sm font-medium text-slate-700 hover:bg-slate-100"><Phone size={16} className="text-primary" /> Hotline: {settings.hotline || "Chưa cập nhật"}</a>
               <Link to="/app/feedback" className="flex items-center gap-2 rounded-md bg-slate-50 p-3 text-sm font-medium text-slate-700 hover:bg-slate-100"><MessageCircle size={16} className="text-primary" /> Gửi yêu cầu hỗ trợ</Link>
             </CardContent>
           </Card>

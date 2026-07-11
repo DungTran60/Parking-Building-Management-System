@@ -27,7 +27,7 @@ Business Requirement & WORKFLOW
 | Tạo sự cố/phản hồi             | ✖     | ✖              | ✔                   | ✔            |
 | Phân công sự cố                | ✖     | ✔              | ✖                   | ✖            |
 | Xử lý sự cố                    | ✖     | Giám sát       | ✔                   | ✖            |
-| Xem báo cáo                    | ✖     | ✔              | Giới hạn (theo ca)  | ✖            |
+| Xem báo cáo                    | ✖     | ✔              | ✖                   | ✖            |
 | Cấu hình hệ thống              | ✔     | ✖              | ✖                   | ✖            |
 
 3. Workflow tổng thể
@@ -128,7 +128,7 @@ Chức năng
 Nhóm chức năng	Mô tả
 Quản lý thông tin tòa nhà	Cập nhật thông tin của tòa nhà hiện tại (Ví dụ: Tên tòa nhà, Địa chỉ, Hotline, Email, Mô tả, Giờ hoạt động, 
 Nội quy gửi xe, Ảnh đại diện)
-Quản lý loại phương tiện	Xe máy, ô tô
+Quản lý loại phương tiện	Thêm, sửa, xóa, bật/tắt loại xe (mã code, tên, mô tả, trạng thái Active/Inactive). Ví dụ: Xe máy (MOTORBIKE), Ô tô (CAR)
 Quản lý tầng/khu vực	Tầng nào dành cho loại xe nào
 Quản lý slot	Thêm, sửa, khóa, bảo trì slot
 Quản lý bảng giá	Thiết lập phí theo loại xe
@@ -167,6 +167,8 @@ Manager thao tác	Ảnh hưởng tới role
 Cập nhật bảng giá	Staff checkout sẽ tính phí theo giá mới
 Khóa slot bảo trì	Staff không thể cấp slot đó cho xe
 Phân tầng theo loại xe	Driver/Staff chỉ thấy slot phù hợp
+Thêm/đổi loại xe	Driver thấy loại xe khi xem bãi/đặt chỗ; Staff chọn loại xe khi check-in; Floor (loại xe hỗ trợ) và Bảng giá cần cấu hình theo loại mới
+Ngừng hoạt động loại xe (Inactive)	Loại xe đó ẩn khỏi check-in/đặt chỗ; các lượt gửi cũ vẫn giữ nguyên loại xe
 Phân công sự cố	Staff nhận nhiệm vụ xử lý
 Xem báo cáo	Đánh giá hiệu quả làm việc của Staff và tình trạng bãi
 
@@ -181,11 +183,7 @@ Thu phí	Xác nhận thanh toán
 Cập nhật slot	Chuyển slot Occupied/Available
 Xử lý sự cố	Mất vé, sai biển số, xe quá giờ, gửi sai khu vực
 Tạo sự cố Staff có thể chủ động tạo sự cố khi phát hiện vấn đề trong quá trình vận hành (VD: xe quá giờ, gửi sai khu vực, sai biển số phát hiện lúc check-out) — không chỉ xử lý sự cố do Driver gửi.
-Xem báo cáo Staff chỉ xem được báo cáo trong phạm vi:
-
-Theo ca làm việc của chính Staff đó (không xem được ca của Staff khác)
-Số liệu vận hành: số lượt xe vào/ra, số sự cố xử lý, số slot đã cập nhật
-Không bao gồm: doanh thu tổng, báo cáo tỷ lệ lấp đầy toàn bãi, dữ liệu nhiều ngày/nhiều ca
+Xem báo cáo ✖ — Staff không có trang báo cáo riêng. Số liệu vận hành thời gian thực (xe đang gửi, slot còn trống, sự cố đang mở) được theo dõi qua Dashboard theo ca làm việc. Các báo cáo doanh thu / tỷ lệ lấp đầy / lưu lượng đa ngày thuộc về Manager (Staff không được xem).
 1. Workflow Staff Check-in
 Driver đến cổng vào
 ↓

@@ -1,12 +1,12 @@
 import type { InputHTMLAttributes, ReactNode, SelectHTMLAttributes } from "react";
 import { cn } from "@/utils/cn";
 
-export function Field({ label, children, error }: { label: string; children: ReactNode; error?: string }) {
+export function Field({ label, children, error, hint }: { label: string; children: ReactNode; error?: string; hint?: string }) {
   return (
     <label className="grid gap-1.5 text-sm font-medium text-slate-700">
       <span>{label}</span>
       {children}
-      {error && <span className="text-xs text-red-600">{error}</span>}
+      {error ? <span className="text-xs text-red-600">{error}</span> : hint ? <span className="text-xs font-normal text-slate-500">{hint}</span> : null}
     </label>
   );
 }

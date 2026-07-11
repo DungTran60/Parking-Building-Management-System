@@ -11,16 +11,6 @@ import type {
   User,
   VehicleType
 } from "@/types/domain";
-export const hourly = [
-  { time: "07:00", in: 42, out: 12 },
-  { time: "09:00", in: 86, out: 24 },
-  { time: "11:00", in: 52, out: 38 },
-  { time: "13:00", in: 45, out: 41 },
-  { time: "17:00", in: 96, out: 78 },
-  { time: "19:00", in: 34, out: 88 }
-];
-export const vehiclePie = [{ name: "Xe máy", value: 48 }, { name: "Ô tô", value: 31 }, { name: "Xe điện", value: 12 }, { name: "Khác", value: 9 }];
-export const colors = ["#2563eb", "#16a34a", "#0891b2", "#f59e0b"];
 export const vehicleTypes: VehicleType[] = [
   { id: "1", code: "MOTORBIKE", name: "Xe máy", status: "ACTIVE" },
   { id: "2", code: "CAR", name: "Ô tô", status: "ACTIVE" },
@@ -132,23 +122,3 @@ export const mockLoginAccounts: MockLoginAccount[] = [
   { userId: "u4", password: "Driver@123" },
   { userId: "u5", password: "Driver@123" }
 ];
-
-export type PaymentMode = "CASH" | "CASHLESS" | "HYBRID";
-
-export interface SystemSettings {
-  systemName: string;
-  openingTime: string;
-  closingTime: string;
-  paymentMode: PaymentMode;
-  autoBlockOverdueSlots: boolean;
-  updatedAt: string;
-}
-
-export const systemSettings: SystemSettings = {
-  systemName: "Parking Building Management",
-  openingTime: "06:00",
-  closingTime: "23:00",
-  paymentMode: "HYBRID",
-  autoBlockOverdueSlots: true,
-  updatedAt: "2026-07-06T09:00:00+07:00"
-};
