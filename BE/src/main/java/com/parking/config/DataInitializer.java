@@ -42,6 +42,15 @@ public class DataInitializer implements CommandLineRunner {
     @Value("${app.admin.email:admin@parking.com}")
     private String adminEmail;
 
+    @Value("${app.manager.username:manager}")
+    private String managerUsername;
+
+    @Value("${app.manager.password:Manager@123}")
+    private String managerPassword;
+
+    @Value("${app.manager.email:manager@parking.com}")
+    private String managerEmail;
+
     @Override
     @Transactional
     public void run(String... args) throws Exception {
@@ -98,6 +107,9 @@ public class DataInitializer implements CommandLineRunner {
             userRepository.save(adminUser);
             System.out.println("Seeded admin user: " + adminUsername);
         }
+
+        // Seed Manager User if not exists (thông tin lấy từ cấu hình app.manager.*)
+        seedUser(managerUsername, managerPassword, managerEmail, "MANAGER");
 
         // Seed Building
         Building building;
@@ -275,6 +287,28 @@ public class DataInitializer implements CommandLineRunner {
         }
     }
 
+    /**
+     * Seed một tài khoản với role cho trước nếu username chưa tồn tại.
+     * Dùng cho các tài khoản mẫu theo vai trò (MANAGER, STAFF, ...), tương tự admin.
+     */
+    private void seedUser(String username, String rawPassword, String email, String roleName) {
+        if (userRepository.findByUsername(username).isEmpty()) {
+            Role role = roleRepository.findByName(roleName)
+                    .orElseThrow(() -> new RuntimeException(roleName + " role not found"));
+
+            User user = User.builder()
+                    .username(username)
+                    .password(passwordEncoder.encode(rawPassword))
+                    .email(email)
+                    .status(Status.ACTIVE)
+                    .role(role)
+                    .build();
+
+            userRepository.save(user);
+            System.out.println("Seeded " + roleName + " user: " + username);
+        }
+    }
+
     private void seedVehicleType(String code, String name, String description,
                                   String size, int capacityUnit, String color, double hourlyRate) {
         if (vehicleTypeRepository.findByCode(code).isEmpty()) {
@@ -300,6 +334,8 @@ public class DataInitializer implements CommandLineRunner {
      * fail-fast để tránh tài khoản admin bị đoán mật khẩu.
      */
     private void guardAdminPassword() {
+        System.out.println("Profiles = " + Arrays.toString(environment.getActiveProfiles()));
+        System.out.println("Admin password = " + adminPassword);
         boolean isDevOrTest = Arrays.stream(environment.getActiveProfiles())
                 .anyMatch(p -> p.equalsIgnoreCase("dev") || p.equalsIgnoreCase("test"));
         if (!isDevOrTest && "admin123".equals(adminPassword)) {

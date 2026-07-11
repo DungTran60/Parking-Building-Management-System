@@ -13,6 +13,7 @@ import java.util.List;
 import java.util.stream.Collectors;
 import javax.crypto.SecretKey;
 import java.util.Date;
+import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.function.Function;
@@ -31,7 +32,17 @@ public class JwtService {
     }
 
     public List<String> extractRoles(String token) {
-        return extractClaim(token, claims -> claims.get("roles", List.class));
+        return extractClaim(token, claims -> {
+            List<?> roles = claims.get("roles", List.class);
+            if (roles == null) {
+                return List.of();
+            }
+            List<String> result = new ArrayList<>(roles.size());
+            for (Object role : roles) {
+                result.add(String.valueOf(role));
+            }
+            return result;
+        });
     }
 
     public <T> T extractClaim(String token, Function<Claims, T> claimsResolver) {

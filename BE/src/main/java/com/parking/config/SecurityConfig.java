@@ -45,6 +45,11 @@ public class SecurityConfig {
                 .csrf(AbstractHttpConfigurer::disable)
                 .authorizeHttpRequests(authorize -> authorize
                         .requestMatchers("/api/auth/**").permitAll()
+                        .requestMatchers(
+                "/swagger-ui/**",
+                            "/v3/api-docs/**",
+                            "/swagger-ui.html"
+                        ).permitAll()
                         // hasAnyRole tự thêm tiền tố ROLE_ để khớp authority thực tế (ROLE_ADMIN, ...).
                         .requestMatchers(HttpMethod.POST, "/api/slots/**").hasAnyRole("ADMIN", "MANAGER")
                         .requestMatchers(HttpMethod.PUT, "/api/slots/**").hasAnyRole("ADMIN", "MANAGER")

@@ -93,9 +93,11 @@ public class IncidentServiceImpl implements IncidentService {
         }
 
         Specification<Incident> spec = Specification
-                .where(IncidentSpecification.hasStatus(status))
-                .and(IncidentSpecification.hasType(type))
-                .and(IncidentSpecification.hasAssignee(assigneeId));
+                .allOf(
+                        IncidentSpecification.hasStatus(status),
+                        IncidentSpecification.hasType(type),
+                        IncidentSpecification.hasAssignee(assigneeId)
+                );
 
         return incidentRepository.findAll(spec, Sort.by(Sort.Direction.DESC, "reportedAt"))
                 .stream()
