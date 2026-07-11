@@ -4,6 +4,7 @@ import com.parking.dto.ReservationRequestDto;
 import com.parking.dto.ReservationResponseDto;
 import com.parking.entity.ReservationStatus;
 
+import java.security.Principal;
 import java.util.List;
 
 /**
@@ -11,21 +12,18 @@ import java.util.List;
  */
 public interface ReservationService {
 
-    /** Tạo đặt chỗ mới, status mặc định là PENDING */
-    ReservationResponseDto createReservation(ReservationRequestDto dto);
+    /** Tạo đặt chỗ mới, status mặc định là PENDING, gắn Driver hiện tại */
+    ReservationResponseDto createReservation(ReservationRequestDto dto, Principal principal);
 
     /** Lấy thông tin một đặt chỗ theo ID */
     ReservationResponseDto getReservationById(Long id);
 
-    /** Lấy danh sách tất cả đặt chỗ */
-    List<ReservationResponseDto> getAllReservations();
-
-    /** Lọc danh sách đặt chỗ theo trạng thái */
-    List<ReservationResponseDto> getReservationsByStatus(ReservationStatus status);
+    /** Lấy danh sách đặt chỗ của Driver hiện tại (tùy chọn lọc theo trạng thái) */
+    List<ReservationResponseDto> getMyReservations(ReservationStatus status, Principal principal);
 
     /** Xác nhận đặt chỗ (PENDING → CONFIRMED) */
     ReservationResponseDto confirmReservation(Long id);
 
-    /** Hủy đặt chỗ (PENDING hoặc CONFIRMED → CANCELLED) */
-    ReservationResponseDto cancelReservation(Long id);
+    /** Hủy đặt chỗ (PENDING hoặc CONFIRMED → CANCELLED) — chỉ chính Driver sở hữu nó */
+    ReservationResponseDto cancelReservation(Long id, Principal principal);
 }

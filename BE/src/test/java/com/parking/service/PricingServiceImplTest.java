@@ -184,7 +184,7 @@ class PricingServiceImplTest {
         LostTicketFeeResponseDto result = pricingService.calculateLostTicketFee(vehicleTypeId);
 
         assertNotNull(result);
-        assertEquals(vehicleTypeId, result.getVehicleType());
+        assertEquals(mockCar.getCode(), result.getVehicleType());
         assertEquals(BigDecimal.valueOf(100000), result.getLostTicketFee());
         assertEquals(BigDecimal.valueOf(100000), result.getTotal());
     }

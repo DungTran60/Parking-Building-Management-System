@@ -6,6 +6,7 @@ import com.parking.entity.VehicleType;
 import com.parking.entity.VehicleTypeStatus;
 import com.parking.exception.ResourceConflictException;
 import com.parking.exception.ResourceNotFoundException;
+import com.parking.repository.FloorRepository;
 import com.parking.repository.ParkingSessionRepository;
 import com.parking.repository.ParkingSlotRepository;
 import com.parking.repository.PricingRepository;
@@ -23,6 +24,7 @@ import java.util.stream.Collectors;
 public class VehicleTypeServiceImpl implements VehicleTypeService {
 
     private final VehicleTypeRepository  vehicleTypeRepository;
+    private final FloorRepository        floorRepository;
     private final PricingRepository      pricingRepository;
     private final ReservationRepository  reservationRepository;
     private final ParkingSessionRepository parkingSessionRepository;
@@ -93,6 +95,10 @@ public class VehicleTypeServiceImpl implements VehicleTypeService {
         VehicleType vehicleType = findOrThrow(id);
 
         // Check if in use
+        if (floorRepository.existsBySupportedVehicleTypesId(id)) {
+            throw new ResourceConflictException(
+                    "Cannot delete vehicle type '" + vehicleType.getName() + "': it is referenced by Floor records");
+        }
         if (pricingRepository.existsByVehicleTypeId(id)) {
             throw new ResourceConflictException(
                     "Cannot delete vehicle type '" + vehicleType.getName() + "': it is referenced by Pricing records");

@@ -2,7 +2,6 @@ package com.parking.entity;
 
 import jakarta.persistence.*;
 import lombok.*;
-import java.math.BigDecimal;
 import java.time.LocalDateTime;
 
 @Entity
@@ -50,6 +49,11 @@ public class ParkingSession {
     @OneToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "reservation_id")
     private Reservation reservation;
+
+    /** Driver sở hữu lượt gửi (nullable: walk-in không có reservation thì null) */
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "driver_id")
+    private User driver;
 
     @Column(columnDefinition = "TEXT")
     private String notes;

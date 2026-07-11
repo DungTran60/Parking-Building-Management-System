@@ -40,6 +40,12 @@ public interface ParkingSessionRepository extends JpaRepository<ParkingSession, 
     /** Kiểm tra VehicleType có đang được dùng trong ParkingSession không */
     boolean existsByVehicleTypeId(Long vehicleTypeId);
 
+    /** Lấy các lượt gửi của một Driver (theo user id) */
+    List<ParkingSession> findByDriverId(Long driverId);
+
+    /** Lấy các lượt gửi của một Driver theo trạng thái */
+    List<ParkingSession> findByDriverIdAndStatus(Long driverId, String status);
+
     List<ParkingSession> findByCheckInAtBetweenOrCheckOutAtBetween(
             LocalDateTime start1, LocalDateTime end1,
             LocalDateTime start2, LocalDateTime end2);

@@ -1,6 +1,5 @@
 package com.parking.dto;
 
-import com.parking.entity.PaymentMode;
 import lombok.*;
 import java.time.LocalDateTime;
 
