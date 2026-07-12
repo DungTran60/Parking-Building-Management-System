@@ -46,6 +46,7 @@ export function SlotsPage() {
   const [formOpen, setFormOpen] = useState(false);
   const [editingSlot, setEditingSlot] = useState<ParkingSlot | null>(null);
   const [formError, setFormError] = useState<string | null>(null);
+  const [formFloorId, setFormFloorId] = useState<string>("");
   const invalidateSlots = () => queryClient.invalidateQueries({ queryKey: ["slots"] });
   const saveMutation = useMutation({
     mutationFn: ({ id, payload }: { id?: string; payload: Parameters<typeof slotApi.create>[0] }) => id ? slotApi.update(id, payload) : slotApi.create(payload),
@@ -104,12 +105,14 @@ export function SlotsPage() {
   const openCreate = () => {
     setEditingSlot(null);
     setFormError(null);
+    setFormFloorId(floors[0]?.id ?? "");
     setFormOpen(true);
   };
 
   const openEdit = (slot: ParkingSlot) => {
     setEditingSlot(slot);
     setFormError(null);
+    setFormFloorId(slot.floorId);
     setFormOpen(true);
   };
 
@@ -118,7 +121,14 @@ export function SlotsPage() {
     setFormOpen(false);
     setEditingSlot(null);
     setFormError(null);
+    setFormFloorId("");
   };
+
+  // Only vehicle types supported by the currently selected floor in the form
+  const formSelectedFloor = floors.find((f) => f.id === formFloorId);
+  const formVehicleTypes = formSelectedFloor
+    ? vehicleTypes.filter((vt) => formSelectedFloor.supportedVehicleTypes.includes(vt.id))
+    : vehicleTypes;
 
   const submitSlot = async (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault();
@@ -260,13 +270,19 @@ export function SlotsPage() {
             </Select>
           </Field>
           <Field label="Tầng">
-            <Select name="floorId" defaultValue={editingSlot?.floorId ?? floors[0]?.id ?? ""} required disabled={isSaving}>
+            <Select
+              name="floorId"
+              value={formFloorId || (editingSlot?.floorId ?? floors[0]?.id ?? "")}
+              onChange={(e) => setFormFloorId(e.target.value)}
+              required
+              disabled={isSaving}
+            >
               {floors.map((floor) => <option key={floor.id} value={floor.id}>{floor.name} - {floor.zone}</option>)}
             </Select>
           </Field>
           <Field label="Loại xe">
-            <Select name="vehicleTypeId" defaultValue={editingSlot?.vehicleTypeId ?? vehicleTypes[0]?.id ?? ""} required disabled={isSaving}>
-              {vehicleTypes.map((type) => <option key={type.id} value={type.id}>{type.name}</option>)}
+            <Select name="vehicleTypeId" defaultValue={editingSlot?.vehicleTypeId ?? formVehicleTypes[0]?.id ?? ""} required disabled={isSaving}>
+              {formVehicleTypes.map((type) => <option key={type.id} value={type.id}>{type.name}</option>)}
             </Select>
           </Field>
           {formError && <div role="alert" className="rounded-lg border border-red-200 bg-red-50 px-3 py-2.5 text-sm text-red-700 sm:col-span-2">{formError}</div>}
