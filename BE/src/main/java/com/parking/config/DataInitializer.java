@@ -426,15 +426,21 @@ public class DataInitializer implements CommandLineRunner {
             }
         }
 
-        // Seed AuditLogs
-        if (auditLogRepository.count() == 0) {
+        // Seed AuditLogs (only if no LOGIN events exist — keeps demo data even if other audit records accumulated)
+        if (auditLogRepository.countByAction("LOGIN") == 0) {
+            LocalDateTime now = LocalDateTime.now();
             List<AuditLog> logs = Arrays.asList(
-                    AuditLog.builder().action("LOGIN").resource("AUTH").resourceId(1L).actorId(admin.getId()).actorUsername("admin").createdAt(LocalDateTime.now().minusDays(1)).build(),
-                    AuditLog.builder().action("CREATE_USER").resource("USER").resourceId(driver1.getId()).actorId(admin.getId()).actorUsername("admin").createdAt(LocalDateTime.now().minusDays(2)).build(),
-                    AuditLog.builder().action("CREATE_USER").resource("USER").resourceId(driver2.getId()).actorId(admin.getId()).actorUsername("admin").createdAt(LocalDateTime.now().minusDays(2)).build(),
-                    AuditLog.builder().action("CHECK_IN").resource("SESSION").resourceId(1L).actorId(staff1.getId()).actorUsername("staff1").createdAt(LocalDateTime.now().minusDays(3)).build(),
-                    AuditLog.builder().action("CHECK_OUT").resource("SESSION").resourceId(2L).actorId(staff1.getId()).actorUsername("staff1").createdAt(LocalDateTime.now().minusDays(1)).build(),
-                    AuditLog.builder().action("UPDATE_SETTINGS").resource("SETTINGS").resourceId(1L).actorId(admin.getId()).actorUsername("admin").createdAt(LocalDateTime.now().minusDays(7)).build()
+                    AuditLog.builder().action("LOGIN").resource("AUTH").resourceId(1L).actorId(admin.getId()).actorUsername("admin").ipAddress("192.168.1.100").userAgent("Mozilla/5.0 Chrome/120").createdAt(now.minusHours(2)).build(),
+                    AuditLog.builder().action("LOGIN_FAILED").resource("AUTH").resourceId(1L).actorId(admin.getId()).actorUsername("admin").ipAddress("192.168.1.100").userAgent("Mozilla/5.0 Chrome/120").createdAt(now.minusHours(3)).build(),
+                    AuditLog.builder().action("LOGOUT").resource("AUTH").resourceId(1L).actorId(admin.getId()).actorUsername("admin").ipAddress("192.168.1.100").userAgent("Mozilla/5.0 Chrome/120").createdAt(now.minusHours(1)).build(),
+                    AuditLog.builder().action("LOGIN").resource("AUTH").resourceId(1L).actorId(admin.getId()).actorUsername("admin").ipAddress("192.168.1.100").userAgent("Mozilla/5.0 Chrome/120").createdAt(now.minusDays(1)).build(),
+                    AuditLog.builder().action("LOGIN").resource("AUTH").resourceId(1L).actorId(admin.getId()).actorUsername("admin2").ipAddress("10.0.0.50").userAgent("Mozilla/5.0 Firefox/121").createdAt(now.minusDays(1).withHour(14)).build(),
+                    AuditLog.builder().action("LOGIN_FAILED").resource("AUTH").resourceId(1L).actorId(admin.getId()).actorUsername("unknown").ipAddress("203.0.113.42").userAgent("curl/7.88").createdAt(now.minusDays(2)).build(),
+                    AuditLog.builder().action("CREATE_USER").resource("USER").resourceId(driver1.getId()).actorId(admin.getId()).actorUsername("admin").createdAt(now.minusDays(2)).build(),
+                    AuditLog.builder().action("CREATE_USER").resource("USER").resourceId(driver2.getId()).actorId(admin.getId()).actorUsername("admin").createdAt(now.minusDays(2)).build(),
+                    AuditLog.builder().action("CHECK_IN").resource("SESSION").resourceId(1L).actorId(staff1.getId()).actorUsername("staff1").createdAt(now.minusDays(3)).build(),
+                    AuditLog.builder().action("CHECK_OUT").resource("SESSION").resourceId(2L).actorId(staff1.getId()).actorUsername("staff1").createdAt(now.minusDays(1)).build(),
+                    AuditLog.builder().action("UPDATE_SETTINGS").resource("SETTINGS").resourceId(1L).actorId(admin.getId()).actorUsername("admin").createdAt(now.minusDays(7)).build()
             );
             auditLogRepository.saveAll(logs);
         }

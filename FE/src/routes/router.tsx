@@ -17,6 +17,7 @@ import { ProfilePage } from "@/pages/shared/ProfilePage";
 import { ReportsPage } from "@/pages/manager/ReportsPageLive";
 import { ReservationsPage } from "@/pages/user/ReservationsPage";
 import { SessionsPage } from "@/pages/shared/SessionsPage";
+import { AuditLogsPage } from "@/pages/admin/AuditLogsPage";
 import { SettingsPage } from "@/pages/admin/SettingsPage";
 import { SlotsPage } from "@/pages/shared/SlotsPage";
 import { UsersPage } from "@/pages/admin/UsersPage";
@@ -77,6 +78,7 @@ export const router = createBrowserRouter([
       { path: "ai-optimization", ...protectedChild("ai:view", <AiOptimizationPage />) },
       { path: "users", ...protectedChild("users:manage", <UsersPage />) },
       { path: "settings", ...protectedChild("settings:manage", <SettingsPage />) },
+      { path: "audit-logs", ...protectedChild("audit:view", <AuditLogsPage />) },
       { path: "403", element: <ForbiddenPage /> }
     ]
   }
