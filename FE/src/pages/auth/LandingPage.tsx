@@ -1,5 +1,7 @@
-import React from 'react';
+import React, { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
+import { publicApi } from '@/api/publicApi';
+import type { PublicStats } from '@/api/publicApi';
 
 const LandingIcon = ({ name, className = 'w-6 h-6' }: { name: string; className?: string }) => {
   const paths: Record<string, React.ReactNode> = {
@@ -133,21 +135,33 @@ const features = [
   },
 ];
 
-const stats = [
-  { value: '24', label: 'Bãi xe' },
-  { value: '8,459', label: 'Slot hoạt động' },
-  { value: '99.8%', label: 'Uptime' },
-  { value: '4 vai trò', label: 'Phân quyền' },
-];
+const defaultStats: PublicStats = {
+  totalBuildings: 1,
+  totalSlots: 80,
+  availableSlots: 40,
+  totalVehicleTypes: 5,
+};
 
 const parkingInformation = [
   { icon: 'clock', title: 'Giờ hoạt động', value: '24/7', detail: 'Mở cửa tất cả các ngày trong tuần' },
   { icon: 'bike', title: 'Loại xe hỗ trợ', value: 'Ô tô & xe máy', detail: 'Có khu vực đỗ riêng cho từng loại xe' },
-  { icon: 'parking', title: 'Slot còn trống', value: '128 vị trí', detail: 'Số liệu minh họa, sẵn sàng kết nối API realtime' },
+  { icon: 'parking', title: 'Slot còn trống', value: '', detail: 'Số liệu thực tế từ hệ thống' },
   { icon: 'creditCard', title: 'Bảng giá', value: 'Từ 5.000đ/giờ', detail: 'Mức phí phụ thuộc loại xe và thời gian gửi' },
 ];
 
 const LandingPage = () => {
+  const [stats, setStats] = useState<PublicStats>(defaultStats);
+  useEffect(() => { publicApi.getStats().then(s => { setStats(s); }).catch(() => {}); }, []);
+
+  const formatNumber = (n: number) => n.toLocaleString("vi-VN");
+
+  const statItems = [
+    { value: formatNumber(stats.totalBuildings), label: 'Tòa nhà' },
+    { value: formatNumber(stats.totalSlots), label: 'Slot đỗ xe' },
+    { value: formatNumber(stats.availableSlots), label: 'Slot trống' },
+    { value: formatNumber(stats.totalVehicleTypes), label: 'Loại xe' },
+  ];
+
   return (
     <main
       className="min-h-screen w-full overflow-y-auto"
@@ -270,7 +284,9 @@ const LandingPage = () => {
                 <LandingIcon name={item.icon} className="h-5 w-5 text-blue-400" />
               </div>
               <p className="text-sm text-slate-400">{item.title}</p>
-              <h3 className="mt-1 text-xl font-bold text-white">{item.value}</h3>
+              <h3 className="mt-1 text-xl font-bold text-white">
+                {item.icon === 'parking' ? `${formatNumber(stats.availableSlots)} vị trí` : item.value}
+              </h3>
               <p className="mt-2 text-sm leading-relaxed text-slate-400">{item.detail}</p>
             </article>
           ))}
@@ -280,7 +296,7 @@ const LandingPage = () => {
       {/* ── Stats ── */}
       <section className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pb-16">
         <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
-          {stats.map((s) => (
+          {statItems.map((s) => (
             <div
               key={s.label}
               className="rounded-2xl border border-white/10 bg-white/5 backdrop-blur p-6 text-center"
