@@ -123,13 +123,17 @@ export function PaymentPage() {
   });
 
   const submit = () => {
-    if (!session) { setFormError("Không tìm thấy lượt gửi xe."); return; }
+    if (!canPay) { setFormError("Không thể thanh toán lượt gửi xe này."); return; }
     setFormError(null);
     setSuccess(false);
     submitMutation.mutate(method);
   };
 
+  // Session walk-in: tìm được qua biển số nhưng không có driverId liên kết tài khoản
+  // → Driver không được phép thanh toán theo document (§4.4 & §5.1)
+  const isWalkInSession = session !== null && plateSessions.some((ps) => ps.id === session.id);
   const isLoading = myLoading || (plateLoading && Boolean(plateSearch));
+  const canPay = session !== null && !isWalkInSession;
 
   return (
     <>
@@ -168,7 +172,12 @@ export function PaymentPage() {
                   <Button variant="secondary" onClick={handlePlateClear}>Xóa</Button>
                 )}
               </div>
-              {plateSearchErrorMsg && <p className="mt-2 text-sm text-red-600">{plateSearchErrorMsg}</p>}</CardContent>
+              {plateSearchErrorMsg && <p className="mt-2 text-sm text-red-600">{plateSearchErrorMsg}</p>}
+              {isWalkInSession && (
+                <div role="alert" className="mt-2 rounded-lg border border-amber-200 bg-amber-50 px-3 py-2 text-sm text-amber-700">
+                  Xe này check-in tại quầy và chưa liên kết tài khoản. Bạn chỉ có thể xem thông tin — vui lòng thanh toán tại quầy hoặc nhờ nhân viên hỗ trợ.
+                </div>
+              )}</CardContent>
           </Card>
 
           {/* Chi tiết phí */}
@@ -222,7 +231,7 @@ export function PaymentPage() {
                       method === item.value
                         ? "border-blue-400 bg-blue-50 font-medium text-blue-800"
                         : "border-border text-slate-600 hover:bg-slate-50"
-                    } ${!session || submitMutation.isPending ? "pointer-events-none opacity-50" : ""}`}
+                    } ${!canPay || submitMutation.isPending ? "pointer-events-none opacity-50" : ""}`}
                   >
                     <input
                       type="radio"
@@ -231,7 +240,7 @@ export function PaymentPage() {
                       checked={method === item.value}
                       onChange={() => setMethod(item.value)}
                       className="mr-2 accent-blue-600"
-                      disabled={!session || submitMutation.isPending}
+                      disabled={!canPay || submitMutation.isPending}
                     />
                     {item.label}
                   </label>
@@ -257,7 +266,7 @@ export function PaymentPage() {
               <Button
                 className="h-12 w-full"
                 onClick={submit}
-                disabled={!session || submitMutation.isPending}
+                disabled={!canPay || submitMutation.isPending}
               >
                 <BadgeCheck size={20} />
                 {submitMutation.isPending ? "Đang xử lý..." : "Thanh toán ngay"}
