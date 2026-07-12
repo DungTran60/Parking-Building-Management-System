@@ -2,10 +2,13 @@ package com.parking.service;
 
 import com.parking.dto.*;
 import com.parking.entity.Role;
+import com.parking.entity.SystemSettings;
 import com.parking.entity.User;
 import com.parking.entity.Status;
 import com.parking.repository.RoleRepository;
+import com.parking.repository.SystemSettingsRepository;
 import com.parking.repository.UserRepository;
+import com.parking.security.PasswordPolicyValidator;
 import org.springframework.context.annotation.Lazy;
 import org.springframework.security.core.authority.SimpleGrantedAuthority;
 import org.springframework.security.core.context.SecurityContextHolder;
@@ -27,18 +30,23 @@ public class UserServiceImpl implements UserService {
     private final RoleRepository roleRepository;
     private final PasswordEncoder passwordEncoder;
     private final AuditService auditService;
+    private final SystemSettingsRepository systemSettingsRepository;
+    private final PasswordPolicyValidator passwordPolicyValidator;
 
-    // Sử dụng @Lazy để trì hoãn khởi tạo PasswordEncoder, tránh lỗi vòng lặp phụ thuộc (circular dependency)
     public UserServiceImpl(
             UserRepository userRepository,
             RoleRepository roleRepository,
             @Lazy PasswordEncoder passwordEncoder,
-            AuditService auditService
+            AuditService auditService,
+            SystemSettingsRepository systemSettingsRepository,
+            PasswordPolicyValidator passwordPolicyValidator
     ) {
         this.userRepository = userRepository;
         this.roleRepository = roleRepository;
         this.passwordEncoder = passwordEncoder;
         this.auditService = auditService;
+        this.systemSettingsRepository = systemSettingsRepository;
+        this.passwordPolicyValidator = passwordPolicyValidator;
     }
 
     @Override
@@ -74,6 +82,11 @@ public class UserServiceImpl implements UserService {
 
         Role role = roleRepository.findByName(dto.getRoleName().toUpperCase())
                 .orElseThrow(() -> new IllegalArgumentException("Role not found: " + dto.getRoleName()));
+
+        String policyLevel = systemSettingsRepository.findById(1L)
+                .map(SystemSettings::getPasswordPolicy)
+                .orElse("medium");
+        passwordPolicyValidator.validate(dto.getPassword(), policyLevel);
 
         User user = User.builder()
                 .username(dto.getUsername())
@@ -265,6 +278,11 @@ public class UserServiceImpl implements UserService {
             if (!passwordEncoder.matches(dto.getCurrentPassword(), user.getPassword())) {
                 throw new IllegalArgumentException("Incorrect current password");
             }
+            // Kiểm tra chính sách mật khẩu
+            String policyLevel = systemSettingsRepository.findById(1L)
+                    .map(SystemSettings::getPasswordPolicy)
+                    .orElse("medium");
+            passwordPolicyValidator.validate(dto.getNewPassword(), policyLevel);
             // Lưu mật khẩu mới đã được mã hóa
             user.setPassword(passwordEncoder.encode(dto.getNewPassword()));
         }

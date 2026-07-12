@@ -9,13 +9,11 @@ import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.stereotype.Service;
 
 import org.springframework.security.core.GrantedAuthority;
-import java.util.List;
-import java.util.stream.Collectors;
 import javax.crypto.SecretKey;
-import java.util.Date;
-import java.util.HashMap;
-import java.util.Map;
+import java.util.*;
+import java.util.concurrent.ConcurrentHashMap;
 import java.util.function.Function;
+import java.util.stream.Collectors;
 
 @Service
 public class JwtService {
@@ -26,12 +24,37 @@ public class JwtService {
     @Value("${jwt.expiration-ms}")
     private long jwtExpiration;
 
+    private final Set<String> blacklistedTokens = ConcurrentHashMap.newKeySet();
+
     public String extractUsername(String token) {
         return extractClaim(token, Claims::getSubject);
     }
 
     public List<String> extractRoles(String token) {
         return extractClaim(token, claims -> claims.get("roles", List.class));
+    }
+
+    public Date extractIssuedAt(String token) {
+        return extractClaim(token, Claims::getIssuedAt);
+    }
+
+    public void blacklistToken(String token) {
+        blacklistedTokens.add(token);
+    }
+
+    public boolean isBlacklisted(String token) {
+        return blacklistedTokens.contains(token);
+    }
+
+    public void cleanupBlacklist() {
+        Date now = new Date();
+        blacklistedTokens.removeIf(token -> {
+            try {
+                return extractExpiration(token).before(now);
+            } catch (Exception e) {
+                return true;
+            }
+        });
     }
 
     public <T> T extractClaim(String token, Function<Claims, T> claimsResolver) {
@@ -45,6 +68,7 @@ public class JwtService {
                 .map(GrantedAuthority::getAuthority)
                 .collect(Collectors.toList());
         extraClaims.put("roles", roles);
+        extraClaims.put("jti", UUID.randomUUID().toString());
         return generateToken(extraClaims, userDetails);
     }
 

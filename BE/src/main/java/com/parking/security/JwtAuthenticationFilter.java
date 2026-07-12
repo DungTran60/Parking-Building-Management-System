@@ -1,5 +1,7 @@
 package com.parking.security;
 
+import com.parking.entity.SystemSettings;
+import com.parking.repository.SystemSettingsRepository;
 import jakarta.servlet.FilterChain;
 import jakarta.servlet.ServletException;
 import jakarta.servlet.http.HttpServletRequest;
@@ -17,6 +19,7 @@ import org.springframework.web.filter.OncePerRequestFilter;
 
 import java.io.IOException;
 import java.util.Collections;
+import java.util.Date;
 import java.util.List;
 import java.util.stream.Collectors;
 
@@ -26,6 +29,7 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
 
     private final JwtService jwtService;
     private final UserDetailsService userDetailsService;
+    private final SystemSettingsRepository systemSettingsRepository;
 
     @Override
     protected void doFilterInternal(
@@ -44,10 +48,27 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
 
         jwt = authHeader.substring(7);
         try {
+            if (jwtService.isBlacklisted(jwt)) {
+                filterChain.doFilter(request, response);
+                return;
+            }
+
             username = jwtService.extractUsername(jwt);
             if (username != null && SecurityContextHolder.getContext().getAuthentication() == null) {
                 UserDetails userDetails = this.userDetailsService.loadUserByUsername(username);
                 if (jwtService.isTokenValid(jwt, userDetails)) {
+                    Date issuedAt = jwtService.extractIssuedAt(jwt);
+                    if (issuedAt != null) {
+                        SystemSettings settings = systemSettingsRepository.findById(1L).orElse(null);
+                        if (settings != null && settings.getSessionTimeout() != null) {
+                            long maxAgeMs = settings.getSessionTimeout() * 60 * 1000L;
+                            if (System.currentTimeMillis() - issuedAt.getTime() > maxAgeMs) {
+                                filterChain.doFilter(request, response);
+                                return;
+                            }
+                        }
+                    }
+
                     List<String> roles = jwtService.extractRoles(jwt);
                     List<SimpleGrantedAuthority> authorities = roles != null
                             ? roles.stream()

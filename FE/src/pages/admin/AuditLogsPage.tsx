@@ -2,15 +2,18 @@ import { useEffect, useState } from "react";
 import { keepPreviousData, useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import type { ColumnDef } from "@tanstack/react-table";
 import dayjs from "dayjs";
-import { Activity, AlertTriangle, Clock, RefreshCw, RotateCcw, Save, Search, ShieldCheck } from "lucide-react";
+import { Activity, AlertCircle, AlertTriangle, Clock, Download, RefreshCw, Save, Search, ShieldCheck, Unlock } from "lucide-react";
 import { auditApi, type AuditLogQuery } from "@/api/auditApi";
 import { settingApi, type UpdateSystemSettingsRequest } from "@/api/settingApi";
+import { userApi } from "@/api/userApi";
 import { Button } from "@/components/common/Button";
 import { Card, CardContent, CardHeader } from "@/components/common/Card";
 import { Field, Input, Select } from "@/components/forms/FormField";
 import { DateRangePicker } from "@/components/forms/DateRangePicker";
+import { Modal } from "@/components/common/Modal";
 import { PageHeader } from "@/components/layout/PageHeader";
 import { DataTable } from "@/components/tables/DataTable";
+import { Badge } from "@/components/common/Badge";
 import type { AuditLog } from "@/types/domain";
 
 const ACTION_STYLES: Record<string, string> = {
@@ -179,11 +182,13 @@ export function AuditLogsPage() {
 
   const [securityForm, setSecurityForm] = useState<{ passwordPolicy: string; sessionTimeout: number } | null>(null);
   const [settingsSubmitted, setSettingsSubmitted] = useState(false);
+  const [showConfirm, setShowConfirm] = useState(false);
+  const [timeoutError, setTimoutError] = useState("");
 
   useEffect(() => {
     if (settings) {
       setSecurityForm({
-        passwordPolicy: settings.passwordPolicy ?? "medium",
+        passwordPolicy: settings.passwordPolicy?.toLowerCase() ?? "medium",
         sessionTimeout: settings.sessionTimeout ?? 30
       });
     }
@@ -207,6 +212,7 @@ export function AuditLogsPage() {
     onSuccess: (result) => {
       queryClient.setQueryData(["system-settings"], result);
       setSettingsSubmitted(true);
+      setShowConfirm(false);
     }
   });
 
@@ -215,6 +221,64 @@ export function AuditLogsPage() {
     (securityForm.passwordPolicy !== (settings.passwordPolicy ?? "medium") ||
      securityForm.sessionTimeout !== (settings.sessionTimeout ?? 30))
   );
+
+  const handleSessionTimeoutChange = (value: string) => {
+    const num = parseInt(value, 10) || 30;
+    if (num < 5) setTimoutError("Thời gian timeout tối thiểu là 5 phút.");
+    else if (num > 480) setTimoutError("Thời gian timeout tối đa là 480 phút (8 giờ).");
+    else setTimoutError("");
+    setSecurityForm(prev => prev ? { ...prev, sessionTimeout: num } : prev);
+    setSettingsSubmitted(false);
+  };
+
+  const handleSave = () => {
+    if (!timeoutError) setShowConfirm(true);
+  };
+
+  const { data: lockedUsers, isLoading: lockedLoading } = useQuery({
+    queryKey: ["users-locked"],
+    queryFn: async () => {
+      const all = await userApi.getAll();
+      return all.filter(u => u.status === "INACTIVE");
+    },
+    refetchInterval: 30000,
+    placeholderData: keepPreviousData
+  });
+
+  const unlockMutation = useMutation({
+    mutationFn: (userId: number | string) => userApi.updateStatus(userId, "ACTIVE"),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["users-locked"] });
+    }
+  });
+
+  const exportLogs = async () => {
+    const allData = await auditApi.getAll({
+      from: loginFilter.from ? `${loginFilter.from}T00:00:00` : undefined,
+      to: loginFilter.to ? `${loginFilter.to}T23:59:59` : undefined,
+      action: loginFilter.action || undefined,
+      sort: "createdAt,desc"
+    });
+    const rows = allData.content ?? [];
+    const header = "Thời gian,Người dùng,Hành động,IP,Trình duyệt";
+    const csv = [
+      header,
+      ...rows.map(r =>
+        [
+          dayjs(r.createdAt).format("DD/MM/YYYY HH:mm"),
+          r.actorUsername,
+          ACTION_LABELS[r.action] ?? r.action,
+          r.ipAddress ?? "",
+          r.userAgent ?? ""
+        ].join(",")
+      )
+    ].join("\n");
+    const link = document.createElement("a");
+    link.href = URL.createObjectURL(new Blob([`\uFEFF${csv}`], { type: "text/csv;charset=utf-8" }));
+    link.download = `audit-logs-${dayjs().format("YYYYMMDDHHmm")}.csv`;
+    link.click();
+    URL.revokeObjectURL(link.href);
+  };
 
   return (
     <>
@@ -248,11 +312,17 @@ export function AuditLogsPage() {
                     <option value="high">Cao</option>
                   </Select>
                 </Field>
-                <Field label="Thời gian Timeout phiên (phút)">
+                <Field
+                  label="Thời gian Timeout phiên (phút)"
+                  error={timeoutError}
+                  hint="Cho phép: 5 - 480 phút"
+                >
                   <Input
                     type="number"
+                    min={5}
+                    max={480}
                     value={securityForm.sessionTimeout}
-                    onChange={(e) => { setSecurityForm({ ...securityForm, sessionTimeout: parseInt(e.target.value, 10) || 30 }); setSettingsSubmitted(false); }}
+                    onChange={(e) => handleSessionTimeoutChange(e.target.value)}
                   />
                 </Field>
               </div>
@@ -272,8 +342,8 @@ export function AuditLogsPage() {
 
               <div className="flex justify-end">
                 <Button
-                  onClick={() => updateSecurityMutation.mutate()}
-                  disabled={!isFormDirty || updateSecurityMutation.isPending}
+                  onClick={handleSave}
+                  disabled={!isFormDirty || updateSecurityMutation.isPending || !!timeoutError}
                 >
                   <Save size={17} />
                   {updateSecurityMutation.isPending ? "Đang lưu..." : "Lưu cấu hình"}
@@ -283,6 +353,34 @@ export function AuditLogsPage() {
           ) : null}
         </CardContent>
       </Card>
+
+      <Modal open={showConfirm} title="Xác nhận thay đổi cấu hình bảo mật" onClose={() => setShowConfirm(false)}>
+        <div className="grid gap-4">
+          <div className="flex items-start gap-3 rounded-md bg-amber-50 p-3 text-sm text-amber-800">
+            <AlertCircle size={18} className="mt-0.5 shrink-0" />
+            <span>Các thay đổi sau sẽ được áp dụng ngay lập tức:</span>
+          </div>
+          <table className="w-full text-sm">
+            <tbody>
+              <tr className="border-b border-border">
+                <td className="py-2 font-medium text-slate-600">Chính sách mật khẩu</td>
+                <td className="py-2 text-right">
+                  {securityForm?.passwordPolicy === "low" ? "Thấp" :
+                   securityForm?.passwordPolicy === "high" ? "Cao" : "Trung bình"}
+                </td>
+              </tr>
+              <tr>
+                <td className="py-2 font-medium text-slate-600">Thời gian timeout phiên</td>
+                <td className="py-2 text-right">{securityForm?.sessionTimeout} phút</td>
+              </tr>
+            </tbody>
+          </table>
+          <div className="flex justify-end gap-3">
+            <Button variant="secondary" onClick={() => setShowConfirm(false)}>Hủy</Button>
+            <Button onClick={() => updateSecurityMutation.mutate()}>Xác nhận lưu</Button>
+          </div>
+        </div>
+      </Modal>
 
       <Card>
         <CardHeader
@@ -334,7 +432,52 @@ export function AuditLogsPage() {
       </Card>
 
       <Card>
-        <CardHeader title="Lịch sử đăng nhập" />
+        <CardHeader title="Tài khoản đã khóa" />
+        <CardContent>
+          {lockedLoading ? (
+            <p className="text-sm text-slate-500">Đang tải danh sách...</p>
+          ) : !lockedUsers || lockedUsers.length === 0 ? (
+            <div className="rounded-md border border-dashed border-slate-300 py-10 text-center text-sm text-slate-500">
+              <ShieldCheck size={24} className="mx-auto mb-2 text-slate-300" />
+              Không có tài khoản nào bị khóa.
+            </div>
+          ) : (
+            <div className="divide-y divide-border">
+              {lockedUsers.map((user) => (
+                <div key={user.id} className="flex items-center justify-between py-3">
+                  <div className="min-w-0 flex-1">
+                    <p className="text-sm font-medium text-slate-900">{user.username}</p>
+                    <p className="text-xs text-slate-500">{user.email} · {user.roleName}</p>
+                  </div>
+                  <div className="flex items-center gap-3">
+                    <Badge value="INACTIVE" />
+                    <Button
+                      variant="secondary"
+                      size="sm"
+                      onClick={() => unlockMutation.mutate(user.id)}
+                      disabled={unlockMutation.isPending}
+                    >
+                      <Unlock size={14} />
+                      Mở khóa
+                    </Button>
+                  </div>
+                </div>
+              ))}
+            </div>
+          )}
+        </CardContent>
+      </Card>
+
+      <Card>
+        <CardHeader
+          title="Lịch sử đăng nhập"
+          action={
+            <Button variant="secondary" size="sm" onClick={exportLogs}>
+              <Download size={16} />
+              Xuất CSV
+            </Button>
+          }
+        />
         <CardContent className="grid gap-4">
           <div className="grid gap-4 lg:grid-cols-[minmax(0,1fr)_auto_auto_auto] lg:items-end">
             <Field label="Tên người dùng">

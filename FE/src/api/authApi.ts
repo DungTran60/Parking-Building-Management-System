@@ -33,5 +33,9 @@ export const authApi = {
   register: async (payload: RegisterRequest): Promise<RegisterResponse> => {
     const response = await httpClient.post<RegisterResponse>("/auth/register", payload);
     return response.data;
+  },
+
+  logout: async (): Promise<void> => {
+    await httpClient.post("/auth/logout");
   }
 };

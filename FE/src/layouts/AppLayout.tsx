@@ -5,6 +5,7 @@ import { useNavigate } from "react-router-dom";
 import { Sidebar } from "@/components/layout/Sidebar";
 import { Button } from "@/components/common/Button";
 import { ROLE_LABELS } from "@/constants/rbac";
+import { authApi } from "@/api/authApi";
 import { useAuthStore } from "@/stores/authStore";
 import { useUiStore } from "@/stores/uiStore";
 
@@ -36,8 +37,9 @@ export function AppLayout({ children }: { children: ReactNode }) {
     navigate(path);
   };
 
-  const handleLogout = () => {
+  const handleLogout = async () => {
     setUserMenuOpen(false);
+    try { await authApi.logout(); } catch { /* ignore */ }
     logout();
     navigate("/login", { replace: true });
   };

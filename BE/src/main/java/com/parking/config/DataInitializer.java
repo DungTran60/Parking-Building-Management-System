@@ -454,7 +454,7 @@ public class DataInitializer implements CommandLineRunner {
                             .timezone("Asia/Ho_Chi_Minh")
                             .dateFormat("dd/MM/yyyy")
                             .themeColor("#2563eb")
-                            .passwordPolicy("MEDIUM")
+                            .passwordPolicy("medium")
                             .sessionTimeout(30)
                             .logoUrl("/images/logo.png")
                             .version("1.0.0")
