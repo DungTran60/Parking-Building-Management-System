@@ -1,15 +1,18 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { Bot, Sparkles } from "lucide-react";
 import { Button } from "@/components/common/Button";
 import { Card, CardContent, CardHeader } from "@/components/common/Card";
 import { PageHeader } from "@/components/layout/PageHeader";
 import { Field, Input, Select } from "@/components/forms/FormField";
-import { vehicleTypes } from "@/api/mockData";
-import { optimizeParking } from "@/services/mockRepository";
-import type { AiOptimizationResult } from "@/types/domain";
+import { vehicleTypeApi } from "@/api/vehicleTypeApi";
+import { aiApi } from "@/api/aiApi";
+import type { AiOptimizationResult, VehicleType } from "@/types/domain";
 
 export function AiOptimizationPage() {
   const [result, setResult] = useState<AiOptimizationResult | null>(null);
+  const [vehicleTypes, setVehicleTypes] = useState<VehicleType[]>([]);
+  useEffect(() => { vehicleTypeApi.getAll().then(setVehicleTypes); }, []);
+
   return (
     <>
       <PageHeader title="AI Parking Optimization" description="Tối ưu phân bổ chỗ đỗ, dự đoán tỷ lệ lấp đầy và giờ cao điểm." />
@@ -20,7 +23,7 @@ export function AiOptimizationPage() {
             <form className="grid gap-4" onSubmit={async (event) => {
               event.preventDefault();
               const data = new FormData(event.currentTarget);
-              setResult(await optimizeParking({ currentVehicles: Number(data.get("currentVehicles")), emptySlots: Number(data.get("emptySlots")), vehicleTypeId: String(data.get("vehicleTypeId")) }));
+              setResult(await aiApi.optimize({ currentVehicles: Number(data.get("currentVehicles")), emptySlots: Number(data.get("emptySlots")), vehicleTypeId: String(data.get("vehicleTypeId")) }));
             }}>
               <Field label="Số lượng xe hiện tại"><Input name="currentVehicles" type="number" defaultValue={420} /></Field>
               <Field label="Số slot trống"><Input name="emptySlots" type="number" defaultValue={160} /></Field>
