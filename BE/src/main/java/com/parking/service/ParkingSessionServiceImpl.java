@@ -175,6 +175,22 @@ public class ParkingSessionServiceImpl implements ParkingSessionService {
                 .toList();
     }
 
+    @Override
+    @Transactional(readOnly = true)
+    public List<ParkingSessionResponseDto> findActiveSessionsByPlate(String plateNumber) {
+        if (plateNumber == null || plateNumber.isBlank()) {
+            throw new IllegalArgumentException("Biển số xe không được để trống.");
+        }
+        List<ParkingSession> sessions = parkingSessionRepository
+                .findActiveByPlateNumber(plateNumber.trim());
+        if (sessions.isEmpty()) {
+            throw new ResourceNotFoundException(
+                    "Không tìm thấy lượt gửi xe đang hoạt động với biển số: "
+                    + plateNumber.trim().toUpperCase());
+        }
+        return sessions.stream().map(this::convertToDto).toList();
+    }
+
     private void updateEntitiesOnCheckIn(ParkingSlot slot, Reservation reservation) {
         slot.setStatus(SlotStatus.OCCUPIED);
         parkingSlotRepository.save(slot);

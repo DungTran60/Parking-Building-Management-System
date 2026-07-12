@@ -176,6 +176,34 @@ export const sessionApi = {
     return (Array.isArray(response.data) ? response.data : []).map(normalizeSession);
   },
 
+  /**
+   * Tìm session ACTIVE theo biển số — dành cho xe check-in walk-in (không qua reservation).
+   * Gọi GET /api/sessions/by-plate?plateNumber=...
+   */
+  findByPlate: async (plateNumber: string): Promise<ParkingSession[]> => {
+    const response = await httpClient.get<SessionResponse[]>("/sessions/by-plate", {
+      params: { plateNumber: plateNumber.trim().toUpperCase() }
+    });
+    return (Array.isArray(response.data) ? response.data : []).map(normalizeSession);
+  },
+
+  /**
+   * Tính phí tạm tính qua ticketCode hoặc plateNumber.
+   * Gọi GET /api/fee/preview?query=... — chính xác nhất vì BE tính trực tiếp từ DB.
+   */
+  previewFee: async (query: string): Promise<{ totalFee: number; hours: number; hourlyRate: number }> => {
+    const response = await httpClient.get<{
+      totalFee?: number | string;
+      hours?: number;
+      hourlyRate?: number | string;
+    }>("/fee/preview", { params: { query } });
+    return {
+      totalFee: Number(response.data.totalFee ?? 0),
+      hours: Number(response.data.hours ?? 0),
+      hourlyRate: Number(response.data.hourlyRate ?? 0)
+    };
+  },
+
   previewLostTicketFee: async (plateNumber: string): Promise<LostTicketFeePreview> => {
     const response = await httpClient.get<{
       vehicleType?: string;
