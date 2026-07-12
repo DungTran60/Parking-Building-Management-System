@@ -13,6 +13,7 @@ import {
   MapPin,
   MessageSquareWarning,
   Settings,
+  Shield,
   SquareParking,
   Users,
   WalletCards
@@ -46,5 +47,6 @@ export const NAV_ITEMS: NavItem[] = [
   { label: "Báo cáo", path: "/app/reports", permission: "reports:view", icon: BarChart3 },
   { label: "AI Optimization", path: "/app/ai-optimization", permission: "ai:view", icon: Bot },
   { label: "Tài khoản", path: "/app/users", permission: "users:manage", icon: Users },
-  { label: "Cài đặt", path: "/app/settings", permission: "settings:manage", icon: Settings }
+  { label: "Cài đặt", path: "/app/settings", permission: "settings:manage", icon: Settings },
+  { label: "Bảo mật", path: "/app/audit-logs", permission: "audit:view", icon: Shield }
 ];

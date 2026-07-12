@@ -144,6 +144,18 @@ export interface ReportMetric {
   value: number;
 }
 
+export interface AuditLog {
+  id: number;
+  action: string;
+  resource: string;
+  resourceId: number;
+  actorId: number;
+  actorUsername: string;
+  ipAddress?: string;
+  userAgent?: string;
+  createdAt: string;
+}
+
 export interface AiOptimizationResult {
   floorSuggestion: string;
   slotSuggestion: string;

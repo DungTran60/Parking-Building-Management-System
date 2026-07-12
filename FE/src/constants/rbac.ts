@@ -36,7 +36,8 @@ export const PERMISSION_LABELS: Record<Permission, string> = {
   "feedback:create": "Gửi phản ánh",
 
   "reports:view": "Xem báo cáo",
-  "ai:view": "Sử dụng AI"
+  "ai:view": "Sử dụng AI",
+  "audit:view": "Xem nhật ký bảo mật"
 };
 
 const RBAC_SCHEMA_VERSION = 6;
@@ -46,7 +47,8 @@ const LEGACY_ROLE_PERMISSIONS_STORAGE_KEY = "parking-bms-role-permissions";
 const DEFAULT_ROLE_PERMISSIONS: Record<Role, Permission[]> = {
   SYSTEM_ADMIN: [
     "users:manage",
-    "settings:manage"
+    "settings:manage",
+    "audit:view"
   ],
   PARKING_MANAGER: [
     "dashboard:view",

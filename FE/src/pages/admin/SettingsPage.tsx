@@ -1,7 +1,7 @@
 import { type FormEvent, useEffect, useMemo, useState } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import axios from "axios";
-import { CheckCircle2, Clock3, CreditCard, RotateCcw, Save, Settings2, ShieldCheck, Palette, Globe } from "lucide-react";
+import { CheckCircle2, RotateCcw, Save, Palette } from "lucide-react";
 import { settingApi, type SystemSettingsResponse, type UpdateSystemSettingsRequest } from "@/api/settingApi";
 import { Button } from "@/components/common/Button";
 import { Card, CardContent, CardHeader } from "@/components/common/Card";
@@ -131,21 +131,6 @@ export function SettingsPage() {
           </CardContent>
         </Card>
 
-        <Card>
-          <CardHeader title="Bảo mật & Phiên" action={<ShieldCheck size={19} className="text-slate-400" />} />
-          <CardContent className="grid gap-4 md:grid-cols-2">
-            <Field label="Chính sách mật khẩu">
-              <Select value={form.passwordPolicy ?? "medium"} onChange={(event) => update("passwordPolicy", event.target.value)} disabled={isReadOnly}>
-                <option value="low">Thấp</option>
-                <option value="medium">Trung bình</option>
-                <option value="high">Cao</option>
-              </Select>
-            </Field>
-            <Field label="Thời gian Timeout phiên (phút)">
-              <Input type="number" value={form.sessionTimeout ?? 30} onChange={(event) => update("sessionTimeout", parseInt(event.target.value, 10) || 30)} disabled={isReadOnly} />
-            </Field>
-          </CardContent>
-        </Card>
 
         <Card>
           <CardHeader title="Hệ thống & Hiển thị" action={<Palette size={19} className="text-slate-400" />} />
