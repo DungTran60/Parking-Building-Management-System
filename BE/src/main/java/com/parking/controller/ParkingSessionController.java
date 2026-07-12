@@ -94,11 +94,11 @@ public class ParkingSessionController {
 
     /**
      * Tìm session ACTIVE theo biển số — driver tra cứu xe walk-in (check-in tại quầy).
-     * Quyền: DRIVER (isAuthenticated để cả STAFF có thể dùng nếu cần)
+     * Quyền: isAuthenticated
      *
-     * Ví dụ: GET /api/sessions/by-plate?plateNumber=51G-12345
+     * Ví dụ: GET /api/sessions/search/by-plate?plateNumber=51G-12345
      */
-    @GetMapping("/by-plate")
+    @GetMapping("/search/by-plate")
     @PreAuthorize("isAuthenticated()")
     public ResponseEntity<List<ParkingSessionResponseDto>> findByPlate(
             @RequestParam @NotBlank(message = "Plate number is required") String plateNumber) {

@@ -117,10 +117,10 @@ export interface Reservation {
 
 export interface PaymentRecord {
   id: string;
-  sessionId: string;
+  sessionId: string;   // ticketCode hoặc numeric id
+  plateNumber?: string;
   amount: number;
   method: PaymentMethod;
-  status: PaymentStatus;
   paidAt: string;
 }
 

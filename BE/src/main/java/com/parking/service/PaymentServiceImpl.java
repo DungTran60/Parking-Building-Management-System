@@ -97,9 +97,11 @@ public class PaymentServiceImpl implements PaymentService {
     }
 
     private PaymentResponseDto convertToDto(Payment payment) {
+        ParkingSession session = payment.getSession();
         return PaymentResponseDto.builder()
                 .id(String.valueOf(payment.getId()))
-                .sessionId(payment.getSession().getTicketCode() != null ? payment.getSession().getTicketCode() : String.valueOf(payment.getSession().getId()))
+                .sessionId(session.getTicketCode() != null ? session.getTicketCode() : String.valueOf(session.getId()))
+                .plateNumber(session.getPlateNumber())
                 .amount(payment.getAmount())
                 .method(payment.getMethod())
                 .paidAt(payment.getPaymentTime())

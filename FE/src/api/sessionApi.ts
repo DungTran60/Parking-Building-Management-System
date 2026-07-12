@@ -181,7 +181,7 @@ export const sessionApi = {
    * Gọi GET /api/sessions/by-plate?plateNumber=...
    */
   findByPlate: async (plateNumber: string): Promise<ParkingSession[]> => {
-    const response = await httpClient.get<SessionResponse[]>("/sessions/by-plate", {
+    const response = await httpClient.get<SessionResponse[]>("/sessions/search/by-plate", {
       params: { plateNumber: plateNumber.trim().toUpperCase() }
     });
     return (Array.isArray(response.data) ? response.data : []).map(normalizeSession);
