@@ -29,6 +29,12 @@ public class DataInitializer implements CommandLineRunner {
     private final ParkingSessionRepository parkingSessionRepository;
     private final PaymentRepository paymentRepository;
     private final SystemSettingsRepository systemSettingsRepository;
+    private final ReservationRepository reservationRepository;
+    private final PricingRepository pricingRepository;
+    private final IncidentRepository incidentRepository;
+    private final ParkingSessionExceptionRepository parkingSessionExceptionRepository;
+    private final AuditLogRepository auditLogRepository;
+    private final ParkingAreaRepository parkingAreaRepository;
 
     @Override
     @Transactional
@@ -37,7 +43,14 @@ public class DataInitializer implements CommandLineRunner {
         List<String> permissionNames = Arrays.asList(
                 "sessions:view",
                 "sessions:checkout",
-                "sessions:exception");
+                "sessions:exception",
+                "users:view",
+                "users:create",
+                "users:edit",
+                "slots:manage",
+                "pricing:manage",
+                "reports:view",
+                "settings:manage");
         for (String permissionName : permissionNames) {
             if (permissionRepository.findByName(permissionName).isEmpty()) {
                 permissionRepository.save(Permission.builder().name(permissionName).build());
@@ -48,14 +61,23 @@ public class DataInitializer implements CommandLineRunner {
         Permission view_session = permissionRepository.findByName("sessions:view").orElseThrow();
         Permission checkout_session = permissionRepository.findByName("sessions:checkout").orElseThrow();
         Permission exception_session = permissionRepository.findByName("sessions:exception").orElseThrow();
+        Permission users_view = permissionRepository.findByName("users:view").orElseThrow();
+        Permission users_create = permissionRepository.findByName("users:create").orElseThrow();
+        Permission users_edit = permissionRepository.findByName("users:edit").orElseThrow();
+        Permission slots_manage = permissionRepository.findByName("slots:manage").orElseThrow();
+        Permission pricing_manage = permissionRepository.findByName("pricing:manage").orElseThrow();
+        Permission reports_view = permissionRepository.findByName("reports:view").orElseThrow();
+        Permission settings_manage = permissionRepository.findByName("settings:manage").orElseThrow();
 
         Set<Permission> driverPermissions = new HashSet<>(Collections.singletonList(view_session));
         Set<Permission> staffPermissions = new HashSet<>(
-                Arrays.asList(view_session, checkout_session, exception_session));
+                Arrays.asList(view_session, checkout_session, exception_session, users_view));
         Set<Permission> managerPermissions = new HashSet<>(
-                Arrays.asList(view_session, checkout_session, exception_session)); // Managers get all staff permissions
+                Arrays.asList(view_session, checkout_session, exception_session, users_view, users_create, users_edit,
+                        slots_manage, reports_view));
         Set<Permission> adminPermissions = new HashSet<>(
-                Arrays.asList(view_session, checkout_session, exception_session)); // Admins get all permissions
+                Arrays.asList(view_session, checkout_session, exception_session, users_view, users_create, users_edit,
+                        slots_manage, pricing_manage, reports_view, settings_manage));
 
         seedRole("DRIVER", driverPermissions);
         seedRole("STAFF", staffPermissions);
@@ -71,12 +93,39 @@ public class DataInitializer implements CommandLineRunner {
                     .username("admin")
                     .password(passwordEncoder.encode("admin123"))
                     .email("admin@parking.com")
+                    .phoneNumber("0901234567")
                     .status(Status.ACTIVE)
                     .role(adminRole)
                     .build();
 
             userRepository.save(adminUser);
-            System.out.println("Seeded admin user (admin / admin123)");
+        }
+
+        // Seed additional users
+        seedUserIfNotExists("admin2", "admin456", "admin2@parking.com", "0901234568", "ADMIN");
+        seedUserIfNotExists("admin3", "admin789", "admin3@parking.com", "0901234569", "ADMIN");
+        seedUserIfNotExists("manager1", "manager123", "manager1@parking.com", "0912345678", "MANAGER");
+        seedUserIfNotExists("manager2", "manager456", "manager2@parking.com", "0912345679", "MANAGER");
+        seedUserIfNotExists("staff1", "staff123", "staff1@parking.com", "0923456789", "STAFF");
+        seedUserIfNotExists("staff2", "staff456", "staff2@parking.com", "0923456780", "STAFF");
+        seedUserIfNotExists("driver1", "driver123", "driver1@parking.com", "0934567891", "DRIVER");
+        seedUserIfNotExists("driver2", "driver456", "driver2@parking.com", "0934567892", "DRIVER");
+        seedUserIfNotExists("driver3", "driver789", "driver3@parking.com", "0934567893", "DRIVER");
+        seedUserIfNotExists("driver4", "driverabc", "driver4@parking.com", "0934567894", "DRIVER");
+        seedUserIfNotExists("driver5", "driverdef", "driver5@parking.com", "0934567895", "DRIVER");
+
+        User admin = userRepository.findByUsername("admin").orElseThrow();
+        User manager1 = userRepository.findByUsername("manager1").orElseThrow();
+        User staff1 = userRepository.findByUsername("staff1").orElseThrow();
+        User driver1 = userRepository.findByUsername("driver1").orElseThrow();
+        User driver2 = userRepository.findByUsername("driver2").orElseThrow();
+        User driver3 = userRepository.findByUsername("driver3").orElseThrow();
+
+        // Seed ParkingArea
+        if (parkingAreaRepository.findByAreaCode("A") == null) {
+            parkingAreaRepository.save(new ParkingArea(null, "A", "Khu A - Xe máy", "Khu vực để xe máy tầng hầm", "ACTIVE"));
+            parkingAreaRepository.save(new ParkingArea(null, "B", "Khu B - Ô tô", "Khu vực để ô tô tầng hầm", "ACTIVE"));
+            parkingAreaRepository.save(new ParkingArea(null, "C", "Khu C - Xe lớn", "Khu vực để xe tải, xe khách", "ACTIVE"));
         }
 
         // Seed Building
@@ -85,9 +134,17 @@ public class DataInitializer implements CommandLineRunner {
             building = Building.builder()
                     .buildingName("Tòa nhà gửi xe trung tâm (Building A)")
                     .address("123 Nguyễn Huệ, Quận 1, TP. Hồ Chí Minh")
+                    .hotline("19001234")
+                    .email("info@parking.com")
+                    .openingTime("06:00")
+                    .closingTime("22:00")
+                    .description("Bãi xe trung tâm phục vụ khách hàng tòa nhà văn phòng và trung tâm thương mại")
+                    .parkingRules("Không hút thuốc trong bãi xe.\nGiữ gìn vệ sinh chung.\nKhông để vật có giá trị trong xe.")
+                    .paymentMode(PaymentMode.HYBRID)
+                    .autoBlockOverdueSlots(true)
+                    .avatarUrl("/images/buildings/default.png")
                     .build();
             building = buildingRepository.save(building);
-            System.out.println("Seeded default building");
         } else {
             building = buildingRepository.findAll().get(0);
         }
@@ -105,6 +162,25 @@ public class DataInitializer implements CommandLineRunner {
         VehicleType truck = vehicleTypeRepository.findByCode("TRUCK").orElse(null);
         VehicleType coach = vehicleTypeRepository.findByCode("COACH").orElse(null);
 
+        // Seed Pricing for each vehicle type
+        if (pricingRepository.findByVehicleTypeIdAndActiveTrue(motorbike.getId()).isEmpty()) {
+            seedPricing(motorbike, PricingTimeUnit.HOURLY, new BigDecimal("5000"), BigDecimal.ZERO, BigDecimal.ZERO);
+            seedPricing(motorbike, PricingTimeUnit.DAILY, new BigDecimal("30000"), BigDecimal.ZERO, BigDecimal.ZERO);
+            seedPricing(motorbike, PricingTimeUnit.MONTHLY, new BigDecimal("200000"), BigDecimal.ZERO, BigDecimal.ZERO);
+            seedPricing(car, PricingTimeUnit.HOURLY, new BigDecimal("25000"), new BigDecimal("50000"), new BigDecimal("100000"));
+            seedPricing(car, PricingTimeUnit.DAILY, new BigDecimal("150000"), new BigDecimal("50000"), new BigDecimal("100000"));
+            seedPricing(car, PricingTimeUnit.MONTHLY, new BigDecimal("1200000"), new BigDecimal("50000"), new BigDecimal("100000"));
+            seedPricing(ev, PricingTimeUnit.HOURLY, new BigDecimal("30000"), new BigDecimal("60000"), new BigDecimal("120000"));
+            seedPricing(ev, PricingTimeUnit.DAILY, new BigDecimal("180000"), new BigDecimal("60000"), new BigDecimal("120000"));
+            seedPricing(ev, PricingTimeUnit.MONTHLY, new BigDecimal("1500000"), new BigDecimal("60000"), new BigDecimal("120000"));
+            seedPricing(truck, PricingTimeUnit.HOURLY, new BigDecimal("45000"), new BigDecimal("80000"), new BigDecimal("150000"));
+            seedPricing(truck, PricingTimeUnit.DAILY, new BigDecimal("270000"), new BigDecimal("80000"), new BigDecimal("150000"));
+            seedPricing(truck, PricingTimeUnit.MONTHLY, new BigDecimal("2500000"), new BigDecimal("80000"), new BigDecimal("150000"));
+            seedPricing(coach, PricingTimeUnit.HOURLY, new BigDecimal("60000"), new BigDecimal("100000"), new BigDecimal("200000"));
+            seedPricing(coach, PricingTimeUnit.DAILY, new BigDecimal("360000"), new BigDecimal("100000"), new BigDecimal("200000"));
+            seedPricing(coach, PricingTimeUnit.MONTHLY, new BigDecimal("3000000"), new BigDecimal("100000"), new BigDecimal("200000"));
+        }
+
         // Seed Floors
         if (floorRepository.count() == 0) {
             Floor f1 = Floor.builder().building(building).name("B1").zone("Motorbike A").slotCount(180)
@@ -116,7 +192,6 @@ public class DataInitializer implements CommandLineRunner {
             Floor f4 = Floor.builder().building(building).name("L2").zone("Coach D").slotCount(52)
                     .supportedVehicleTypes(new HashSet<>(Arrays.asList(coach, truck))).build();
             floorRepository.saveAll(Arrays.asList(f1, f2, f3, f4));
-            System.out.println("Seeded floors");
         }
 
         // Seed Slots
@@ -130,6 +205,7 @@ public class DataInitializer implements CommandLineRunner {
                 List<VehicleType> supported = new ArrayList<>(floor.getSupportedVehicleTypes());
                 VehicleType type = supported.get(i % supported.size());
                 SlotStatus status = statuses[i % statuses.length];
+                if (status == SlotStatus.RESERVED) status = SlotStatus.AVAILABLE;
 
                 ParkingSlot slot = ParkingSlot.builder()
                         .code(floor.getName() + "-" + String.format("%03d", i + 1))
@@ -140,7 +216,55 @@ public class DataInitializer implements CommandLineRunner {
                 slotsToSave.add(slot);
             }
             parkingSlotRepository.saveAll(slotsToSave);
-            System.out.println("Seeded " + slotsToSave.size() + " parking slots");
+        }
+
+        List<ParkingSlot> allSlots = parkingSlotRepository.findAll();
+
+        // Seed Reservations
+        if (reservationRepository.count() == 0 && allSlots.size() >= 5) {
+            LocalDateTime now = LocalDateTime.now();
+            ParkingSlot slot1 = allSlots.get(0);
+            ParkingSlot slot2 = allSlots.get(1);
+            ParkingSlot slot3 = allSlots.get(3);
+            ParkingSlot slot4 = allSlots.get(4);
+
+            Reservation r1 = Reservation.builder()
+                    .plateNumber("51G-12345")
+                    .vehicleType(car)
+                    .slot(slot1)
+                    .driver(driver1)
+                    .startAt(now.plusDays(1).withHour(8).withMinute(0))
+                    .endAt(now.plusDays(1).withHour(12).withMinute(0))
+                    .status(ReservationStatus.CONFIRMED)
+                    .build();
+            Reservation r2 = Reservation.builder()
+                    .plateNumber("51G-67890")
+                    .vehicleType(ev)
+                    .slot(slot2)
+                    .driver(driver2)
+                    .startAt(now.plusDays(1).withHour(13).withMinute(0))
+                    .endAt(now.plusDays(1).withHour(17).withMinute(0))
+                    .status(ReservationStatus.CONFIRMED)
+                    .build();
+            Reservation r3 = Reservation.builder()
+                    .plateNumber("51G-54321")
+                    .vehicleType(motorbike)
+                    .slot(slot3)
+                    .driver(driver3)
+                    .startAt(now.plusDays(2).withHour(9).withMinute(0))
+                    .endAt(now.plusDays(2).withHour(11).withMinute(0))
+                    .status(ReservationStatus.PENDING)
+                    .build();
+            Reservation r4 = Reservation.builder()
+                    .plateNumber("51G-09876")
+                    .vehicleType(car)
+                    .slot(slot4)
+                    .driver(driver1)
+                    .startAt(now.minusDays(1).withHour(10).withMinute(0))
+                    .endAt(now.minusDays(1).withHour(14).withMinute(0))
+                    .status(ReservationStatus.COMPLETED)
+                    .build();
+            reservationRepository.saveAll(Arrays.asList(r1, r2, r3, r4));
         }
 
         // Seed Sessions and Payments
@@ -149,27 +273,23 @@ public class DataInitializer implements CommandLineRunner {
             Random random = new Random();
             List<ParkingSession> sessionsToSave = new ArrayList<>();
             List<Payment> paymentsToSave = new ArrayList<>();
+            List<ParkingSessionException> exceptionsToSave = new ArrayList<>();
 
             // Seed completed sessions & payments for the last 14 days
             for (int dayOffset = 14; dayOffset >= 0; dayOffset--) {
                 LocalDate date = LocalDate.now().minusDays(dayOffset);
-
-                // Let's create between 3 and 7 sessions per day
                 int dailyCount = 3 + random.nextInt(5);
                 for (int j = 0; j < dailyCount; j++) {
                     ParkingSlot slot = slots.get(random.nextInt(slots.size()));
                     VehicleType type = slot.getVehicleType();
 
-                    // Entry time between 7:00 and 19:00
                     int entryHour = 7 + random.nextInt(12);
                     int entryMinute = random.nextInt(60);
                     LocalDateTime entryTime = date.atTime(entryHour, entryMinute);
 
-                    // Exit time between 1 and 8 hours later
                     int durationHours = 1 + random.nextInt(8);
                     LocalDateTime exitTime = entryTime.plusHours(durationHours).plusMinutes(random.nextInt(60));
 
-                    // Check exitTime is before now
                     if (exitTime.isAfter(LocalDateTime.now())) {
                         continue;
                     }
@@ -178,6 +298,8 @@ public class DataInitializer implements CommandLineRunner {
                     String ticketCode = "TKT-" + date.toString().replace("-", "") + "-"
                             + String.format("%04d", random.nextInt(10000));
                     String plateNumber = "51G-" + String.format("%05d", 10000 + random.nextInt(90000));
+
+                    User randomDriver = Arrays.asList(driver1, driver2, driver3).get(random.nextInt(3));
 
                     ParkingSession session = ParkingSession.builder()
                             .ticketCode(ticketCode)
@@ -189,17 +311,18 @@ public class DataInitializer implements CommandLineRunner {
                             .checkOutAt(exitTime)
                             .fee(fee)
                             .status("COMPLETED")
+                            .driver(randomDriver)
                             .build();
 
                     sessionsToSave.add(session);
                 }
             }
 
-            // Save sessions first so they have IDs
             List<ParkingSession> savedSessions = parkingSessionRepository.saveAll(sessionsToSave);
 
-            // Now create payment records for these sessions
+            // Create payment records for completed sessions
             String[] methods = { "CASH", "QR_CODE", "BANK_CARD" };
+            int sessionIndex = 0;
             for (ParkingSession session : savedSessions) {
                 Payment payment = Payment.builder()
                         .session(session)
@@ -208,26 +331,39 @@ public class DataInitializer implements CommandLineRunner {
                         .paymentTime(session.getCheckOutAt().plusMinutes(1 + random.nextInt(5)))
                         .build();
                 paymentsToSave.add(payment);
+
+                // Add a few exceptions to some sessions
+                if (sessionIndex % 7 == 0) {
+                    ParkingSessionException exception = ParkingSessionException.builder()
+                            .session(session)
+                            .type(SessionExceptionType.OVERTIME)
+                            .reason("Xe quá giờ gửi " + random.nextInt(60) + " phút")
+                            .extraFee(new BigDecimal(random.nextInt(5) + 1).multiply(new BigDecimal("10000")))
+                            .createdBy(staff1)
+                            .build();
+                    exceptionsToSave.add(exception);
+                }
+                sessionIndex++;
             }
             paymentRepository.saveAll(paymentsToSave);
-            System.out.println("Seeded " + savedSessions.size() + " completed parking sessions and payments.");
+            parkingSessionExceptionRepository.saveAll(exceptionsToSave);
 
-            // Also seed a few ACTIVE sessions (currently parked cars)
+            // Seed a few ACTIVE sessions (currently parked cars)
             int activeCount = 5;
             for (int k = 0; k < activeCount; k++) {
-                // Find an AVAILABLE slot
                 ParkingSlot slot = slots.stream()
                         .filter(s -> s.getStatus() == SlotStatus.AVAILABLE)
                         .findFirst()
                         .orElse(slots.get(random.nextInt(slots.size())));
 
-                // Update slot status to OCCUPIED
                 slot.setStatus(SlotStatus.OCCUPIED);
                 parkingSlotRepository.save(slot);
 
                 LocalDateTime entryTime = LocalDateTime.now().minusHours(1 + random.nextInt(5));
                 String ticketCode = "TKT-ACT-" + String.format("%04d", random.nextInt(10000));
                 String plateNumber = "51A-" + String.format("%05d", 10000 + random.nextInt(90000));
+
+                User randomDriver = Arrays.asList(driver1, driver2, driver3).get(random.nextInt(3));
 
                 ParkingSession activeSession = ParkingSession.builder()
                         .ticketCode(ticketCode)
@@ -238,10 +374,69 @@ public class DataInitializer implements CommandLineRunner {
                         .checkInAt(entryTime)
                         .fee(0.0)
                         .status("ACTIVE")
+                        .driver(randomDriver)
                         .build();
                 parkingSessionRepository.save(activeSession);
             }
-            System.out.println("Seeded 5 active parking sessions (occupied slots).");
+        }
+
+        // Seed Incidents
+        if (incidentRepository.count() == 0) {
+            List<ParkingSession> completedSessions = parkingSessionRepository.findByStatusAndCheckOutAtBetween(
+                    "COMPLETED", LocalDateTime.now().minusDays(14), LocalDateTime.now());
+            List<ParkingSlot> slots = parkingSlotRepository.findAll();
+
+            if (!completedSessions.isEmpty() && slots.size() >= 3) {
+                Incident inc1 = Incident.builder()
+                        .reporter(staff1)
+                        .session(completedSessions.get(0))
+                        .assignee(manager1)
+                        .slot(slots.get(0))
+                        .type(IncidentType.LOST_TICKET)
+                        .description("Khách hàng báo mất vé gửi xe, biển số " + completedSessions.get(0).getPlateNumber())
+                        .resolution("Đã tra cứu thông tin qua biển số và xác nhận. Thu phí mất vé 100,000 VNĐ.")
+                        .status(IncidentStatus.RESOLVED)
+                        .resolvedAt(LocalDateTime.now().minusDays(1))
+                        .build();
+                incidentRepository.save(inc1);
+
+                if (completedSessions.size() > 3) {
+                    Incident inc2 = Incident.builder()
+                            .reporter(staff1)
+                            .session(completedSessions.get(3))
+                            .assignee(staff1)
+                            .slot(slots.get(1))
+                            .type(IncidentType.WRONG_ZONE)
+                            .description("Xe ô tô gửi nhầm sang khu vực xe máy")
+                            .status(IncidentStatus.IN_PROGRESS)
+                            .processingAt(LocalDateTime.now())
+                            .build();
+                    incidentRepository.save(inc2);
+                }
+
+                Incident inc3 = Incident.builder()
+                        .reporter(admin)
+                        .assignee(manager1)
+                        .slot(slots.get(2))
+                        .type(IncidentType.FACILITY_ISSUE)
+                        .description("Đèn chiếu sáng khu B1 bị hỏng, cần sửa chữa gấp")
+                        .status(IncidentStatus.OPEN)
+                        .build();
+                incidentRepository.save(inc3);
+            }
+        }
+
+        // Seed AuditLogs
+        if (auditLogRepository.count() == 0) {
+            List<AuditLog> logs = Arrays.asList(
+                    AuditLog.builder().action("LOGIN").resource("AUTH").resourceId(1L).actorId(admin.getId()).actorUsername("admin").createdAt(LocalDateTime.now().minusDays(1)).build(),
+                    AuditLog.builder().action("CREATE_USER").resource("USER").resourceId(driver1.getId()).actorId(admin.getId()).actorUsername("admin").createdAt(LocalDateTime.now().minusDays(2)).build(),
+                    AuditLog.builder().action("CREATE_USER").resource("USER").resourceId(driver2.getId()).actorId(admin.getId()).actorUsername("admin").createdAt(LocalDateTime.now().minusDays(2)).build(),
+                    AuditLog.builder().action("CHECK_IN").resource("SESSION").resourceId(1L).actorId(staff1.getId()).actorUsername("staff1").createdAt(LocalDateTime.now().minusDays(3)).build(),
+                    AuditLog.builder().action("CHECK_OUT").resource("SESSION").resourceId(2L).actorId(staff1.getId()).actorUsername("staff1").createdAt(LocalDateTime.now().minusDays(1)).build(),
+                    AuditLog.builder().action("UPDATE_SETTINGS").resource("SETTINGS").resourceId(1L).actorId(admin.getId()).actorUsername("admin").createdAt(LocalDateTime.now().minusDays(7)).build()
+            );
+            auditLogRepository.saveAll(logs);
         }
 
         // Seed default System Settings (singleton)
@@ -252,9 +447,26 @@ public class DataInitializer implements CommandLineRunner {
                             .systemName("Parking Building Management")
                             .timezone("Asia/Ho_Chi_Minh")
                             .dateFormat("dd/MM/yyyy")
+                            .themeColor("#2563eb")
+                            .passwordPolicy("MEDIUM")
+                            .sessionTimeout(30)
+                            .logoUrl("/images/logo.png")
                             .version("1.0.0")
                             .build());
-            System.out.println("Seeded default system settings.");
+        }
+    }
+
+    private void seedPricing(VehicleType vehicleType, PricingTimeUnit timeUnit, BigDecimal price, BigDecimal overnightFee, BigDecimal lostTicketFee) {
+        if (pricingRepository.findByVehicleTypeIdAndTimeUnit(vehicleType.getId(), timeUnit).isEmpty()) {
+            pricingRepository.save(
+                    Pricing.builder()
+                            .vehicleType(vehicleType)
+                            .timeUnit(timeUnit)
+                            .price(price)
+                            .overnightFee(overnightFee)
+                            .lostTicketFee(lostTicketFee)
+                            .active(true)
+                            .build());
         }
     }
 
@@ -272,7 +484,21 @@ public class DataInitializer implements CommandLineRunner {
                             .color(color)
                             .hourlyRate(hourlyRate)
                             .build());
-            System.out.println("Seeded vehicle type: " + code);
+        }
+    }
+
+    private void seedUserIfNotExists(String username, String rawPassword, String email, String phoneNumber, String roleName) {
+        if (userRepository.findByUsername(username).isEmpty()) {
+            Role role = roleRepository.findByName(roleName)
+                    .orElseThrow(() -> new RuntimeException(roleName + " role not found"));
+            userRepository.save(User.builder()
+                    .username(username)
+                    .password(passwordEncoder.encode(rawPassword))
+                    .email(email)
+                    .phoneNumber(phoneNumber)
+                    .status(Status.ACTIVE)
+                    .role(role)
+                    .build());
         }
     }
 
