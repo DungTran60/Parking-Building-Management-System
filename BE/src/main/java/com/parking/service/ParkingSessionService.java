@@ -59,5 +59,7 @@ public interface ParkingSessionService {
 
     ParkingSessionResponseDto waiveFee(Long id);
 
+    long countActiveSessions();
+
     ParkingSessionResponseDto addNote(Long id, SessionNoteRequestDto request);
 }

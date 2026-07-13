@@ -163,7 +163,7 @@ public class IncidentServiceImpl implements IncidentService {
 
         incident.setAssignee(assignee);
         incident.setProcessingAt(LocalDateTime.now());
-        incident.setStatus(IncidentStatus.IN_PROGRESS); // Đảm bảo trạng thái là IN_PROGRESS
+        // Giữ trạng thái OPEN — Staff sẽ nhận xử lý chuyển IN_PROGRESS (workflow §5.3 step 2-3)
 
         return mapToResponse(incidentRepository.save(incident));
     }
@@ -182,9 +182,9 @@ public class IncidentServiceImpl implements IncidentService {
             throw new ResourceConflictException("Only OPEN incidents can be processed. Current status: " + incident.getStatus());
         }
 
-        // Kiểm tra xem đã có người xử lý chưa
-        if (incident.getAssignee() != null) {
-            throw new ResourceConflictException("Incident is already being processed by " + incident.getAssignee().getUsername());
+        // Nếu đã có assignee, chỉ Staff được assign mới có thể bắt đầu xử lý
+        if (incident.getAssignee() != null && !incident.getAssignee().getId().equals(assignee.getId())) {
+            throw new ResourceConflictException("Incident is already assigned to " + incident.getAssignee().getUsername());
         }
 
         incident.setAssignee(assignee);

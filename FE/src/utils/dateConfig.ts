@@ -6,8 +6,8 @@ export const dateConfig = {
   get dateFormat() { return _dateFormat; },
   get dateTimeFormat() { return `${_dateFormat} HH:mm`; },
   set(tz: string, fmt: string) {
-    _timezone = tz;
-    _dateFormat = fmt;
+    _timezone = tz || "Asia/Ho_Chi_Minh";
+    _dateFormat = fmt || "DD/MM/YYYY";
   },
 };
 
@@ -21,8 +21,10 @@ export function formatInTz(
   fmt: string,
 ): string {
   const d = typeof value === "string" ? new Date(value) : value;
+  let resolvedTz = tz || "Asia/Ho_Chi_Minh";
+  try { Intl.DateTimeFormat(undefined, { timeZone: resolvedTz }); } catch { resolvedTz = "Asia/Ho_Chi_Minh"; }
   const parts = new Intl.DateTimeFormat("en-CA", {
-    timeZone: tz,
+    timeZone: resolvedTz,
     year: "numeric",
     month: "2-digit",
     day: "2-digit",

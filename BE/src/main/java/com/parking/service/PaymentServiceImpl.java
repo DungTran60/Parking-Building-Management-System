@@ -63,7 +63,8 @@ public class PaymentServiceImpl implements PaymentService {
             }
         }
 
-        if ("ACTIVE".equals(session.getStatus())) {
+        // Tính phí và đóng session nếu chưa thanh toán (workflow §5.1 step 8-9)
+        if ("ACTIVE".equals(session.getStatus()) || "UNPAID".equals(session.getStatus())) {
             LocalDateTime checkOutTime = LocalDateTime.now();
             double fee = pricingService.calculateOvernightFee(
                     session.getCheckInAt(),

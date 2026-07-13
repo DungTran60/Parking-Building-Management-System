@@ -51,7 +51,7 @@ public class IncidentController {
      * Lấy danh sách sự cố. Lọc tuỳ chọn: ?status=OPEN&type=LOST_TICKET
      */
     @GetMapping
-    @PreAuthorize("hasAnyRole('ADMIN', 'MANAGER', 'STAFF')")
+    @PreAuthorize("hasAnyRole('ADMIN', 'MANAGER', 'STAFF', 'DRIVER')")
     public ResponseEntity<List<IncidentResponseDto>> findIncidents(
             @RequestParam(required = false) IncidentStatus status,
             @RequestParam(required = false) IncidentType type,

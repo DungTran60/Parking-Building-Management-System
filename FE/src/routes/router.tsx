@@ -58,7 +58,7 @@ export const router = createBrowserRouter([
     element: <App />,
     children: [
       { index: true, element: <DefaultAppPage /> },
-      { path: "profile", element: <ProfilePage /> },
+      { path: "profile", ...protectedChild("profile:view", <ProfilePage />) },
       { path: "dashboard", ...protectedChild("dashboard:view", <DashboardPage />) },
       { path: "buildings", ...protectedChild("buildings:manage", <BuildingsPage />) },
       { path: "parking-info", ...protectedChild("parkingInfo:view", <ParkingInfoPage />) },

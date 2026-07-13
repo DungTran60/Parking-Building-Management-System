@@ -24,7 +24,9 @@ const SESSION_STATUS_OPTIONS: { value: SessionStatusFilter; label: string }[] = 
   { value: "COMPLETED", label: "Đã hoàn tất" },
   { value: "UNPAID", label: "Chưa thanh toán" },
   { value: "LOST_TICKET", label: "Mất vé" },
-  { value: "EXPIRED", label: "Hết hạn" }
+  { value: "EXPIRED", label: "Hết hạn" },
+  { value: "PENDING_PAYMENT", label: "Chờ thanh toán" },
+  { value: "DISPUTED", label: "Đang tranh chấp" }
 ];
 
 const columns: ColumnDef<ParkingSession>[] = [

@@ -21,6 +21,9 @@ public interface ReservationService {
     /** Lấy danh sách đặt chỗ của Driver hiện tại (tùy chọn lọc theo trạng thái) */
     List<ReservationResponseDto> getMyReservations(ReservationStatus status, Principal principal);
 
+    /** Lấy tất cả đặt chỗ (cho Staff/Manager) */
+    List<ReservationResponseDto> getAllReservations(ReservationStatus status);
+
     /** Xác nhận đặt chỗ (PENDING → CONFIRMED) */
     ReservationResponseDto confirmReservation(Long id);
 

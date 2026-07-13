@@ -82,6 +82,10 @@ export function ReservationsPage() {
       setFormError("Vui lòng nhập biển số xe.");
       return;
     }
+    if (!/^[A-Za-z0-9-]+$/.test(plateNumber.trim())) {
+      setFormError("Biển số chỉ gồm chữ, số và dấu gạch ngang.");
+      return;
+    }
     const start = dayjs(startAt);
     const end = dayjs(endAt);
     if (start.isBefore(dayjs())) {

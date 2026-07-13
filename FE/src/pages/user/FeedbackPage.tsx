@@ -28,15 +28,18 @@ export function FeedbackPage() {
   const [message, setMessage] = useState("");
   const [formError, setFormError] = useState<string | null>(null);
   const [created, setCreated] = useState<Incident | null>(null);
+  const [sessionId, setSessionId] = useState("");
 
   const submitMutation = useMutation({
     mutationFn: () => incidentApi.create({
       type: type as IncidentType,
-      description: message.trim()
+      description: message.trim(),
+      sessionId: sessionId ? Number(sessionId) : undefined
     }),
     onSuccess: (data) => {
       setCreated(data);
       setMessage("");
+      setSessionId("");
       setFormError(null);
     },
     onError: (error) => {
@@ -82,6 +85,16 @@ export function FeedbackPage() {
               <p className={`mt-1 text-xs text-right ${message.length > MAX_MESSAGE ? 'text-red-500' : 'text-slate-400'}`}>
                 {message.length}/{MAX_MESSAGE}
               </p>
+            </Field>
+
+            <Field label="ID lượt gửi xe liên quan (tùy chọn)">
+              <Input
+                type="number"
+                value={sessionId}
+                onChange={(e) => setSessionId(e.target.value)}
+                placeholder="Để trống nếu không liên quan đến lượt gửi xe cụ thể"
+                disabled={submitMutation.isPending}
+              />
             </Field>
 
             {formError && (

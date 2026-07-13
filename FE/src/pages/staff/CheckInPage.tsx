@@ -129,9 +129,26 @@ export function CheckInPage() {
     };
   }, [result?.ticketCode]);
 
+  const checkDuplicatePlate = async (plateNumber: string): Promise<boolean> => {
+    try {
+      const sessions = await sessionApi.list({ query: plateNumber, status: "ACTIVE", page: 0, size: 1 });
+      if (sessions.content.length > 0) {
+        setSubmitError(`Biển số ${plateNumber} đã có lượt gửi xe đang hoạt động. Vui lòng kiểm tra lại.`);
+        return false;
+      }
+    } catch {
+      // Bỏ qua lỗi kiểm tra, BE sẽ validate lại
+    }
+    return true;
+  };
+
   const submit = async (values: FormValues) => {
     setSubmitError("");
     setResult(null);
+
+    const plateOk = await checkDuplicatePlate(values.plateNumber);
+    if (!plateOk) return;
+
     try {
       const session = await sessionApi.checkIn({
         ...values,

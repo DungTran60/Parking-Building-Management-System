@@ -100,6 +100,10 @@ export function CheckOutPage() {
     setPaymentError("");
 
     try {
+      // Gọi check-out trước để tính phí và cập nhật thời gian ra
+      await sessionApi.checkOut(session.ticketCode || session.plateNumber);
+
+      // Sau đó tạo payment (BE sẽ đóng session và giải phóng slot)
       const record = await paymentApi.create({
         sessionId: session.id,
         method: paymentMethod

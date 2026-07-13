@@ -10,6 +10,7 @@ export const ROLE_LABELS: Record<Role, string> = {
 export const PERMISSION_LABELS: Record<Permission, string> = {
   "users:manage": "Quản lý tài khoản",
   "settings:manage": "Quản lý cài đặt",
+  "profile:view": "Xem thông tin cá nhân",
 
   "dashboard:view": "Xem tổng quan",
   "buildings:manage": "Quản lý tòa nhà",
@@ -46,12 +47,14 @@ const LEGACY_ROLE_PERMISSIONS_STORAGE_KEY = "parking-bms-role-permissions";
 
 const DEFAULT_ROLE_PERMISSIONS: Record<Role, Permission[]> = {
   SYSTEM_ADMIN: [
+    "profile:view",
     "users:manage",
     "settings:manage",
     "audit:view"
   ],
   PARKING_MANAGER: [
     "dashboard:view",
+    "profile:view",
     "buildings:manage",
     "floors:manage",
     "vehicleTypes:manage",
@@ -64,6 +67,7 @@ const DEFAULT_ROLE_PERMISSIONS: Record<Role, Permission[]> = {
   ],
   PARKING_STAFF: [
     "dashboard:view",
+    "profile:view",
     "slots:view",
     "slots:updateStatus",
     "sessions:view",
@@ -74,6 +78,7 @@ const DEFAULT_ROLE_PERMISSIONS: Record<Role, Permission[]> = {
   ],
   PARKING_USER: [
     "parkingInfo:view",
+    "profile:view",
     "reservations:selfManage",
     "currentSession:view",
     "payments:pay",
