@@ -77,7 +77,8 @@ public class ReservationServiceImpl implements ReservationService {
                 .driver(driver)
                 .startAt(dto.getStartAt())
                 .endAt(dto.getEndAt())
-                .status(ReservationStatus.PENDING)
+                // Auto-confirm: Driver đặt chỗ → tự động CONFIRMED (workflow §4.4)
+                .status(ReservationStatus.CONFIRMED)
                 .build();
 
         Reservation saved = reservationRepository.save(reservation);
@@ -115,7 +116,21 @@ public class ReservationServiceImpl implements ReservationService {
     }
 
     /* ─────────────────────────────────────────────────────
-       Xác nhận đặt chỗ: PENDING → CONFIRMED
+        Lấy tất cả đặt chỗ (cho Staff/Manager)
+    ───────────────────────────────────────────────────── */
+    @Override
+    @Transactional(readOnly = true)
+    public List<ReservationResponseDto> getAllReservations(ReservationStatus status) {
+        List<Reservation> reservations = (status != null)
+                ? reservationRepository.findByStatus(status)
+                : reservationRepository.findAll();
+        return reservations.stream()
+                .map(this::mapToResponse)
+                .collect(Collectors.toList());
+    }
+
+    /* ─────────────────────────────────────────────────────
+        Xác nhận đặt chỗ: PENDING → CONFIRMED
     ───────────────────────────────────────────────────── */
     @Override
     @Transactional

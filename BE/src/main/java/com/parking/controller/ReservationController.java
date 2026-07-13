@@ -76,6 +76,17 @@ public class ReservationController {
     }
 
     /**
+     * GET /api/reservations/all
+     * Lấy tất cả đặt chỗ (cho Staff/Manager xem).
+     */
+    @GetMapping("/all")
+    @PreAuthorize("hasAnyRole('STAFF', 'MANAGER', 'ADMIN')")
+    public ResponseEntity<List<ReservationResponseDto>> getAllReservations(
+            @RequestParam(required = false) ReservationStatus status) {
+        return ResponseEntity.ok(reservationService.getAllReservations(status));
+    }
+
+    /**
      * Hủy đặt chỗ: PENDING / CONFIRMED → CANCELLED.
      * Chỉ chính Driver sở hữu đặt chỗ mới được hủy.
      */

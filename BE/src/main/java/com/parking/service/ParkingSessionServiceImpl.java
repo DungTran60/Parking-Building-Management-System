@@ -222,13 +222,10 @@ public class ParkingSessionServiceImpl implements ParkingSessionService {
 
         session.setCheckOutAt(checkOutTime);
         session.setFee(fee.doubleValue());
-        session.setStatus("COMPLETED");
+        // Giữ nguyên trạng thái ACTIVE, chờ thanh toán (workflow §5.1 step 7-9)
         ParkingSession saved = parkingSessionRepository.save(session);
 
-        // Giải phóng slot
-        ParkingSlot slot = session.getSlot();
-        slot.setStatus(SlotStatus.AVAILABLE);
-        parkingSlotRepository.save(slot);
+        // KHÔNG giải phóng slot — chỉ giải phóng khi thanh toán thành công
 
         User currentUser = authenticationService.getCurrentUser();
         auditService.log("CHECK_OUT", "SESSION", saved.getId(), currentUser.getId(), currentUser.getUsername());
@@ -371,10 +368,23 @@ public class ParkingSessionServiceImpl implements ParkingSessionService {
         ParkingSession session = parkingSessionRepository.findById(id)
                 .orElseThrow(() -> new ResourceNotFoundException("Session not found with id: " + id));
 
-        // Basic validation, can be expanded with a state machine pattern
+        // State machine validation (workflow §5.1)
         String newStatus = request.getNewStatus().toUpperCase();
-        if (!List.of("ACTIVE", "COMPLETED", "UNPAID", "LOST_TICKET", "EXPIRED").contains(newStatus)) {
+        if (!List.of("ACTIVE", "COMPLETED", "UNPAID", "LOST_TICKET", "EXPIRED", "PENDING_PAYMENT", "DISPUTED").contains(newStatus)) {
             throw new BadRequestException("Invalid status: " + newStatus);
+        }
+
+        String currentStatus = session.getStatus();
+        boolean validTransition = switch (currentStatus) {
+            case "ACTIVE" -> List.of("UNPAID", "PENDING_PAYMENT", "DISPUTED", "EXPIRED", "COMPLETED").contains(newStatus);
+            case "UNPAID", "PENDING_PAYMENT" -> List.of("COMPLETED", "DISPUTED").contains(newStatus);
+            case "DISPUTED" -> List.of("COMPLETED", "UNPAID").contains(newStatus);
+            case "COMPLETED", "LOST_TICKET" -> List.of("UNPAID").contains(newStatus);
+            case "EXPIRED" -> List.of("ACTIVE").contains(newStatus);
+            default -> false;
+        };
+        if (!validTransition) {
+            throw new BadRequestException("Cannot transition from " + currentStatus + " to " + newStatus);
         }
 
         session.setStatus(newStatus);
@@ -456,6 +466,15 @@ public class ParkingSessionServiceImpl implements ParkingSessionService {
 
         parkingSessionRepository.save(session);
         return convertToDto(session);
+    }
+
+    /* ─────────────────────────────────────────────────────
+       Đếm số session đang ACTIVE
+    ───────────────────────────────────────────────────── */
+    @Override
+    @Transactional(readOnly = true)
+    public long countActiveSessions() {
+        return parkingSessionRepository.countByStatus("ACTIVE");
     }
 
     /* ─────────────────────────────────────────────────────

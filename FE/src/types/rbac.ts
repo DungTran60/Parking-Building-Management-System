@@ -24,4 +24,5 @@ export type Permission =
   | "settings:manage"
   | "buildings:manage"
   | "ai:view"
-  | "audit:view";
+  | "audit:view"
+  | "profile:view";

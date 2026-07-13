@@ -92,6 +92,12 @@ public class ParkingSessionController {
         return ResponseEntity.ok(parkingSessionService.getMySessions(status, principal));
     }
 
+    @GetMapping("/count/active")
+    @PreAuthorize("hasAnyRole('STAFF', 'MANAGER', 'ADMIN')")
+    public ResponseEntity<Long> countActiveSessions() {
+        return ResponseEntity.ok(parkingSessionService.countActiveSessions());
+    }
+
     @GetMapping("/{id}")
     @PreAuthorize("hasAnyRole('STAFF', 'MANAGER', 'ADMIN')")
     public ResponseEntity<ParkingSessionResponseDto> findById(@PathVariable Long id) {
@@ -159,7 +165,7 @@ public class ParkingSessionController {
     }
 
     @PostMapping("/{id}/waive-fee")
-    @PreAuthorize("hasAnyRole('STAFF', 'MANAGER', 'ADMIN')")
+    @PreAuthorize("hasAnyRole('MANAGER', 'ADMIN')")
     public ResponseEntity<ParkingSessionResponseDto> waiveFee(@PathVariable Long id) {
         return ResponseEntity.ok(parkingSessionService.waiveFee(id));
     }

@@ -2,7 +2,7 @@ import type { Role } from "@/types/rbac";
 
 export type Status = "ACTIVE" | "INACTIVE";
 export type SlotStatus = "AVAILABLE" | "OCCUPIED" | "RESERVED" | "MAINTENANCE" | "BLOCKED";
-export type SessionStatus = "ACTIVE" | "COMPLETED" | "UNPAID" | "LOST_TICKET" | "EXPIRED";
+export type SessionStatus = "ACTIVE" | "COMPLETED" | "UNPAID" | "LOST_TICKET" | "EXPIRED" | "PENDING_PAYMENT" | "DISPUTED";
 export type ReservationStatus = "PENDING" | "CONFIRMED" | "CANCELLED" | "CHECKED_IN" | "COMPLETED" | "EXPIRED";
 export type ExceptionType = "LOST_TICKET" | "WRONG_PLATE" | "WRONG_ZONE" | "OVERTIME" | "UNPAID";
 export type IncidentType = "LOST_TICKET" | "WRONG_PLATE" | "WRONG_ZONE" | "OVERTIME" | "UNPAID" | "VEHICLE_DAMAGE" | "FACILITY_ISSUE";
@@ -75,13 +75,14 @@ export interface ParkingSlot {
 export interface PricingPolicy {
   id: string;
   vehicleTypeId: string;
-  firstHour: number;
-  nextHour: number;
-  dayPrice: number;
+  timeUnit: "HOURLY" | "DAILY" | "MONTHLY";
+  price: number;
   overnightFee: number;
   lostTicketFee: number;
-  wrongZoneFee: number;
-  overtimeFee: number;
+  description?: string;
+  active: boolean;
+  createdAt: string;
+  updatedAt: string;
 }
 
 export interface ParkingSession {

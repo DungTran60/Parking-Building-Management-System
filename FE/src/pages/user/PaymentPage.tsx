@@ -11,6 +11,7 @@ import dayjs from "dayjs";
 import { currency, dateTime } from "@/utils/format";
 import { getApiErrorMessage } from "@/utils/apiError";
 import type { PaymentMethod } from "@/types/domain";
+import axios from "axios";
 
 const methods: { label: string; value: PaymentMethod }[] = [
   { label: "Mã QR", value: "QR_CODE" },
@@ -24,10 +25,16 @@ export function PaymentPage() {
   const [success, setSuccess] = useState(false);
   const [formError, setFormError] = useState<string | null>(null);
 
-  const { data: sessions, isLoading: sessionLoading } = useQuery({
+  const { data: activeSessions, isLoading: sessionLoading } = useQuery({
     queryKey: ["current-session"],
     queryFn: () => sessionApi.getMySessions("ACTIVE")
   });
+  const { data: unpaidSessions } = useQuery({
+    queryKey: ["unpaid-sessions"],
+    queryFn: () => sessionApi.getMySessions("UNPAID")
+  });
+
+  const sessions = [...(activeSessions ?? []), ...(unpaidSessions ?? [])];
   const { data: payments = [], isLoading: paymentsLoading } = useQuery({
     queryKey: ["payments"],
     queryFn: paymentApi.getAll
@@ -47,14 +54,21 @@ export function PaymentPage() {
   const total = feePreview?.total ?? session?.fee ?? 0;
 
   const submitMutation = useMutation({
-    mutationFn: (payMethod: PaymentMethod) => {
+    mutationFn: async (payMethod: PaymentMethod) => {
       if (!session) throw new Error("Không tìm thấy lượt gửi xe hiện tại.");
+      // Gọi check-out trước nếu session còn ACTIVE để tính phí
+      try {
+        await sessionApi.checkOut(session.ticketCode || session.plateNumber);
+      } catch {
+        // Bỏ qua lỗi nếu session đã được check-out trước đó
+      }
       return paymentApi.create({ sessionId: String(session.id), method: payMethod });
     },
     onSuccess: () => {
       setSuccess(true);
       setFormError(null);
       queryClient.invalidateQueries({ queryKey: ["current-session"] });
+      queryClient.invalidateQueries({ queryKey: ["unpaid-sessions"] });
       queryClient.invalidateQueries({ queryKey: ["payments"] });
     },
     onError: (error) => {

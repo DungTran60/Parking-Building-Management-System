@@ -58,13 +58,17 @@ export function ReservationsPage() {
     }
   });
 
-  const availableSlots = useMemo(() => slotRows.filter((slot) => String(slot.vehicleTypeId) === String(vehicleTypeId) && slot.status === "AVAILABLE"), [slotRows, vehicleTypeId]);
+  const availableSlots = useMemo(() => slotRows.filter((slot) => String(slot.vehicleTypeId) === String(vehicleTypeId) && (slot.status === "AVAILABLE" || slot.status === "RESERVED")), [slotRows, vehicleTypeId]);
   const selectedSlotId = slotId || (availableSlots.length > 0 ? String(availableSlots[0].id) : "");
 
   const submit = () => {
     setFormError(null);
     if (!plateNumber.trim()) {
       setFormError("Vui lòng nhập biển số xe.");
+      return;
+    }
+    if (!/^[A-Za-z0-9-]+$/.test(plateNumber.trim())) {
+      setFormError("Biển số chỉ gồm chữ, số và dấu gạch ngang.");
       return;
     }
     if (dayjs(startAt).isBefore(dayjs())) {

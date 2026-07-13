@@ -55,8 +55,15 @@ export function SettingsPage() {
     }
   });
 
+  const isValidTimezone = (tz: string) => {
+    if (!tz.trim()) return false;
+    try { Intl.DateTimeFormat(undefined, { timeZone: tz }); return true; }
+    catch { return false; }
+  };
+
   const errors = useMemo(() => ({
-    systemName: form?.systemName.trim() ? "" : "Tên hệ thống không được để trống."
+    systemName: form?.systemName.trim() ? "" : "Tên hệ thống không được để trống.",
+    timezone: form?.timezone && isValidTimezone(form.timezone) ? "" : "Múi giờ không hợp lệ."
   }), [form]);
   const isValid = !Object.values(errors).some(Boolean);
   const savedForm = savedSettings ? {
@@ -137,8 +144,8 @@ export function SettingsPage() {
         <Card>
           <CardHeader title="Hệ thống & Hiển thị" action={<Palette size={19} className="text-slate-400" />} />
           <CardContent className="grid gap-4 md:grid-cols-2">
-            <Field label="Múi giờ">
-              <Input value={form.timezone ?? "Asia/Ho_Chi_Minh"} onChange={(event) => update("timezone", event.target.value)} disabled={isReadOnly} />
+            <Field label="Múi giờ" error={submitted ? errors.timezone : undefined}>
+              <Input value={form.timezone ?? "Asia/Ho_Chi_Minh"} onChange={(event) => update("timezone", event.target.value)} disabled={isReadOnly} aria-invalid={submitted && !!errors.timezone} />
             </Field>
             <Field label="Định dạng ngày">
               <Input value={form.dateFormat ?? "DD/MM/YYYY"} onChange={(event) => update("dateFormat", event.target.value)} disabled={isReadOnly} />

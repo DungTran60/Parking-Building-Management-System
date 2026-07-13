@@ -55,6 +55,6 @@ export const useAuthStore = create<AuthState>((set) => ({
     sessionStorage.removeItem(AUTH_STORAGE_KEY);
     localStorage.removeItem("token");
     sessionStorage.removeItem("token");
-    set({ role: "SYSTEM_ADMIN", userName: "", isAuthenticated: false });
+    set({ role: "PARKING_USER", userName: "", isAuthenticated: false });
   }
 }));

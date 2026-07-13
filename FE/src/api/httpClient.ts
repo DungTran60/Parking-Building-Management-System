@@ -15,3 +15,17 @@ httpClient.interceptors.request.use((config) => {
   return Promise.reject(error);
 });
 
+httpClient.interceptors.response.use(
+  (response) => response,
+  (error) => {
+    if (error.response?.status === 401) {
+      localStorage.removeItem("parking-bms-auth");
+      sessionStorage.removeItem("parking-bms-auth");
+      localStorage.removeItem("token");
+      sessionStorage.removeItem("token");
+      window.location.href = "/login";
+    }
+    return Promise.reject(error);
+  }
+);
+
