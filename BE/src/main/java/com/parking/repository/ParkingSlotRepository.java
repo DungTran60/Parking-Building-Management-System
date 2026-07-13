@@ -44,9 +44,15 @@ public interface ParkingSlotRepository extends JpaRepository<ParkingSlot, Long> 
     boolean existsByCodeAndIdNot(String code, Long id);
     long countByStatus(SlotStatus status);
 
-    @Query("SELECT ps.floor.name, COUNT(ps) FROM ParkingSlot ps GROUP BY ps.floor.name")
+    @Query("SELECT ps.floor.name, "
+            + "SUM(CASE WHEN ps.status = com.parking.entity.SlotStatus.OCCUPIED THEN 1 ELSE 0 END), "
+            + "COUNT(ps) "
+            + "FROM ParkingSlot ps GROUP BY ps.floor.name")
     List<Object[]> countOccupancyByFloor();
 
-    @Query("SELECT ps.vehicleType.name, COUNT(ps) FROM ParkingSlot ps GROUP BY ps.vehicleType.name")
+    @Query("SELECT ps.vehicleType.name, "
+            + "SUM(CASE WHEN ps.status = com.parking.entity.SlotStatus.OCCUPIED THEN 1 ELSE 0 END), "
+            + "COUNT(ps) "
+            + "FROM ParkingSlot ps GROUP BY ps.vehicleType.name")
     List<Object[]> countOccupancyByVehicleType();
 }
