@@ -78,7 +78,7 @@ public class ParkingSlotServiceImpl implements ParkingSlotService {
         VehicleType vehicleType = resolveVehicleType(request.getVehicleTypeId());
 
         // Validate if vehicle type is supported by the floor
-        if (!floor.getSupportedVehicleTypes().contains(vehicleType)) {
+        if (floor.getSupportedVehicleTypes().stream().noneMatch(vt -> vt.getId().equals(vehicleType.getId()))) {
             throw new ConflictException("Vehicle type " + vehicleType.getCode() + " is not supported by floor " + floor.getName());
         }
         if (parkingSlotRepository.countByFloorId(floor.getId()) >= floor.getSlotCount()) {
@@ -112,7 +112,7 @@ public class ParkingSlotServiceImpl implements ParkingSlotService {
         Floor floor = floorRepository.findById(request.getFloorId())
                 .orElseThrow(() -> new ResourceNotFoundException("Floor not found with id: " + request.getFloorId()));
         VehicleType vehicleType = resolveVehicleType(request.getVehicleTypeId());
-        if (!floor.getSupportedVehicleTypes().contains(vehicleType)) {
+        if (floor.getSupportedVehicleTypes().stream().noneMatch(vt -> vt.getId().equals(vehicleType.getId()))) {
             throw new ConflictException("Vehicle type " + vehicleType.getCode() + " is not supported by floor " + floor.getName());
         }
         if (!slot.getFloor().getId().equals(floor.getId())

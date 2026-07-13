@@ -88,7 +88,7 @@ export function PricingPage() {
     setSaveError("");
     try {
       const payload = {
-        vehicleTypeId: String(form.get("vehicleTypeId")),
+        vehicleTypeId: editing ? editing.vehicleTypeId : String(form.get("vehicleTypeId")),
         timeUnit: String(form.get("timeUnit")) as PricingTimeUnit,
         price: Number(form.get("price")),
         overnightFee: Number(form.get("overnightFee")),

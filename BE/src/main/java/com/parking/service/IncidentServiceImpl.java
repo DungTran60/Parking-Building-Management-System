@@ -154,7 +154,7 @@ public class IncidentServiceImpl implements IncidentService {
                 .orElseThrow(() -> new ResourceNotFoundException("Assignee user not found with ID: " + dto.getAssigneeId()));
 
         // Kiểm tra người được gán có phải STAFF và đang hoạt động không
-        if (!"ROLE_STAFF".equals(assignee.getRole().getName())) {
+        if (!"STAFF".equalsIgnoreCase(assignee.getRole().getName())) {
             throw new IllegalArgumentException("User " + assignee.getUsername() + " is not a STAFF member.");
         }
         if (assignee.getStatus() != Status.ACTIVE) {
