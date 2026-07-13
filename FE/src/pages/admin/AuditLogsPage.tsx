@@ -2,6 +2,7 @@ import { useEffect, useState } from "react";
 import { keepPreviousData, useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import type { ColumnDef } from "@tanstack/react-table";
 import dayjs from "dayjs";
+import { dateConfig, formatInTz } from "../../utils/dateConfig";
 import { Activity, AlertCircle, AlertTriangle, Clock, Download, RefreshCw, Save, Search, ShieldCheck, Unlock } from "lucide-react";
 import { auditApi, type AuditLogQuery } from "@/api/auditApi";
 import { settingApi, type UpdateSystemSettingsRequest } from "@/api/settingApi";
@@ -63,7 +64,7 @@ const LOGIN_COLUMNS: ColumnDef<AuditLog>[] = [
   {
     id: "createdAt",
     header: "Thời gian",
-    cell: ({ row }) => dayjs(row.original.createdAt).format("DD/MM/YYYY HH:mm")
+    cell: ({ row }) => formatInTz(row.original.createdAt, dateConfig.timezone, dateConfig.dateTimeFormat)
   },
   {
     accessorKey: "actorUsername",
@@ -278,7 +279,7 @@ export function AuditLogsPage() {
       header,
       ...rows.map(r =>
         [
-          dayjs(r.createdAt).format("DD/MM/YYYY HH:mm"),
+          formatInTz(r.createdAt, dateConfig.timezone, dateConfig.dateTimeFormat),
           r.actorUsername,
           ACTION_LABELS[r.action] ?? r.action,
           r.ipAddress ?? "",
@@ -304,7 +305,7 @@ export function AuditLogsPage() {
         <MetricCard icon={Activity} label="Đăng nhập hôm nay" value={String(todayLogins)} color="emerald" />
         <MetricCard icon={AlertTriangle} label="Đăng nhập thất bại (7 ngày)" value={String(failedLogins)} color="red" />
         <MetricCard icon={ShieldCheck} label="Tổng sự kiện (30 ngày)" value={String(totalEvents)} color="blue" />
-        <MetricCard icon={Clock} label={lastLogin ? `Lần cuối: ${dayjs(lastLogin.createdAt).format("HH:mm")}` : "Lần đăng nhập cuối"} value={lastLogin?.actorUsername ?? "—"} color="indigo" />
+        <MetricCard icon={Clock} label={lastLogin ? `Lần cuối: ${formatInTz(lastLogin.createdAt, dateConfig.timezone, "HH:mm")}` : "Lần đăng nhập cuối"} value={lastLogin?.actorUsername ?? "—"} color="indigo" />
       </div>
 
       <Card>

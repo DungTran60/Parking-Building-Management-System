@@ -10,6 +10,7 @@ import { ROLE_LABELS } from "@/constants/rbac";
 import { authApi } from "@/api/authApi";
 import { useAuthStore } from "@/stores/authStore";
 import { useUiStore } from "@/stores/uiStore";
+import { dateConfig } from "@/utils/dateConfig";
 
 export function AppLayout({ children }: { children: ReactNode }) {
   const navigate = useNavigate();
@@ -21,10 +22,35 @@ export function AppLayout({ children }: { children: ReactNode }) {
     staleTime: 60000
   });
   const systemName = settings?.systemName ?? "Parking Building Management";
+  const logoUrl = settings?.logoUrl ?? "";
+  const themeColor = settings?.themeColor ?? "#3b82f6";
+  const version = settings?.version ?? "";
   const [userMenuOpen, setUserMenuOpen] = useState(false);
   const userMenuRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => { document.title = systemName; }, [systemName]);
+
+  useEffect(() => {
+    if (settings?.timezone || settings?.dateFormat) {
+      dateConfig.set(settings.timezone ?? "Asia/Ho_Chi_Minh", settings.dateFormat ?? "DD/MM/YYYY");
+    }
+  }, [settings?.timezone, settings?.dateFormat]);
+
+  useEffect(() => {
+    document.documentElement.style.setProperty("--theme-color", themeColor);
+    const rgb = themeColor.replace("#", "");
+    const r = parseInt(rgb.substring(0, 2), 16);
+    const g = parseInt(rgb.substring(2, 4), 16);
+    const b = parseInt(rgb.substring(4, 6), 16);
+    document.documentElement.style.setProperty("--theme-color-rgb", `${r} ${g} ${b}`);
+    let meta = document.querySelector("meta[name=theme-color]");
+    if (!meta) {
+      meta = document.createElement("meta");
+      meta.setAttribute("name", "theme-color");
+      document.head.appendChild(meta);
+    }
+    meta.setAttribute("content", themeColor);
+  }, [themeColor]);
 
   useEffect(() => {
     const closeUserMenu = (event: MouseEvent) => {
@@ -64,8 +90,13 @@ export function AppLayout({ children }: { children: ReactNode }) {
               <Menu size={20} />
             </Button>
             <div className="hidden items-center gap-2 md:flex">
-              <ParkingCircle className="text-primary" />
+              {logoUrl ? (
+                <img src={logoUrl} alt={systemName} className="h-8 w-auto" />
+              ) : (
+                <ParkingCircle className="text-primary" />
+              )}
               <span className="font-semibold text-slate-900">{systemName}</span>
+              {version && <span className="rounded bg-slate-100 px-1.5 py-0.5 text-xs text-slate-500">v{version}</span>}
             </div>
           </div>
           <div ref={userMenuRef} className="relative">
