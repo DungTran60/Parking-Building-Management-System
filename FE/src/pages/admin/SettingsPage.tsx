@@ -3,6 +3,7 @@ import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import axios from "axios";
 import { CheckCircle2, RotateCcw, Save, Palette } from "lucide-react";
 import { settingApi, type SystemSettingsResponse, type UpdateSystemSettingsRequest } from "@/api/settingApi";
+import { dateConfig, formatInTz } from "@/utils/dateConfig";
 import { Button } from "@/components/common/Button";
 import { Card, CardContent, CardHeader } from "@/components/common/Card";
 import { PageHeader } from "@/components/layout/PageHeader";
@@ -49,6 +50,7 @@ export function SettingsPage() {
     mutationFn: settingApi.update,
     onSuccess: (settings) => {
       queryClient.setQueryData<SystemSettingsResponse>(["system-settings"], settings);
+      dateConfig.set(settings.timezone ?? "Asia/Ho_Chi_Minh", settings.dateFormat ?? "DD/MM/YYYY");
       setSubmitted(true);
     }
   });
@@ -154,7 +156,7 @@ export function SettingsPage() {
         </Card>
 
         <div className="sticky bottom-0 flex flex-wrap items-center justify-between gap-3 border-t border-border bg-white/95 px-5 py-4 shadow-[0_-4px_12px_rgba(15,23,42,0.05)] backdrop-blur">
-          <p className="text-sm text-slate-500">{isReadOnly ? "Chưa đồng bộ với máy chủ." : isDirty ? "Bạn có thay đổi chưa lưu." : `Cập nhật lần cuối: ${new Date(savedSettings.updatedAt).toLocaleString("vi-VN")}`}</p>
+          <p className="text-sm text-slate-500">{isReadOnly ? "Chưa đồng bộ với máy chủ." : isDirty ? "Bạn có thay đổi chưa lưu." : `Cập nhật lần cuối: ${formatInTz(savedSettings.updatedAt, dateConfig.timezone, dateConfig.dateTimeFormat)}`}</p>
           <div className="flex gap-2">
             <Button type="button" variant="secondary" onClick={reset} disabled={isReadOnly || !isDirty || updateMutation.isPending}><RotateCcw size={16} /> Hoàn tác</Button>
             <Button type="submit" disabled={isReadOnly || !isDirty || updateMutation.isPending}><Save size={17} /> {updateMutation.isPending ? "Đang lưu..." : "Lưu cấu hình"}</Button>
