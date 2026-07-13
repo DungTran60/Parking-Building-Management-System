@@ -3,8 +3,11 @@ package com.parking.service;
 import com.parking.dto.SystemSettingsRequestDto;
 import com.parking.dto.SystemSettingsResponseDto;
 import com.parking.entity.SystemSettings;
+import com.parking.entity.User;
 import com.parking.repository.SystemSettingsRepository;
+import com.parking.repository.UserRepository;
 import lombok.RequiredArgsConstructor;
+import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -18,6 +21,8 @@ public class SystemSettingsServiceImpl implements SystemSettingsService {
     private static final List<String> VALID_POLICIES = List.of("low", "medium", "high");
 
     private final SystemSettingsRepository systemSettingsRepository;
+    private final AuditService auditService;
+    private final UserRepository userRepository;
 
     @Override
     public SystemSettingsResponseDto getSettings() {
@@ -51,6 +56,11 @@ public class SystemSettingsServiceImpl implements SystemSettingsService {
         settings.setDateFormat(request.getDateFormat());
 
         SystemSettings saved = systemSettingsRepository.save(settings);
+
+        String currentUsername = SecurityContextHolder.getContext().getAuthentication().getName();
+        userRepository.findByUsername(currentUsername).ifPresent(currentUser ->
+                auditService.log("UPDATE_SETTINGS", "SETTINGS", SINGLETON_ID, currentUser.getId(), currentUser.getUsername()));
+
         return toDto(saved);
     }
 

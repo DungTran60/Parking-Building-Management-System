@@ -42,6 +42,7 @@ public class ParkingSessionServiceImpl implements ParkingSessionService {
     private final UserRepository                userRepository;
     private final ParkingSessionExceptionRepository parkingSessionExceptionRepository;
     private final AuthenticationService authenticationService;
+    private final AuditService auditService;
 
 
     /* ─────────────────────────────────────────────────────
@@ -66,6 +67,9 @@ public class ParkingSessionServiceImpl implements ParkingSessionService {
 
         // 5. Cập nhật trạng thái Slot và Reservation
         updateEntitiesOnCheckIn(selectedSlot, reservation);
+
+        User currentUser = authenticationService.getCurrentUser();
+        auditService.log("CHECK_IN", "SESSION", session.getId(), currentUser.getId(), currentUser.getUsername());
 
         return convertToDto(session);
     }
@@ -225,6 +229,9 @@ public class ParkingSessionServiceImpl implements ParkingSessionService {
         ParkingSlot slot = session.getSlot();
         slot.setStatus(SlotStatus.AVAILABLE);
         parkingSlotRepository.save(slot);
+
+        User currentUser = authenticationService.getCurrentUser();
+        auditService.log("CHECK_OUT", "SESSION", saved.getId(), currentUser.getId(), currentUser.getUsername());
 
         return convertToDto(saved);
     }

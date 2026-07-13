@@ -67,7 +67,7 @@ export function UsersPage() {
   return (
     <EntityManagement<ManagedUser>
       title="Quản lý tài khoản"
-      description="Quản lý thông tin tài khoản, email, số điện thoại, vai trò và trạng thái."
+      description=""
       resource="users"
       api={api}
       fields={[

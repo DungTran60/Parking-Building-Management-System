@@ -48,7 +48,15 @@ const ACTION_FILTER_OPTIONS = [
   { value: "", label: "Tất cả" },
   { value: "LOGIN", label: "Đăng nhập" },
   { value: "LOGOUT", label: "Đăng xuất" },
-  { value: "LOGIN_FAILED", label: "Đăng nhập thất bại" }
+  { value: "LOGIN_FAILED", label: "Đăng nhập thất bại" },
+  { value: "USER_CREATED", label: "Tạo tài khoản" },
+  { value: "USER_UPDATED", label: "Sửa tài khoản" },
+  { value: "USER_DELETED", label: "Xóa tài khoản" },
+  { value: "USER_LOCKED", label: "Khóa tài khoản" },
+  { value: "USER_UNLOCKED", label: "Mở khóa tài khoản" },
+  { value: "CHECK_IN", label: "Xe vào" },
+  { value: "CHECK_OUT", label: "Xe ra" },
+  { value: "UPDATE_SETTINGS", label: "Cập nhật cài đặt" }
 ];
 
 const LOGIN_COLUMNS: ColumnDef<AuditLog>[] = [
@@ -84,13 +92,20 @@ const LOGIN_COLUMNS: ColumnDef<AuditLog>[] = [
     id: "userAgent",
     header: "Trình duyệt",
     cell: ({ row }) => {
-      const ua = row.original.userAgent;
+      const ua = row.original.userAgent ?? "";
       if (!ua) return "—";
-      if (ua.includes("Chrome")) return "Chrome/Windows";
-      if (ua.includes("Firefox")) return "Firefox/Windows";
-      if (ua.includes("Safari") && !ua.includes("Chrome")) return "Safari/macOS";
-      if (ua.includes("Mobile")) return "Mobile/App";
-      return ua.length > 25 ? ua.substring(0, 25) + "..." : ua;
+      const os = ua.match(/\(([^)]+)\)/)?.[1] ?? "";
+      const osShort = os.includes("Windows") ? "Win" :
+        os.includes("Mac OS") ? "macOS" :
+        os.includes("Linux") && ua.includes("Android") ? "Android" :
+        os.includes("Linux") ? "Linux" :
+        os.includes("iPhone") || os.includes("iPad") ? "iOS" : "";
+      const browser = ua.includes("Edg/") ? "Edge" :
+        ua.includes("Chrome") && !ua.includes("Edg/") ? "Chrome" :
+        ua.includes("Firefox") ? "Firefox" :
+        ua.includes("Safari") && !ua.includes("Chrome") ? "Safari" :
+        "";
+      return browser || osShort ? `${browser}/${osShort}` : ua.length > 30 ? ua.substring(0, 30) + "..." : ua;
     }
   }
 ];
@@ -136,14 +151,6 @@ export function AuditLogsPage() {
   const failedLogins = failedLoginsData?.totalElements ?? 0;
   const totalEvents = totalEventsData?.totalElements ?? 0;
   const lastLogin = lastLoginData?.content?.[0] ?? null;
-
-  const { data: timelineData, isLoading: timelineLoading } = useQuery({
-    queryKey: ["audit-timeline"],
-    queryFn: () => auditApi.getAll({ size: 10, sort: "createdAt,desc" }),
-    refetchInterval: 30000,
-    placeholderData: keepPreviousData
-  });
-  const timelineEvents = timelineData?.content ?? [];
 
   const [loginFilter, setLoginFilter] = useState({
     action: "",
@@ -223,12 +230,18 @@ export function AuditLogsPage() {
   );
 
   const handleSessionTimeoutChange = (value: string) => {
-    const num = parseInt(value, 10) || 30;
+    setSettingsSubmitted(false);
+    if (value === "") {
+      setSecurityForm(prev => prev ? { ...prev, sessionTimeout: 0 } : prev);
+      setTimoutError("Thời gian timeout tối thiểu là 5 phút.");
+      return;
+    }
+    const num = parseInt(value, 10);
+    if (isNaN(num)) return;
     if (num < 5) setTimoutError("Thời gian timeout tối thiểu là 5 phút.");
     else if (num > 480) setTimoutError("Thời gian timeout tối đa là 480 phút (8 giờ).");
     else setTimoutError("");
     setSecurityForm(prev => prev ? { ...prev, sessionTimeout: num } : prev);
-    setSettingsSubmitted(false);
   };
 
   const handleSave = () => {
@@ -381,55 +394,6 @@ export function AuditLogsPage() {
           </div>
         </div>
       </Modal>
-
-      <Card>
-        <CardHeader
-          title="Dòng thời gian sự kiện bảo mật"
-          action={
-            <Button variant="secondary" size="sm" onClick={() => queryClient.invalidateQueries({ queryKey: ["audit-timeline"] })} disabled={timelineLoading}>
-              <RefreshCw size={16} />
-              Làm mới
-            </Button>
-          }
-        />
-        <CardContent>
-          {timelineLoading ? (
-            <p className="text-sm text-slate-500">Đang tải sự kiện...</p>
-          ) : timelineEvents.length === 0 ? (
-            <div className="rounded-md border border-dashed border-slate-300 py-10 text-center text-sm text-slate-500">
-              Chưa có sự kiện bảo mật nào được ghi nhận.
-            </div>
-          ) : (
-            <div className="space-y-3">
-              {timelineEvents.map((event) => (
-                <div key={event.id} className="flex items-center gap-3 rounded-md bg-slate-50 p-3">
-                  <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-white text-xs font-medium text-slate-500 ring-1 ring-slate-200">
-                    {dayjs(event.createdAt).format("HH:mm")}
-                  </div>
-                  <div className="min-w-0 flex-1">
-                    <div className="flex items-center gap-2">
-                      <span className="text-sm font-medium text-slate-900">{event.actorUsername}</span>
-                      <span className={`inline-flex items-center rounded-full px-2 py-0.5 text-xs font-medium ${ACTION_STYLES[event.action] ?? "bg-slate-100 text-slate-700"}`}>
-                        {ACTION_LABELS[event.action] ?? event.action}
-                      </span>
-                    </div>
-                    {event.action === "LOGIN" || event.action === "LOGIN_FAILED" ? (
-                      <p className="mt-0.5 text-xs text-slate-500">
-                        {event.ipAddress ?? "—"}
-                        {event.userAgent ? (event.userAgent.includes("Chrome") ? " · Chrome" : event.userAgent.includes("Firefox") ? " · Firefox" : "") : ""}
-                      </p>
-                    ) : (
-                      <p className="mt-0.5 text-xs text-slate-500">
-                        {event.resource} #{event.resourceId}
-                      </p>
-                    )}
-                  </div>
-                </div>
-              ))}
-            </div>
-          )}
-        </CardContent>
-      </Card>
 
       <Card>
         <CardHeader title="Tài khoản đã khóa" />

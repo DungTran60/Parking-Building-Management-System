@@ -1,7 +1,9 @@
 import { useEffect, useRef, useState } from "react";
 import type { ReactNode } from "react";
+import { useQuery } from "@tanstack/react-query";
 import { ChevronDown, LogOut, Menu, ParkingCircle, Settings, UserRound } from "lucide-react";
 import { useNavigate } from "react-router-dom";
+import { settingApi } from "@/api/settingApi";
 import { Sidebar } from "@/components/layout/Sidebar";
 import { Button } from "@/components/common/Button";
 import { ROLE_LABELS } from "@/constants/rbac";
@@ -13,8 +15,16 @@ export function AppLayout({ children }: { children: ReactNode }) {
   const navigate = useNavigate();
   const { role, userName, logout } = useAuthStore();
   const toggleSidebar = useUiStore((state) => state.toggleSidebar);
+  const { data: settings } = useQuery({
+    queryKey: ["system-settings"],
+    queryFn: settingApi.get,
+    staleTime: 60000
+  });
+  const systemName = settings?.systemName ?? "Parking Building Management";
   const [userMenuOpen, setUserMenuOpen] = useState(false);
   const userMenuRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => { document.title = systemName; }, [systemName]);
 
   useEffect(() => {
     const closeUserMenu = (event: MouseEvent) => {
@@ -55,7 +65,7 @@ export function AppLayout({ children }: { children: ReactNode }) {
             </Button>
             <div className="hidden items-center gap-2 md:flex">
               <ParkingCircle className="text-primary" />
-              <span className="font-semibold text-slate-900">Parking Building Management</span>
+              <span className="font-semibold text-slate-900">{systemName}</span>
             </div>
           </div>
           <div ref={userMenuRef} className="relative">

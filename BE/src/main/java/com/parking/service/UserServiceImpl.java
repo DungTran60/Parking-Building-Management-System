@@ -288,6 +288,9 @@ public class UserServiceImpl implements UserService {
         }
 
         User updatedUser = userRepository.save(user);
+
+        auditService.log("USER_UPDATED", "USER", updatedUser.getId(), updatedUser.getId(), updatedUser.getUsername());
+
         return mapToResponseDto(updatedUser);
     }
 

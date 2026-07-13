@@ -84,10 +84,10 @@ public class AuthController {
 
     private String resolveClientIp(HttpServletRequest httpRequest) {
         String ip = httpRequest.getHeader("X-Forwarded-For");
-        if (ip == null || ip.isEmpty()) {
-            ip = httpRequest.getRemoteAddr();
+        if (ip != null && !ip.isEmpty()) {
+            return ip.split(",")[0].trim();
         }
-        return ip;
+        return httpRequest.getRemoteAddr();
     }
 
     private String resolveUserAgent(HttpServletRequest httpRequest) {
