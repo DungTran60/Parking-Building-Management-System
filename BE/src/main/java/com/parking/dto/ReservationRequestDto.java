@@ -1,6 +1,5 @@
 package com.parking.dto;
 
-import jakarta.validation.constraints.Future;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotNull;
 import jakarta.validation.constraints.Size;
@@ -27,7 +26,6 @@ public class ReservationRequestDto {
     private Long slotId;
 
     @NotNull(message = "Start time is required")
-    @Future(message = "Start time must be in the future")
     private LocalDateTime startAt;
 
     @NotNull(message = "End time is required")

@@ -49,10 +49,18 @@ public class PaymentServiceImpl implements PaymentService {
         ParkingSession session = parkingSessionRepository.findById(Long.valueOf(request.getSessionId()))
                 .orElseThrow(() -> new ResourceNotFoundException("Parking session not found with id: " + request.getSessionId()));
 
-        // Driver chỉ thanh toán được lượt của chính mình; Staff/Manager/Admin thu hộ mọi lượt
+        // Driver chỉ thanh toán được lượt của chính mình (session phải có driver_id khớp).
+        // Session walk-in (driver=null) chỉ Staff/Manager/Admin mới thu phí được.
         User currentUser = getCurrentUser(principal);
-        if (isDriver(currentUser) && (session.getDriver() == null || !session.getDriver().getId().equals(currentUser.getId()))) {
-            throw new AccessDeniedException("Bạn không có quyền thanh toán lượt gửi này.");
+        if (isDriver(currentUser)) {
+            if (session.getDriver() == null) {
+                throw new AccessDeniedException(
+                        "Lượt gửi xe này được check-in tại quầy (walk-in) và chưa liên kết tài khoản. " +
+                        "Vui lòng thanh toán tại quầy hoặc nhờ nhân viên hỗ trợ.");
+            }
+            if (!session.getDriver().getId().equals(currentUser.getId())) {
+                throw new AccessDeniedException("Bạn không có quyền thanh toán lượt gửi này.");
+            }
         }
 
         if ("ACTIVE".equals(session.getStatus())) {
@@ -97,9 +105,11 @@ public class PaymentServiceImpl implements PaymentService {
     }
 
     private PaymentResponseDto convertToDto(Payment payment) {
+        ParkingSession session = payment.getSession();
         return PaymentResponseDto.builder()
                 .id(String.valueOf(payment.getId()))
-                .sessionId(payment.getSession().getTicketCode() != null ? payment.getSession().getTicketCode() : String.valueOf(payment.getSession().getId()))
+                .sessionId(session.getTicketCode() != null ? session.getTicketCode() : String.valueOf(session.getId()))
+                .plateNumber(session.getPlateNumber())
                 .amount(payment.getAmount())
                 .method(payment.getMethod())
                 .paidAt(payment.getPaymentTime())
