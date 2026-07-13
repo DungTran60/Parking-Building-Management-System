@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useState } from "react";
-import { AlertTriangle, Plus, Play, CheckCircle, XCircle, Trash2, RefreshCw } from "lucide-react";
+import { AlertTriangle, Eye, Pencil, Play, Plus, RefreshCw, Trash2, XCircle } from "lucide-react";
 import { PageHeader } from "@/components/layout/PageHeader";
 import { Card, CardContent } from "@/components/common/Card";
 import { Button } from "@/components/common/Button";
@@ -8,6 +8,7 @@ import { Field, Input, Select } from "@/components/forms/FormField";
 import { incidentApi } from "@/api/incidentApi";
 import { userApi, type UserResponse } from "@/api/userApi";
 import type { Incident, IncidentStatus, IncidentType } from "@/types/domain";
+import { hasPermission } from "@/constants/rbac";
 import { useAuthStore } from "@/stores/authStore";
 import { getApiErrorMessage } from "@/utils/apiError";
 
@@ -41,15 +42,13 @@ const ALL_STATUSES = Object.keys(STATUS_LABELS) as IncidentStatus[];
 /* ── Component ──────────────────────────────────────── */
 export function IncidentPage() {
   const role = useAuthStore((state) => state.role);
-  const isStaff = role === "PARKING_STAFF";
-  const isManager = role === "PARKING_MANAGER";
-  const isAdmin = role === "SYSTEM_ADMIN";
-  const canCreate = isStaff;
-  const canAssign = isManager || isAdmin;
-  const canProcess = isStaff;
-  const canResolve = isStaff;
-  const canClose = isManager || isAdmin;
-  const canDelete = isAdmin;
+  const userName = useAuthStore((state) => state.userName);
+  const canCreate = hasPermission(role, "incidents:create");
+  const canAssign = hasPermission(role, "incidents:assign");
+  const canProcess = hasPermission(role, "incidents:process");
+  const canResolve = hasPermission(role, "incidents:resolve");
+  const canClose = hasPermission(role, "incidents:close");
+  const canDelete = hasPermission(role, "incidents:delete");
   const [items, setItems] = useState<Incident[]>([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
@@ -74,6 +73,10 @@ export function IncidentPage() {
   const [assignId, setAssignId] = useState<number | null>(null);
   const [assignStaffId, setAssignStaffId] = useState("");
   const [assigning, setAssigning] = useState(false);
+
+  // Detail modal
+  const [detailId, setDetailId] = useState<number | null>(null);
+  const detailItem = items.find((i) => i.id === detailId) ?? null;
 
   /* ── Data fetch ──────────────────────────────────── */
   const fetchData = useCallback(async () => {
@@ -201,12 +204,8 @@ export function IncidentPage() {
   return (
     <>
       <PageHeader
-        title={isStaff ? "Quản lý và xử lý sự cố" : "Giám sát sự cố"}
-        description={
-          isStaff
-            ? "Ghi nhận, nhận xử lý và hoàn tất các sự cố phát sinh tại quầy."
-            : "Theo dõi tiến độ, phân công Staff và đóng các sự cố đã được xử lý."
-        }
+        title={canProcess ? "Quản lý và xử lý sự cố" : "Giám sát sự cố"}
+        description=""
       />
 
       {error && <div role="alert" className="mb-4 rounded-lg border border-red-200 bg-red-50 p-4 text-sm text-red-700"><p>{error}</p>{items.length === 0 && <Button variant="secondary" className="mt-3" onClick={() => void fetchData()} disabled={loading}><RefreshCw size={16} /> Thử lại</Button>}</div>}
@@ -219,8 +218,8 @@ export function IncidentPage() {
               key={s}
               onClick={() => setFilterStatus(s)}
               className={`rounded-full px-4 py-1.5 text-sm font-medium transition-colors ${filterStatus === s
-                  ? "bg-primary text-white"
-                  : "bg-gray-100 text-gray-600 hover:bg-gray-200"
+                ? "bg-primary text-white"
+                : "bg-gray-100 text-gray-600 hover:bg-gray-200"
                 }`}
             >
               {s === "ALL" ? "Tất cả" : STATUS_LABELS[s]}
@@ -233,66 +232,65 @@ export function IncidentPage() {
         </Button>}
       </div>
 
-      {/* Table */}
+      {/* Danh sách sự cố */}
       <Card>
         <CardContent>
           {loading ? (
-            <p className="py-8 text-center text-sm text-gray-400">Đang tải...</p>
+            <p className="py-8 text-center text-sm text-slate-400">Đang tải...</p>
           ) : items.length === 0 ? (
-            <p className="py-8 text-center text-sm text-gray-400">Không có sự cố nào.</p>
+            <p className="py-8 text-center text-sm text-slate-400">Không có sự cố nào.</p>
           ) : (
             <div className="overflow-x-auto">
               <table className="w-full text-sm">
                 <thead>
-                  <tr className="border-b text-left text-xs text-gray-500 uppercase">
+                  <tr className="border-b text-left text-sm text-slate-500 uppercase">
                     <th className="px-3 py-2">ID</th>
                     <th className="px-3 py-2">Loại sự cố</th>
-                    <th className="px-3 py-2">Mô tả</th>
-                    <th className="px-3 py-2">Mã vé</th>
-                    <th className="px-3 py-2">Người báo cáo</th>
-                    <th className="px-3 py-2">Người xử lý</th>
                     <th className="px-3 py-2">Trạng thái</th>
-                    <th className="px-3 py-2">Thời gian</th>
+                    <th className="px-3 py-2">Người xử lý</th>
+                    <th className="px-3 py-2 whitespace-nowrap">Thời gian</th>
                     <th className="px-3 py-2">Thao tác</th>
                   </tr>
                 </thead>
                 <tbody>
                   {items.map((item) => (
-                    <tr key={item.id} className="border-b hover:bg-gray-50">
-                      <td className="px-3 py-2 text-gray-400 text-xs">#{item.id}</td>
-                      <td className="px-3 py-2 font-medium">
-                        <span className="flex items-center gap-1">
-                          <AlertTriangle size={13} className="text-orange-400" />
+                    <tr key={item.id} className="border-b hover:bg-slate-50">
+                      <td className="px-3 py-2 text-sm text-slate-400">#{item.id}</td>
+                      <td className="px-3 py-2">
+                        <span className="flex items-center gap-1.5 font-medium text-slate-900">
+                          <AlertTriangle size={14} className="shrink-0 text-orange-400" />
                           {TYPE_LABELS[item.type]}
                         </span>
                       </td>
-                      <td className="px-3 py-2 max-w-xs truncate text-gray-600">{item.description}</td>
-                      <td className="px-3 py-2 font-mono text-xs text-gray-500">
-                        {item.ticketCode ?? "—"}
-                      </td>
-                      <td className="px-3 py-2">{item.reporterName}</td>
-                      <td className="px-3 py-2">{item.assigneeName ?? (item.status === "OPEN" ? "Chưa phân công" : "—")}</td>
                       <td className="px-3 py-2">
-                        <span className={`rounded-full px-2 py-0.5 text-xs font-medium ${STATUS_COLORS[item.status]}`}>
+                        <span className={`rounded-full px-2 py-0.5 text-sm font-medium ${STATUS_COLORS[item.status]}`}>
                           {STATUS_LABELS[item.status]}
                         </span>
                       </td>
-                      <td className="px-3 py-2 text-xs text-gray-400 whitespace-nowrap">
+                      <td className="px-3 py-2 text-slate-600">{item.assigneeName ?? (item.status === "OPEN" ? "Chưa phân công" : "—")}</td>
+                      <td className="px-3 py-2 whitespace-nowrap text-sm text-slate-400">
                         {new Date(item.reportedAt).toLocaleDateString("vi-VN")}
                       </td>
                       <td className="px-3 py-2">
-                        <div className="flex gap-1">
-                          {canProcess && item.status === "OPEN" && (
+                        <div className="flex items-center gap-1">
+                          <button
+                            onClick={() => setDetailId(item.id)}
+                            title="Xem chi tiết"
+                            className="rounded p-1.5 text-slate-500 hover:bg-slate-100"
+                          >
+                            <Eye size={15} />
+                          </button>
+                          {canProcess && item.status === "OPEN" && (!item.assigneeName || item.assigneeName === userName) && (
                             <button
-                              onClick={() => handleProcess(item.id)}
+                              onClick={() => void handleProcess(item.id)}
                               disabled={actionId === item.id}
-                              title="Bắt đầu xử lý"
-                              className="rounded p-1 text-blue-500 hover:bg-blue-50 disabled:opacity-50"
-                              >
-                                <Play size={13} />
-                              </button>
+                              title="Nhận xử lý"
+                              className="rounded p-1.5 text-blue-500 hover:bg-blue-50 disabled:opacity-50"
+                            >
+                              <Play size={15} />
+                            </button>
                           )}
-                          {canAssign && item.status === "OPEN" && (
+                          {canAssign && (item.status === "OPEN" || item.status === "IN_PROGRESS") && (
                             <button
                               onClick={() => {
                                 setAssignId(item.id);
@@ -300,10 +298,10 @@ export function IncidentPage() {
                                 void loadStaffUsers();
                               }}
                               disabled={actionId === item.id}
-                              title="Phân công Staff"
-                              className="rounded p-1 text-purple-600 hover:bg-purple-50 disabled:opacity-50"
+                              title="Phân công"
+                              className="rounded p-1.5 text-purple-600 hover:bg-purple-50 disabled:opacity-50"
                             >
-                              <Plus size={13} />
+                              <Plus size={15} />
                             </button>
                           )}
                           {canResolve && item.status === "IN_PROGRESS" && (
@@ -311,29 +309,21 @@ export function IncidentPage() {
                               onClick={() => { setResolveId(item.id); setResolution(""); }}
                               disabled={actionId === item.id}
                               title="Giải quyết"
-                              className="rounded p-1 text-green-600 hover:bg-green-50 disabled:opacity-50"
+                              className="rounded p-1.5 text-green-600 hover:bg-green-50 disabled:opacity-50"
                             >
-                              <CheckCircle size={13} />
+                              <Pencil size={15} />
                             </button>
                           )}
                           {canClose && item.status === "RESOLVED" && (
                             <button
-                              onClick={() => handleClose(item.id)}
+                              onClick={() => void handleClose(item.id)}
                               disabled={actionId === item.id}
                               title="Đóng sự cố"
-                              className="rounded p-1 text-gray-500 hover:bg-gray-100 disabled:opacity-50"
+                              className="rounded p-1.5 text-slate-500 hover:bg-slate-100 disabled:opacity-50"
                             >
-                              <XCircle size={13} />
+                              <XCircle size={15} />
                             </button>
                           )}
-                          {canDelete && <button
-                            onClick={() => handleDelete(item.id)}
-                            disabled={actionId === item.id}
-                            title="Xóa"
-                            className="rounded p-1 text-red-500 hover:bg-red-50 disabled:opacity-50"
-                          >
-                            <Trash2 size={13} />
-                          </button>}
                         </div>
                       </td>
                     </tr>
@@ -364,7 +354,7 @@ export function IncidentPage() {
               className="w-full rounded-md border border-border bg-white px-3 py-2 text-sm outline-none focus:border-primary focus:ring-2 focus:ring-blue-100"
               placeholder="Mô tả sự cố..."
             />
-            <p className="text-right text-xs text-gray-400">{createDesc.length}/1000</p>
+            <p className="text-right text-sm text-gray-400">{createDesc.length}/1000</p>
           </Field>
           <Field label="ID lượt gửi xe liên quan (tùy chọn)">
             <Input
@@ -450,6 +440,59 @@ export function IncidentPage() {
             </Button>
           </div>
         </div>
+      </Modal>
+
+      {/* ── Modal: Chi tiết sự cố ───────────────── */}
+      <Modal open={detailId !== null} title="Chi tiết sự cố" onClose={() => setDetailId(null)}>
+        {detailItem && (
+          <div className="grid gap-4">
+            <dl className="grid gap-x-4 gap-y-3 sm:grid-cols-2">
+              <div>
+                <dt className="text-sm font-medium uppercase text-slate-400">Mã sự cố</dt>
+                <dd className="mt-0.5 text-sm text-slate-900">#{detailItem.id}</dd>
+              </div>
+              <div>
+                <dt className="text-sm font-medium uppercase text-slate-400">Loại sự cố</dt>
+                <dd className="mt-0.5 text-sm text-slate-900">{TYPE_LABELS[detailItem.type]}</dd>
+              </div>
+              <div>
+                <dt className="text-sm font-medium uppercase text-slate-400">Trạng thái</dt>
+                <dd className="mt-0.5">
+                  <span className={`rounded-full px-2 py-0.5 text-sm font-medium ${STATUS_COLORS[detailItem.status]}`}>
+                    {STATUS_LABELS[detailItem.status]}
+                  </span>
+                </dd>
+              </div>
+              <div>
+                <dt className="text-sm font-medium uppercase text-slate-400">Thời gian báo cáo</dt>
+                <dd className="mt-0.5 text-sm text-slate-900">{new Date(detailItem.reportedAt).toLocaleString("vi-VN")}</dd>
+              </div>
+              <div>
+                <dt className="text-sm font-medium uppercase text-slate-400">Mã vé</dt>
+                <dd className="mt-0.5 font-mono text-sm text-slate-900">{detailItem.ticketCode ?? "—"}</dd>
+              </div>
+              <div>
+                <dt className="text-sm font-medium uppercase text-slate-400">Người báo cáo</dt>
+                <dd className="mt-0.5 text-sm text-slate-900">{detailItem.reporterName ?? "—"}</dd>
+              </div>
+              <div className="sm:col-span-2">
+                <dt className="text-sm font-medium uppercase text-slate-400">Người xử lý</dt>
+                <dd className="mt-0.5 text-sm text-slate-900">{detailItem.assigneeName ?? (detailItem.status === "OPEN" ? "Chưa phân công" : "—")}</dd>
+              </div>
+            </dl>
+            <div>
+              <p className="text-sm font-medium uppercase text-slate-400">Mô tả</p>
+              <p className="mt-1 text-sm text-slate-700">{detailItem.description}</p>
+            </div>
+            {canDelete && (
+              <div className="flex justify-end border-t border-border pt-3">
+                <Button variant="secondary" className="text-red-600" onClick={() => { void handleDelete(detailItem.id); setDetailId(null); }} disabled={actionId === detailItem.id}>
+                  <Trash2 size={16} /> Xóa sự cố
+                </Button>
+              </div>
+            )}
+          </div>
+        )}
       </Modal>
     </>
   );

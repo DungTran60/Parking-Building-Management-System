@@ -1,21 +1,32 @@
-﻿import { useMemo, useState, type FormEvent } from "react";
+﻿import { useMemo, useState, type FormEvent, type ReactNode } from "react";
 import axios from "axios";
 import dayjs from "dayjs";
-import { Printer, ReceiptText, Search } from "lucide-react";
+import { AlertTriangle, ReceiptText, Search } from "lucide-react";
 import { paymentApi } from "@/api/paymentApi";
 import { sessionApi } from "@/api/sessionApi";
 import { pricingApi } from "@/api/pricingApi";
+import { Badge } from "@/components/common/Badge";
 import { Button } from "@/components/common/Button";
 import { Card, CardContent, CardHeader } from "@/components/common/Card";
+import { Modal } from "@/components/common/Modal";
 import { PageHeader } from "@/components/layout/PageHeader";
 import { Field, Input, Select } from "@/components/forms/FormField";
-import type { ParkingSession, PaymentMethod, PaymentRecord } from "@/types/domain";
+import type { ExceptionType, ParkingSession, PaymentMethod, PaymentRecord } from "@/types/domain";
+import { getApiErrorMessage } from "@/utils/apiError";
 import { currency, dateTime } from "@/utils/format";
 
 const PAYMENT_METHODS: { label: string; value: PaymentMethod }[] = [
   { label: "QR Code", value: "QR_CODE" },
   { label: "Thẻ ngân hàng", value: "BANK_CARD" },
   { label: "Tiền mặt", value: "CASH" }
+];
+
+const EXCEPTION_TYPES: { label: string; value: ExceptionType }[] = [
+  { label: "Mất vé / mã gửi xe", value: "LOST_TICKET" },
+  { label: "Sai biển số xe", value: "WRONG_PLATE" },
+  { label: "Gửi sai khu vực", value: "WRONG_ZONE" },
+  { label: "Quá giờ gửi", value: "OVERTIME" },
+  { label: "Chưa thanh toán", value: "UNPAID" }
 ];
 
 export function CheckOutPage() {
@@ -27,6 +38,13 @@ export function CheckOutPage() {
   const [paymentError, setPaymentError] = useState("");
   const [isSearching, setIsSearching] = useState(false);
   const [isPaying, setIsPaying] = useState(false);
+
+  const [showException, setShowException] = useState(false);
+  const [exceptionType, setExceptionType] = useState<ExceptionType>("WRONG_PLATE");
+  const [exceptionReason, setExceptionReason] = useState("");
+  const [exceptionFee, setExceptionFee] = useState("");
+  const [exceptionError, setExceptionError] = useState("");
+  const [processingException, setProcessingException] = useState(false);
 
   const durationHours = useMemo(() => {
     if (!session) return "0.0";
@@ -63,15 +81,26 @@ export function CheckOutPage() {
     setPreviewFee(null);
 
     try {
-      const result = await sessionApi.list({
-        query,
-        status: "ACTIVE",
-        page: 0,
-        size: 1,
-        sort: "checkInAt,desc"
-      });
+      const isTicketCode = /^QR-/i.test(query);
+      let found: ParkingSession | null = null;
 
-      const found = result.content[0] ?? null;
+      if (isTicketCode) {
+        const result = await sessionApi.list({
+          query,
+          status: "ACTIVE",
+          page: 0,
+          size: 1,
+          sort: "checkInAt,desc"
+        });
+        found = result.content[0] ?? null;
+      } else {
+        const sessions = await sessionApi.findByPlate(query).catch((err) => {
+          if (axios.isAxiosError(err) && err.response?.status === 404) return [] as ParkingSession[];
+          throw err;
+        });
+        found = sessions[0] ?? null;
+      }
+
       if (!found) {
         setSearchError("Không tìm thấy lượt gửi xe đang hoạt động phù hợp.");
         return;
@@ -100,10 +129,7 @@ export function CheckOutPage() {
     setPaymentError("");
 
     try {
-      // Gọi check-out trước để tính phí và cập nhật thời gian ra
-      await sessionApi.checkOut(session.ticketCode || session.plateNumber);
-
-      // Sau đó tạo payment (BE sẽ đóng session và giải phóng slot)
+      // Payment service tự tính phí, set checkOutAt, đóng session (COMPLETED) và giải phóng slot.
       const record = await paymentApi.create({
         sessionId: session.id,
         method: paymentMethod
@@ -126,11 +152,41 @@ export function CheckOutPage() {
     }
   };
 
-  const printInvoice = () => window.print();
+  const paymentMethodLabel = (method: string) => PAYMENT_METHODS.find((item) => item.value === method)?.label ?? method;
+
+  const openException = () => {
+    setExceptionType("WRONG_PLATE");
+    setExceptionReason("");
+    setExceptionFee("");
+    setExceptionError("");
+    setShowException(true);
+  };
+
+  const handleExceptionSubmit = async () => {
+    if (!session) return;
+    setProcessingException(true);
+    setExceptionError("");
+    try {
+      const extra = exceptionFee ? Number(exceptionFee) : 0;
+      await sessionApi.handleException(session.id, {
+        type: exceptionType,
+        reason: exceptionReason.trim() || undefined,
+        extraFee: extra || undefined
+      });
+      if (extra > 0) {
+        setPreviewFee((prev) => (prev ?? 0) + extra);
+      }
+      setShowException(false);
+    } catch (error: unknown) {
+      setExceptionError(getApiErrorMessage(error, "Không thể xử lý ngoại lệ."));
+    } finally {
+      setProcessingException(false);
+    }
+  };
 
   return (
     <>
-      <PageHeader title="Parking Check-Out" description="Tìm theo biển số hoặc mã vé, xác nhận thanh toán và in hóa đơn." />
+      <PageHeader title="Kiểm tra xe ra" description="" />
       <div className="grid gap-6 lg:grid-cols-[420px_1fr]">
         <Card>
           <CardHeader title="Tìm lượt gửi xe" />
@@ -159,13 +215,13 @@ export function CheckOutPage() {
                   <Info label="Giờ ra" value={session.checkOutAt ? dateTime(session.checkOutAt) : "Chưa thanh toán"} />
                   <Info label="Số giờ gửi" value={`${durationHours} giờ`} />
                   <Info label="Phí cần thanh toán" value={currency(displayFee)} strong />
-                  <Info label="Trạng thái" value={displayStatus} />
+                  <Info label="Trạng thái" value={<Badge value={displayStatus} />} />
                   <Info label="Slot" value={session.slotCode ?? `Slot ${session.slotId}`} />
                 </div>
 
                 <div className="grid gap-3 md:grid-cols-[1fr_auto] md:items-end">
                   <Field label="Phương thức thanh toán">
-                    <Select value={paymentMethod} onChange={(event) => setPaymentMethod(event.target.value as PaymentMethod)}>
+                    <Select value={paymentMethod} onChange={(event) => setPaymentMethod(event.target.value as PaymentMethod)} disabled={!!payment}>
                       {PAYMENT_METHODS.map((item) => (
                         <option key={item.value} value={item.value}>
                           {item.label}
@@ -175,12 +231,14 @@ export function CheckOutPage() {
                   </Field>
 
                   <div className="flex flex-wrap gap-3">
-                    <Button onClick={() => void confirmPayment()} disabled={isPaying}>
+                    <Button onClick={() => void confirmPayment()} disabled={isPaying || !!payment}>
                       <ReceiptText size={17} /> {isPaying ? "Đang xác nhận..." : "Xác nhận thanh toán"}
                     </Button>
-                    <Button variant="secondary" onClick={printInvoice}>
-                      <Printer size={17} /> In hóa đơn
-                    </Button>
+                    {!payment && (
+                      <Button variant="secondary" onClick={openException}>
+                        <AlertTriangle size={17} /> Xử lý ngoại lệ
+                      </Button>
+                    )}
                   </div>
                 </div>
 
@@ -190,23 +248,70 @@ export function CheckOutPage() {
                   <div className="rounded-lg border border-emerald-200 bg-emerald-50 p-4 text-sm text-emerald-800">
                     <p className="font-semibold">Thanh toán thành công</p>
                     <p className="mt-1">Mã giao dịch: {payment.id}</p>
-                    <p>Phương thức: {payment.method}</p>
+                    <p>Phương thức: {paymentMethodLabel(payment.method)}</p>
                     <p>Số tiền: {currency(payment.amount)}</p>
-                    <p>Trạng thái session: COMPLETED</p>
+                    <p>Trạng thái phiên gửi xe: Hoàn thành</p>
                   </div>
                 )}
               </div>
             ) : (
-              <p className="text-sm text-slate-500">Kết quả checkout sẽ hiển thị tại đây.</p>
+              <p className="text-sm text-slate-500">Thông tin thanh toán sẽ hiển thị tại đây.</p>
             )}
           </CardContent>
         </Card>
       </div>
+
+      <Modal
+        open={showException}
+        title="Xử lý ngoại lệ"
+        onClose={() => setShowException(false)}
+      >
+        <div className="grid gap-4">
+          {session && (
+            <div className="rounded-md bg-slate-50 p-3 text-sm text-slate-600">
+              Phiên gửi xe: <span className="font-mono font-medium">{session.ticketCode}</span> · {session.plateNumber}
+            </div>
+          )}
+          <Field label="Loại ngoại lệ">
+            <Select value={exceptionType} onChange={(event) => setExceptionType(event.target.value as ExceptionType)} disabled={processingException}>
+              {EXCEPTION_TYPES.map((item) => (
+                <option key={item.value} value={item.value}>{item.label}</option>
+              ))}
+            </Select>
+          </Field>
+          <Field label="Lý do khác">
+            <textarea
+              value={exceptionReason}
+              onChange={(event) => setExceptionReason(event.target.value)}
+              rows={3}
+              maxLength={1000}
+              className="w-full rounded-md border border-border bg-white px-3 py-2 text-sm outline-none focus:border-primary focus:ring-2 focus:ring-blue-100"
+              placeholder="Mô tả lý do..."
+            />
+          </Field>
+          <Field label="Phụ phí cộng thêm (VNĐ)">
+            <Input
+              type="number"
+              value={exceptionFee}
+              onChange={(event) => setExceptionFee(event.target.value)}
+              placeholder="0 nếu không cộng thêm phí"
+              disabled={processingException}
+            />
+          </Field>
+          {exceptionError && <div role="alert" className="rounded-md bg-red-50 p-3 text-sm text-red-700">{exceptionError}</div>}
+          <div className="flex justify-end gap-3">
+            <Button variant="secondary" onClick={() => setShowException(false)} disabled={processingException}>Hủy</Button>
+            <Button onClick={() => void handleExceptionSubmit()} disabled={processingException || (!!exceptionFee && Number.isNaN(Number(exceptionFee)))}>
+              {processingException ? "Đang xử lý..." : "Áp dụng ngoại lệ"}
+            </Button>
+          </div>
+        </div>
+      </Modal>
     </>
   );
 }
 
-function Info({ label, value, strong }: { label: string; value: string; strong?: boolean }) {
+function Info({ label, value, strong }: { label: string; value: ReactNode; strong?: boolean }) {
   return (
     <div className="rounded-md bg-slate-50 p-3">
       <p className="text-xs font-medium uppercase text-slate-500">{label}</p>

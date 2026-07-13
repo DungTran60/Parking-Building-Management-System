@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
 import type { ColumnDef } from "@tanstack/react-table";
-import { AlertTriangle, RefreshCw, Search } from "lucide-react";
+import { RefreshCw, Search } from "lucide-react";
 import { sessionApi } from "@/api/sessionApi";
 import { Badge } from "@/components/common/Badge";
 import { Button } from "@/components/common/Button";
@@ -9,10 +9,7 @@ import { Field, Input, Select } from "@/components/forms/FormField";
 import { DateRangePicker } from "@/components/forms/DateRangePicker";
 import { PageHeader } from "@/components/layout/PageHeader";
 import { DataTable } from "@/components/tables/DataTable";
-import { ExceptionModal } from "@/modules/sessions/ExceptionModals";
-import { hasPermission } from "@/constants/rbac";
-import { useAuthStore } from "@/stores/authStore";
-import type { ExceptionType, ParkingSession, SessionStatus } from "@/types/domain";
+import type { ParkingSession, SessionStatus } from "@/types/domain";
 import { getApiErrorMessage } from "@/utils/apiError";
 import { currency, dateTime } from "@/utils/format";
 
@@ -61,8 +58,6 @@ const columns: ColumnDef<ParkingSession>[] = [
 ];
 
 export function SessionsPage() {
-  const role = useAuthStore((state) => state.role);
-  const canManageExceptions = role === "PARKING_STAFF" && hasPermission(role, "exceptions:manage");
   const [sessions, setSessions] = useState<ParkingSession[]>([]);
   const [query, setQuery] = useState("");
   const [status, setStatus] = useState<SessionStatusFilter>("ACTIVE");
@@ -73,7 +68,6 @@ export function SessionsPage() {
   const [to, setTo] = useState("");
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
-  const [exception, setException] = useState<ExceptionType | null>(null);
 
   const invalidRange = Boolean(from && to && new Date(to) < new Date(from));
 
@@ -96,7 +90,7 @@ export function SessionsPage() {
       setTotalElements(result.totalElements);
     } catch (requestError: unknown) {
       setSessions([]);
-      setError(getApiErrorMessage(requestError, "Không thể tải danh sách parking session. Vui lòng thử lại."));
+      setError(getApiErrorMessage(requestError, "Không thể tải danh sách lượt gửi xe. Vui lòng thử lại."));
     } finally {
       setLoading(false);
     }
@@ -117,28 +111,15 @@ export function SessionsPage() {
     [sessions]
   );
 
-  const exceptionActions = useMemo(
-    () => (["LOST_TICKET", "WRONG_PLATE", "WRONG_ZONE", "OVERTIME", "UNPAID"] as ExceptionType[]),
-    []
-  );
-
   return (
     <>
       <PageHeader
-        title="Quản lý Parking Session"
-        description="Tra cứu xe đang gửi, theo dõi trạng thái session và chuẩn bị cho checkout hoặc xử lý ngoại lệ."
+        title="Quản lý lượt gửi xe"
+        description=""
       />
 
       <Card>
-        <CardHeader
-          title="Danh sách session"
-          action={canManageExceptions && (
-            <Button variant="secondary" onClick={() => setException("LOST_TICKET")}>
-              <AlertTriangle size={17} />
-              Xử lý ngoại lệ
-            </Button>
-          )}
-        />
+        <CardHeader title="Danh sách lượt gửi xe" />
 
         <CardContent className="grid gap-4">
           <div className="grid gap-4 lg:grid-cols-[minmax(0,1fr)_auto_auto_auto] lg:items-end">
@@ -216,23 +197,6 @@ export function SessionsPage() {
         </CardContent>
       </Card>
 
-      {canManageExceptions && (
-        <div className="mt-6 grid gap-3 md:grid-cols-5">
-          {exceptionActions.map((type) => (
-            <Button key={type} variant="secondary" onClick={() => setException(type)}>
-              {type}
-            </Button>
-          ))}
-        </div>
-      )}
-
-      {canManageExceptions && (
-        <ExceptionModal
-          type={exception}
-          onClose={() => setException(null)}
-          onSuccess={() => void loadSessions()}
-        />
-      )}
     </>
   );
 }
@@ -246,7 +210,7 @@ function SessionMetric({ label, value, tone = "default" }: { label: string; valu
 
   return (
     <div className={`rounded-md p-3 ${toneClass}`}>
-      <p className="text-xs font-medium uppercase tracking-wide opacity-70">{label}</p>
+      <p className="text-sm font-medium uppercase tracking-wide opacity-70">{label}</p>
       <p className="mt-1 text-lg font-semibold">{value}</p>
     </div>
   );

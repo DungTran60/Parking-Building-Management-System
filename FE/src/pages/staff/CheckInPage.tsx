@@ -1,9 +1,10 @@
-﻿import { useCallback, useEffect, useState } from "react";
+﻿import { useCallback, useEffect, useMemo, useState } from "react";
 import { zodResolver } from "@hookform/resolvers/zod";
-import { QrCode, RefreshCw, Wand2 } from "lucide-react";
+import { CalendarCheck, QrCode, RefreshCw, Wand2 } from "lucide-react";
 import QRCode from "qrcode";
 import { useForm } from "react-hook-form";
 import { z } from "zod";
+import { reservationApi } from "@/api/reservationApi";
 import { sessionApi } from "@/api/sessionApi";
 import { slotApi, type SlotResponse } from "@/api/slotApi";
 import { vehicleTypeApi } from "@/api/vehicleTypeApi";
@@ -11,7 +12,7 @@ import { Button } from "@/components/common/Button";
 import { Card, CardContent, CardHeader } from "@/components/common/Card";
 import { Field, Input, Select } from "@/components/forms/FormField";
 import { PageHeader } from "@/components/layout/PageHeader";
-import type { ParkingSession, VehicleType } from "@/types/domain";
+import type { ParkingSession, Reservation, VehicleType } from "@/types/domain";
 import { getApiErrorMessage } from "@/utils/apiError";
 import { dateTime, number } from "@/utils/format";
 
@@ -27,9 +28,7 @@ const schema = z.object({
   entryGate: z.string()
     .trim()
     .min(1, "Vui lòng nhập cổng vào")
-    .max(50, "Cổng vào tối đa 50 ký tự"),
-  slotId: z.string().optional(),
-  reservationId: z.string().optional()
+    .max(50, "Cổng vào tối đa 50 ký tự")
 });
 
 type FormValues = z.infer<typeof schema>;
@@ -44,19 +43,20 @@ export function CheckInPage() {
   const [loadError, setLoadError] = useState("");
   const [result, setResult] = useState<ParkingSession | null>(null);
   const [submitError, setSubmitError] = useState("");
+  const [confirmedReservations, setConfirmedReservations] = useState<Reservation[]>([]);
+  const [useReservation, setUseReservation] = useState(false);
 
   const form = useForm<FormValues>({
     resolver: zodResolver(schema),
     defaultValues: {
       plateNumber: "",
       vehicleTypeId: "",
-      entryGate: "Gate 1",
-      slotId: "",
-      reservationId: ""
+      entryGate: "Gate 1"
     }
   });
 
   const vehicleTypeId = form.watch("vehicleTypeId");
+  const plateNumber = form.watch("plateNumber");
 
   const loadVehicleTypes = useCallback(async () => {
     setLoading(true);
@@ -95,9 +95,29 @@ export function CheckInPage() {
     }
   }, []);
 
+  const loadConfirmedReservations = useCallback(async () => {
+    try {
+      const data = await reservationApi.getAllForStaff("CONFIRMED");
+      setConfirmedReservations(data);
+    } catch {
+      setConfirmedReservations([]);
+    }
+  }, []);
+
+  const matchingReservation = useMemo(() => {
+    const normalized = plateNumber.trim().toUpperCase();
+    if (normalized.length < 5) return null;
+    return confirmedReservations.find((r) => r.plateNumber.toUpperCase() === normalized) ?? null;
+  }, [confirmedReservations, plateNumber]);
+
+  useEffect(() => {
+    setUseReservation(!!matchingReservation);
+  }, [matchingReservation]);
+
   useEffect(() => {
     void loadVehicleTypes();
-  }, [loadVehicleTypes]);
+    void loadConfirmedReservations();
+  }, [loadVehicleTypes, loadConfirmedReservations]);
 
   useEffect(() => {
     void loadSuggestions(vehicleTypeId);
@@ -131,13 +151,13 @@ export function CheckInPage() {
 
   const checkDuplicatePlate = async (plateNumber: string): Promise<boolean> => {
     try {
-      const sessions = await sessionApi.list({ query: plateNumber, status: "ACTIVE", page: 0, size: 1 });
-      if (sessions.content.length > 0) {
+      const sessions = await sessionApi.findByPlate(plateNumber);
+      if (sessions.length > 0) {
         setSubmitError(`Biển số ${plateNumber} đã có lượt gửi xe đang hoạt động. Vui lòng kiểm tra lại.`);
         return false;
       }
     } catch {
-      // Bỏ qua lỗi kiểm tra, BE sẽ validate lại
+      // 404 từ /search/by-plate = không có session active = không trùng. Các lỗi khác cũng bỏ qua, BE validate lại.
     }
     return true;
   };
@@ -150,31 +170,38 @@ export function CheckInPage() {
     if (!plateOk) return;
 
     try {
+      const reservationId = useReservation && matchingReservation ? Number(matchingReservation.id) : undefined;
       const session = await sessionApi.checkIn({
         ...values,
         entryGate: values.entryGate.trim(),
-        slotId: values.slotId?.trim() ? Number(values.slotId) : undefined,
-        reservationId: values.reservationId?.trim() ? Number(values.reservationId) : undefined
+        reservationId
       });
       setResult(session);
-      await loadSuggestions(values.vehicleTypeId);
+      await Promise.all([
+        loadSuggestions(values.vehicleTypeId),
+        loadConfirmedReservations()
+      ]);
     } catch (error: unknown) {
       setSubmitError(getApiErrorMessage(error, "Không thể tạo lượt gửi xe."));
     }
   };
 
   const refreshData = async () => {
+    form.reset({ plateNumber: "", vehicleTypeId: "", entryGate: "Gate 1" });
+    setResult(null);
+    setSubmitError("");
     await Promise.all([
       loadVehicleTypes(),
-      loadSuggestions(form.getValues("vehicleTypeId"))
+      loadSuggestions(form.getValues("vehicleTypeId")),
+      loadConfirmedReservations()
     ]);
   };
 
   return (
     <>
       <PageHeader
-        title="Parking Check-In"
-        description="Kiểm tra điều kiện xe vào bãi, đồng bộ slot khả dụng từ hệ thống và tạo parking session."
+        title="Kiểm tra xe vào"
+        description=""
       />
 
       <div className="grid gap-6 lg:grid-cols-[1fr_380px]">
@@ -212,25 +239,28 @@ export function CheckInPage() {
                 />
               </Field>
 
-              <div className="grid gap-4 md:grid-cols-2">
-                <Field label="Slot ID tùy chọn (không bắt buộc)">
-                  <Input
-                    type="number"
-                    {...form.register("slotId")}
-                    placeholder="Để trống nếu hệ thống tự cấp slot"
-                    disabled={loading || vehicleTypes.length === 0}
+              {matchingReservation && (
+                <label className="flex cursor-pointer items-start gap-3 rounded-md border border-emerald-200 bg-emerald-50 p-4 text-sm text-emerald-800">
+                  <input
+                    type="checkbox"
+                    className="mt-0.5 h-4 w-4 accent-emerald-600"
+                    checked={useReservation}
+                    onChange={(e) => setUseReservation(e.target.checked)}
                   />
-                </Field>
-
-                <Field label="Reservation ID tùy chọn (không bắt buộc)">
-                  <Input
-                    type="number"
-                    {...form.register("reservationId")}
-                    placeholder="Dùng khi xe có reservation hợp lệ"
-                    disabled={loading || vehicleTypes.length === 0}
-                  />
-                </Field>
-              </div>
+                  <span className="grid gap-1">
+                    <span className="flex items-center gap-2 font-semibold">
+                      <CalendarCheck size={16} />
+                      Phát hiện đặt chỗ
+                    </span>
+                    <span>
+                      Slot {matchingReservation.slotCode ?? `#${matchingReservation.slotId}`} · {dateTime(matchingReservation.startAt)} → {dateTime(matchingReservation.endAt)}
+                    </span>
+                    <span className="text-emerald-700">
+                      {useReservation ? "Sẽ check-in vào slot đã đặt." : "Bỏ chọn để check-in như lượt gửi thường (BE tự cấp slot khác)."}
+                    </span>
+                  </span>
+                </label>
+              )}
 
               <div className="rounded-md bg-blue-50 p-4 text-sm text-blue-800">
                 <div className="flex items-center gap-2 font-semibold">
@@ -281,25 +311,43 @@ export function CheckInPage() {
           <CardContent className="grid gap-4">
             {result ? (
               <>
-                <div className="grid aspect-square place-items-center rounded-lg border border-border bg-slate-50">
+                <div className="mx-auto grid aspect-square w-full max-w-[220px] place-items-center rounded-lg border border-border bg-slate-50">
                   {qrCodeUrl
                     ? <img src={qrCodeUrl} alt={`QR ${result.ticketCode}`} className="h-full w-full rounded-lg object-contain p-4" />
                     : <QrCode size={150} className="text-slate-900" />}
                 </div>
 
-                <div className="text-sm">
-                  <p className="font-semibold">{result.ticketCode}</p>
-                  <p className="text-slate-500">{result.plateNumber}</p>
-                  <p className="text-slate-500">
-                    Vị trí: {result.slotCode ?? (result.slotId ? `Slot ${result.slotId}` : "BE chưa trả mã slot")}
-                  </p>
-                  <p className="text-slate-500">Cổng vào: {result.entryGate || "Đang cập nhật"}</p>
-                  {result.checkInAt && <p className="text-slate-500">Thời gian vào: {dateTime(result.checkInAt)}</p>}
-                  {result.floorName && <p className="text-slate-500">Tầng: {result.floorName}</p>}
+                <div className="text-center">
+                  <p className="text-xs font-medium uppercase tracking-wide text-slate-400">Mã vé</p>
+                  <p className="text-2xl font-bold tracking-tight text-slate-950">{result.ticketCode}</p>
+                  <p className="mt-0.5 text-lg font-semibold text-slate-700">{result.plateNumber}</p>
                 </div>
+
+                <dl className="grid gap-2 border-t border-border pt-4 text-sm">
+                  <div className="flex items-center justify-between gap-2">
+                    <dt className="text-slate-500">Vị trí</dt>
+                    <dd className="font-medium text-slate-900">{result.slotCode ?? (result.slotId ? `Slot ${result.slotId}` : "BE chưa trả mã slot")}</dd>
+                  </div>
+                  <div className="flex items-center justify-between gap-2">
+                    <dt className="text-slate-500">Cổng vào</dt>
+                    <dd className="font-medium text-slate-900">{result.entryGate || "Đang cập nhật"}</dd>
+                  </div>
+                  {result.checkInAt && (
+                    <div className="flex items-center justify-between gap-2">
+                      <dt className="text-slate-500">Thời gian vào</dt>
+                      <dd className="font-medium text-slate-900">{dateTime(result.checkInAt)}</dd>
+                    </div>
+                  )}
+                  {result.floorName && (
+                    <div className="flex items-center justify-between gap-2">
+                      <dt className="text-slate-500">Tầng</dt>
+                      <dd className="font-medium text-slate-900">{result.floorName}</dd>
+                    </div>
+                  )}
+                </dl>
               </>
             ) : (
-              <p className="text-sm text-slate-500">Mã vé QR sẽ xuất hiện sau khi tạo parking session.</p>
+              <p className="text-sm text-slate-500">Thông tin vé sẽ hiển thị tại đây.</p>
             )}
           </CardContent>
         </Card>

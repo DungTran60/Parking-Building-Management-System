@@ -6,6 +6,11 @@ export const reservationApi = {
     const res = await httpClient.get<Reservation[]>("/reservations", { params: { status } });
     return res.data;
   },
+
+  getAllForStaff: async (status?: ReservationStatus): Promise<Reservation[]> => {
+    const res = await httpClient.get<Reservation[]>("/reservations/all", { params: { status } });
+    return res.data;
+  },
   
   create: async (payload: {
     plateNumber: string;

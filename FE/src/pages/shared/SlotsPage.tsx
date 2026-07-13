@@ -163,7 +163,7 @@ export function SlotsPage() {
     <>
       <PageHeader
         title="Quản lý slot đỗ xe"
-        description="Theo dõi nhanh tình trạng và kiểm soát khả năng sử dụng của từng vị trí đỗ."
+        description=""
         action={canManage ? <Button onClick={openCreate}><Plus size={17} /> Tạo slot</Button> : undefined}
       />
       {formError && !formOpen && (
@@ -177,7 +177,7 @@ export function SlotsPage() {
           return (
             <button key={item} type="button" onClick={() => setStatus(active ? "ALL" : item)} className={cn("rounded-lg border bg-white p-4 text-left shadow-sm transition hover:-translate-y-0.5 hover:shadow-md", active && "border-primary ring-2 ring-blue-100")}>
               <div className="flex items-center justify-between gap-2">
-                <span className={cn("h-2.5 w-2.5 rounded-full", meta.dot)} />
+                <span className={cn("h-4 w-4 rounded-full", meta.dot)} />
                 <span className="text-2xl font-semibold text-slate-900">{counts[item]}</span>
               </div>
               <p className="mt-2 text-sm font-medium text-slate-600">{meta.label}</p>
@@ -210,7 +210,7 @@ export function SlotsPage() {
       </Card>
 
       <Card>
-        <CardHeader title={"Sơ đồ slot (" + rows.length + ")"} action={<div className="hidden flex-wrap gap-3 md:flex">{statuses.map((item) => <span key={item} className="inline-flex items-center gap-1.5 text-xs text-slate-500"><span className={cn("h-2 w-2 rounded-full", statusMeta[item].dot)} />{statusMeta[item].label}</span>)}</div>} />
+        <CardHeader title={"Sơ đồ chỗ đỗ xe (" + rows.length + ")"} action={<div className="hidden flex-wrap gap-3 md:flex">{statuses.map((item) => <span key={item} className="inline-flex items-center gap-1.5 text-sm text-slate-500"><span className={cn("h-3 w-3 rounded-full", statusMeta[item].dot)} />{statusMeta[item].label}</span>)}</div>} />
         <CardContent>
           {rows.length ? (
             <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 md:grid-cols-4 xl:grid-cols-6">
@@ -225,12 +225,12 @@ export function SlotsPage() {
                     <div className="flex items-start justify-between gap-2">
                       <div>
                         <p className="font-semibold text-slate-900">{slot.code}</p>
-                        <p className="mt-0.5 text-xs text-slate-500">{floor?.name} · {floor?.zone}</p>
+                        <p className="mt-0.5 text-sm text-slate-500">{floor?.name} · {floor?.zone}</p>
                       </div>
                       <span className={cn("mt-1 h-2.5 w-2.5 shrink-0 rounded-full", meta.dot)} title={meta.label} />
                     </div>
                     <div className="mt-4 flex items-center gap-2 text-sm text-slate-600"><CarFront size={15} />{vehicleType?.name ?? "Chưa xác định"}</div>
-                    <p className="mt-2 text-xs font-medium text-slate-500">{meta.label}</p>
+                    <p className="mt-2 text-sm font-medium text-slate-500">{meta.label}</p>
                     <div className="mt-4 flex flex-wrap gap-2 border-t border-black/5 pt-3">
                       <Button variant="secondary" className="h-9 flex-1 min-w-[2.25rem] px-2" disabled={!canManage} onClick={() => openEdit(slot)} title={canManage ? "Chỉnh sửa slot" : "Bạn không có quyền chỉnh sửa slot"} aria-label="Chỉnh sửa slot">
                         <Pencil size={15} />
@@ -259,9 +259,9 @@ export function SlotsPage() {
         </CardContent>
       </Card>
 
-      <Modal open={formOpen} title={editingSlot ? `Chỉnh sửa slot ${editingSlot.code}` : "Tạo slot mới"} onClose={closeForm}>
+      <Modal open={formOpen} title={editingSlot ? `Chỉnh sửa chỗ đỗ xe ${editingSlot.code}` : "Tạo chỗ đỗ xe mới"} onClose={closeForm}>
         <form key={editingSlot?.id ?? "create-slot"} className="grid gap-4 sm:grid-cols-2" onSubmit={submitSlot}>
-          <Field label="Mã slot">
+          <Field label="Mã chỗ đỗ xe">
             <Input name="code" defaultValue={editingSlot?.code ?? ""} placeholder="Ví dụ: B1-001" maxLength={50} required disabled={isSaving} />
           </Field>
           <Field label="Trạng thái">
@@ -288,23 +288,23 @@ export function SlotsPage() {
           {formError && <div role="alert" className="rounded-lg border border-red-200 bg-red-50 px-3 py-2.5 text-sm text-red-700 sm:col-span-2">{formError}</div>}
           <div className="flex justify-end gap-3 sm:col-span-2">
             <Button type="button" variant="secondary" onClick={closeForm} disabled={isSaving}>Hủy</Button>
-            <Button type="submit" disabled={isSaving}>{isSaving ? "Đang lưu..." : editingSlot ? "Lưu thay đổi" : "Tạo slot"}</Button>
+            <Button type="submit" disabled={isSaving}>{isSaving ? "Đang lưu..." : editingSlot ? "Lưu thay đổi" : "Tạo chỗ đỗ xe"}</Button>
           </div>
         </form>
       </Modal>
 
-      <Modal open={Boolean(history)} title="Chi tiết slot" onClose={() => setHistory(null)}>
+      <Modal open={Boolean(history)} title="Chi tiết chỗ đỗ xe" onClose={() => setHistory(null)}>
         {history && (
           <div className="grid gap-4 text-sm">
             <div className="grid gap-3 rounded-lg bg-slate-50 p-4 sm:grid-cols-2">
-              <Detail label="Mã slot" value={history.code} />
+              <Detail label="Mã chỗ đỗ xe" value={history.code} />
               <Detail label="Trạng thái" value={statusMeta[history.status].label} />
               <Detail label="Tầng" value={floors.find((floor) => floor.id === history.floorId)?.name ?? history.floorId} />
               <Detail label="Loại xe" value={vehicleTypes.find((type) => type.id === history.vehicleTypeId)?.name ?? history.vehicleTypeId} />
             </div>
             <div className="rounded-lg border border-border p-4">
               <p className="font-medium text-slate-800">Lịch sử gần nhất</p>
-              <div className="mt-3 flex items-center gap-3"><span className={cn("h-2.5 w-2.5 rounded-full", statusMeta[history.status].dot)} /><span className="text-slate-600">Cập nhật trạng thái thành {statusMeta[history.status].label}</span><span className="ml-auto text-xs text-slate-400">{dateTime(history.updatedAt)}</span></div>
+              <div className="mt-3 flex items-center gap-3"><span className={cn("h-2.5 w-2.5 rounded-full", statusMeta[history.status].dot)} /><span className="text-slate-600">Cập nhật trạng thái thành {statusMeta[history.status].label}</span><span className="ml-auto text-sm text-slate-400">{dateTime(history.updatedAt)}</span></div>
             </div>
           </div>
         )}
@@ -314,5 +314,5 @@ export function SlotsPage() {
 }
 
 function Detail({ label, value }: { label: string; value: string }) {
-  return <div><p className="text-xs text-slate-500">{label}</p><p className="mt-1 font-semibold text-slate-800">{value}</p></div>;
+  return <div><p className="text-sm text-slate-500">{label}</p><p className="mt-1 font-semibold text-slate-800">{value}</p></div>;
 }
