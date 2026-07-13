@@ -31,7 +31,7 @@ const getStoredUser = (): Pick<AuthState, "role" | "userName" | "isAuthenticated
 const storedUser = getStoredUser();
 
 export const useAuthStore = create<AuthState>((set) => ({
-  role: storedUser?.role ?? "SYSTEM_ADMIN",
+  role: storedUser?.role ?? "PARKING_USER",
   userName: storedUser?.userName ?? "",
   isAuthenticated: storedUser?.isAuthenticated ?? false,
   setRole: (role) => set({ role }),

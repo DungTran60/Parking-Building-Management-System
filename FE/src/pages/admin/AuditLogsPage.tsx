@@ -2,15 +2,18 @@ import { useEffect, useState } from "react";
 import { keepPreviousData, useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import type { ColumnDef } from "@tanstack/react-table";
 import dayjs from "dayjs";
-import { Activity, AlertTriangle, Clock, RefreshCw, RotateCcw, Save, Search, ShieldCheck } from "lucide-react";
+import { Activity, AlertCircle, AlertTriangle, Clock, Download, RefreshCw, Save, Search, ShieldCheck, Unlock } from "lucide-react";
 import { auditApi, type AuditLogQuery } from "@/api/auditApi";
 import { settingApi, type UpdateSystemSettingsRequest } from "@/api/settingApi";
+import { userApi } from "@/api/userApi";
 import { Button } from "@/components/common/Button";
 import { Card, CardContent, CardHeader } from "@/components/common/Card";
 import { Field, Input, Select } from "@/components/forms/FormField";
 import { DateRangePicker } from "@/components/forms/DateRangePicker";
+import { Modal } from "@/components/common/Modal";
 import { PageHeader } from "@/components/layout/PageHeader";
 import { DataTable } from "@/components/tables/DataTable";
+import { Badge } from "@/components/common/Badge";
 import type { AuditLog } from "@/types/domain";
 
 const ACTION_STYLES: Record<string, string> = {
@@ -45,7 +48,15 @@ const ACTION_FILTER_OPTIONS = [
   { value: "", label: "Tất cả" },
   { value: "LOGIN", label: "Đăng nhập" },
   { value: "LOGOUT", label: "Đăng xuất" },
-  { value: "LOGIN_FAILED", label: "Đăng nhập thất bại" }
+  { value: "LOGIN_FAILED", label: "Đăng nhập thất bại" },
+  { value: "USER_CREATED", label: "Tạo tài khoản" },
+  { value: "USER_UPDATED", label: "Sửa tài khoản" },
+  { value: "USER_DELETED", label: "Xóa tài khoản" },
+  { value: "USER_LOCKED", label: "Khóa tài khoản" },
+  { value: "USER_UNLOCKED", label: "Mở khóa tài khoản" },
+  { value: "CHECK_IN", label: "Xe vào" },
+  { value: "CHECK_OUT", label: "Xe ra" },
+  { value: "UPDATE_SETTINGS", label: "Cập nhật cài đặt" }
 ];
 
 const LOGIN_COLUMNS: ColumnDef<AuditLog>[] = [
@@ -81,13 +92,20 @@ const LOGIN_COLUMNS: ColumnDef<AuditLog>[] = [
     id: "userAgent",
     header: "Trình duyệt",
     cell: ({ row }) => {
-      const ua = row.original.userAgent;
+      const ua = row.original.userAgent ?? "";
       if (!ua) return "—";
-      if (ua.includes("Chrome")) return "Chrome/Windows";
-      if (ua.includes("Firefox")) return "Firefox/Windows";
-      if (ua.includes("Safari") && !ua.includes("Chrome")) return "Safari/macOS";
-      if (ua.includes("Mobile")) return "Mobile/App";
-      return ua.length > 25 ? ua.substring(0, 25) + "..." : ua;
+      const os = ua.match(/\(([^)]+)\)/)?.[1] ?? "";
+      const osShort = os.includes("Windows") ? "Win" :
+        os.includes("Mac OS") ? "macOS" :
+        os.includes("Linux") && ua.includes("Android") ? "Android" :
+        os.includes("Linux") ? "Linux" :
+        os.includes("iPhone") || os.includes("iPad") ? "iOS" : "";
+      const browser = ua.includes("Edg/") ? "Edge" :
+        ua.includes("Chrome") && !ua.includes("Edg/") ? "Chrome" :
+        ua.includes("Firefox") ? "Firefox" :
+        ua.includes("Safari") && !ua.includes("Chrome") ? "Safari" :
+        "";
+      return browser || osShort ? `${browser}/${osShort}` : ua.length > 30 ? ua.substring(0, 30) + "..." : ua;
     }
   }
 ];
@@ -134,14 +152,6 @@ export function AuditLogsPage() {
   const totalEvents = totalEventsData?.totalElements ?? 0;
   const lastLogin = lastLoginData?.content?.[0] ?? null;
 
-  const { data: timelineData, isLoading: timelineLoading } = useQuery({
-    queryKey: ["audit-timeline"],
-    queryFn: () => auditApi.getAll({ size: 10, sort: "createdAt,desc" }),
-    refetchInterval: 30000,
-    placeholderData: keepPreviousData
-  });
-  const timelineEvents = timelineData?.content ?? [];
-
   const [loginFilter, setLoginFilter] = useState({
     action: "",
     actorUsername: "",
@@ -179,11 +189,13 @@ export function AuditLogsPage() {
 
   const [securityForm, setSecurityForm] = useState<{ passwordPolicy: string; sessionTimeout: number } | null>(null);
   const [settingsSubmitted, setSettingsSubmitted] = useState(false);
+  const [showConfirm, setShowConfirm] = useState(false);
+  const [timeoutError, setTimoutError] = useState("");
 
   useEffect(() => {
     if (settings) {
       setSecurityForm({
-        passwordPolicy: settings.passwordPolicy ?? "medium",
+        passwordPolicy: settings.passwordPolicy?.toLowerCase() ?? "medium",
         sessionTimeout: settings.sessionTimeout ?? 30
       });
     }
@@ -207,6 +219,7 @@ export function AuditLogsPage() {
     onSuccess: (result) => {
       queryClient.setQueryData(["system-settings"], result);
       setSettingsSubmitted(true);
+      setShowConfirm(false);
     }
   });
 
@@ -215,6 +228,70 @@ export function AuditLogsPage() {
     (securityForm.passwordPolicy !== (settings.passwordPolicy ?? "medium") ||
      securityForm.sessionTimeout !== (settings.sessionTimeout ?? 30))
   );
+
+  const handleSessionTimeoutChange = (value: string) => {
+    setSettingsSubmitted(false);
+    if (value === "") {
+      setSecurityForm(prev => prev ? { ...prev, sessionTimeout: 0 } : prev);
+      setTimoutError("Thời gian timeout tối thiểu là 5 phút.");
+      return;
+    }
+    const num = parseInt(value, 10);
+    if (isNaN(num)) return;
+    if (num < 5) setTimoutError("Thời gian timeout tối thiểu là 5 phút.");
+    else if (num > 480) setTimoutError("Thời gian timeout tối đa là 480 phút (8 giờ).");
+    else setTimoutError("");
+    setSecurityForm(prev => prev ? { ...prev, sessionTimeout: num } : prev);
+  };
+
+  const handleSave = () => {
+    if (!timeoutError) setShowConfirm(true);
+  };
+
+  const { data: lockedUsers, isLoading: lockedLoading } = useQuery({
+    queryKey: ["users-locked"],
+    queryFn: async () => {
+      const all = await userApi.getAll();
+      return all.filter(u => u.status === "INACTIVE");
+    },
+    refetchInterval: 30000,
+    placeholderData: keepPreviousData
+  });
+
+  const unlockMutation = useMutation({
+    mutationFn: (userId: number | string) => userApi.updateStatus(userId, "ACTIVE"),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["users-locked"] });
+    }
+  });
+
+  const exportLogs = async () => {
+    const allData = await auditApi.getAll({
+      from: loginFilter.from ? `${loginFilter.from}T00:00:00` : undefined,
+      to: loginFilter.to ? `${loginFilter.to}T23:59:59` : undefined,
+      action: loginFilter.action || undefined,
+      sort: "createdAt,desc"
+    });
+    const rows = allData.content ?? [];
+    const header = "Thời gian,Người dùng,Hành động,IP,Trình duyệt";
+    const csv = [
+      header,
+      ...rows.map(r =>
+        [
+          dayjs(r.createdAt).format("DD/MM/YYYY HH:mm"),
+          r.actorUsername,
+          ACTION_LABELS[r.action] ?? r.action,
+          r.ipAddress ?? "",
+          r.userAgent ?? ""
+        ].join(",")
+      )
+    ].join("\n");
+    const link = document.createElement("a");
+    link.href = URL.createObjectURL(new Blob([`\uFEFF${csv}`], { type: "text/csv;charset=utf-8" }));
+    link.download = `audit-logs-${dayjs().format("YYYYMMDDHHmm")}.csv`;
+    link.click();
+    URL.revokeObjectURL(link.href);
+  };
 
   return (
     <>
@@ -248,11 +325,17 @@ export function AuditLogsPage() {
                     <option value="high">Cao</option>
                   </Select>
                 </Field>
-                <Field label="Thời gian Timeout phiên (phút)">
+                <Field
+                  label="Thời gian Timeout phiên (phút)"
+                  error={timeoutError}
+                  hint="Cho phép: 5 - 480 phút"
+                >
                   <Input
                     type="number"
+                    min={5}
+                    max={480}
                     value={securityForm.sessionTimeout}
-                    onChange={(e) => { setSecurityForm({ ...securityForm, sessionTimeout: parseInt(e.target.value, 10) || 30 }); setSettingsSubmitted(false); }}
+                    onChange={(e) => handleSessionTimeoutChange(e.target.value)}
                   />
                 </Field>
               </div>
@@ -272,8 +355,8 @@ export function AuditLogsPage() {
 
               <div className="flex justify-end">
                 <Button
-                  onClick={() => updateSecurityMutation.mutate()}
-                  disabled={!isFormDirty || updateSecurityMutation.isPending}
+                  onClick={handleSave}
+                  disabled={!isFormDirty || updateSecurityMutation.isPending || !!timeoutError}
                 >
                   <Save size={17} />
                   {updateSecurityMutation.isPending ? "Đang lưu..." : "Lưu cấu hình"}
@@ -284,47 +367,63 @@ export function AuditLogsPage() {
         </CardContent>
       </Card>
 
+      <Modal open={showConfirm} title="Xác nhận thay đổi cấu hình bảo mật" onClose={() => setShowConfirm(false)}>
+        <div className="grid gap-4">
+          <div className="flex items-start gap-3 rounded-md bg-amber-50 p-3 text-sm text-amber-800">
+            <AlertCircle size={18} className="mt-0.5 shrink-0" />
+            <span>Các thay đổi sau sẽ được áp dụng ngay lập tức:</span>
+          </div>
+          <table className="w-full text-sm">
+            <tbody>
+              <tr className="border-b border-border">
+                <td className="py-2 font-medium text-slate-600">Chính sách mật khẩu</td>
+                <td className="py-2 text-right">
+                  {securityForm?.passwordPolicy === "low" ? "Thấp" :
+                   securityForm?.passwordPolicy === "high" ? "Cao" : "Trung bình"}
+                </td>
+              </tr>
+              <tr>
+                <td className="py-2 font-medium text-slate-600">Thời gian timeout phiên</td>
+                <td className="py-2 text-right">{securityForm?.sessionTimeout} phút</td>
+              </tr>
+            </tbody>
+          </table>
+          <div className="flex justify-end gap-3">
+            <Button variant="secondary" onClick={() => setShowConfirm(false)}>Hủy</Button>
+            <Button onClick={() => updateSecurityMutation.mutate()}>Xác nhận lưu</Button>
+          </div>
+        </div>
+      </Modal>
+
       <Card>
-        <CardHeader
-          title="Dòng thời gian sự kiện bảo mật"
-          action={
-            <Button variant="secondary" size="sm" onClick={() => queryClient.invalidateQueries({ queryKey: ["audit-timeline"] })} disabled={timelineLoading}>
-              <RefreshCw size={16} />
-              Làm mới
-            </Button>
-          }
-        />
+        <CardHeader title="Tài khoản đã khóa" />
         <CardContent>
-          {timelineLoading ? (
-            <p className="text-sm text-slate-500">Đang tải sự kiện...</p>
-          ) : timelineEvents.length === 0 ? (
+          {lockedLoading ? (
+            <p className="text-sm text-slate-500">Đang tải danh sách...</p>
+          ) : !lockedUsers || lockedUsers.length === 0 ? (
             <div className="rounded-md border border-dashed border-slate-300 py-10 text-center text-sm text-slate-500">
-              Chưa có sự kiện bảo mật nào được ghi nhận.
+              <ShieldCheck size={24} className="mx-auto mb-2 text-slate-300" />
+              Không có tài khoản nào bị khóa.
             </div>
           ) : (
-            <div className="space-y-3">
-              {timelineEvents.map((event) => (
-                <div key={event.id} className="flex items-center gap-3 rounded-md bg-slate-50 p-3">
-                  <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-white text-xs font-medium text-slate-500 ring-1 ring-slate-200">
-                    {dayjs(event.createdAt).format("HH:mm")}
-                  </div>
+            <div className="divide-y divide-border">
+              {lockedUsers.map((user) => (
+                <div key={user.id} className="flex items-center justify-between py-3">
                   <div className="min-w-0 flex-1">
-                    <div className="flex items-center gap-2">
-                      <span className="text-sm font-medium text-slate-900">{event.actorUsername}</span>
-                      <span className={`inline-flex items-center rounded-full px-2 py-0.5 text-xs font-medium ${ACTION_STYLES[event.action] ?? "bg-slate-100 text-slate-700"}`}>
-                        {ACTION_LABELS[event.action] ?? event.action}
-                      </span>
-                    </div>
-                    {event.action === "LOGIN" || event.action === "LOGIN_FAILED" ? (
-                      <p className="mt-0.5 text-xs text-slate-500">
-                        {event.ipAddress ?? "—"}
-                        {event.userAgent ? (event.userAgent.includes("Chrome") ? " · Chrome" : event.userAgent.includes("Firefox") ? " · Firefox" : "") : ""}
-                      </p>
-                    ) : (
-                      <p className="mt-0.5 text-xs text-slate-500">
-                        {event.resource} #{event.resourceId}
-                      </p>
-                    )}
+                    <p className="text-sm font-medium text-slate-900">{user.username}</p>
+                    <p className="text-xs text-slate-500">{user.email} · {user.roleName}</p>
+                  </div>
+                  <div className="flex items-center gap-3">
+                    <Badge value="INACTIVE" />
+                    <Button
+                      variant="secondary"
+                      size="sm"
+                      onClick={() => unlockMutation.mutate(user.id)}
+                      disabled={unlockMutation.isPending}
+                    >
+                      <Unlock size={14} />
+                      Mở khóa
+                    </Button>
                   </div>
                 </div>
               ))}
@@ -334,7 +433,15 @@ export function AuditLogsPage() {
       </Card>
 
       <Card>
-        <CardHeader title="Lịch sử đăng nhập" />
+        <CardHeader
+          title="Lịch sử đăng nhập"
+          action={
+            <Button variant="secondary" size="sm" onClick={exportLogs}>
+              <Download size={16} />
+              Xuất CSV
+            </Button>
+          }
+        />
         <CardContent className="grid gap-4">
           <div className="grid gap-4 lg:grid-cols-[minmax(0,1fr)_auto_auto_auto] lg:items-end">
             <Field label="Tên người dùng">
