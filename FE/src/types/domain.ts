@@ -106,18 +106,22 @@ export interface Reservation {
   id: string;
   plateNumber: string;
   vehicleTypeId: string;
+  vehicleTypeName?: string;
   slotId: string;
+  slotCode?: string;
   startAt: string;
   endAt: string;
   status: ReservationStatus;
+  createdAt?: string;
+  updatedAt?: string;
 }
 
 export interface PaymentRecord {
   id: string;
-  sessionId: string;
+  sessionId: string;   // ticketCode hoặc numeric id
+  plateNumber?: string;
   amount: number;
   method: PaymentMethod;
-  status: PaymentStatus;
   paidAt: string;
 }
 

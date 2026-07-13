@@ -14,6 +14,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.security.Principal;
+import java.time.LocalDateTime;
 import java.util.List;
 import java.util.stream.Collectors;
 
@@ -41,8 +42,11 @@ public class ReservationServiceImpl implements ReservationService {
         com.parking.entity.User driver = getCurrentUser(principal);
 
         // 1. Validate thời gian
+        if (!dto.getStartAt().isAfter(LocalDateTime.now().minusMinutes(1))) {
+            throw new IllegalArgumentException("Thời gian bắt đầu phải ở trong tương lai.");
+        }
         if (!dto.getEndAt().isAfter(dto.getStartAt())) {
-            throw new IllegalArgumentException("End time must be after start time");
+            throw new IllegalArgumentException("Thời gian kết thúc phải sau thời gian bắt đầu.");
         }
 
         // 2. Tìm loại xe

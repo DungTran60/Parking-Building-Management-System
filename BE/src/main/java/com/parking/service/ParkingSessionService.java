@@ -23,6 +23,12 @@ public interface ParkingSessionService {
     List<ParkingSessionResponseDto> getMySessions(String status, Principal principal);
 
     /**
+     * Tìm session ACTIVE theo biển số — dùng cho driver tra cứu xe walk-in.
+     * Không cần owner check vì chỉ xem thông tin công khai của session.
+     */
+    List<ParkingSessionResponseDto> findActiveSessionsByPlate(String plateNumber);
+
+    /**
      * Tính phí preview khi khách báo mất vé (chưa checkout).
      * Trả về thông tin phí giờ + phụ phí mất vé.
      *

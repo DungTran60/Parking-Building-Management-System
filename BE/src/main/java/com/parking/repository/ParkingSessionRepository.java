@@ -46,6 +46,13 @@ public interface ParkingSessionRepository extends JpaRepository<ParkingSession, 
     /** Lấy các lượt gửi của một Driver theo trạng thái */
     List<ParkingSession> findByDriverIdAndStatus(Long driverId, String status);
 
+    /**
+     * Tìm tất cả session ACTIVE theo biển số (không phân biệt hoa/thường).
+     * Dùng cho driver tra cứu xe walk-in (check-in tại quầy, không qua reservation).
+     */
+    @Query("SELECT s FROM ParkingSession s WHERE UPPER(s.plateNumber) = UPPER(:plateNumber) AND s.status = 'ACTIVE' ORDER BY s.checkInAt DESC")
+    List<ParkingSession> findActiveByPlateNumber(@Param("plateNumber") String plateNumber);
+
     List<ParkingSession> findByCheckInAtBetweenOrCheckOutAtBetween(
             LocalDateTime start1, LocalDateTime end1,
             LocalDateTime start2, LocalDateTime end2);
