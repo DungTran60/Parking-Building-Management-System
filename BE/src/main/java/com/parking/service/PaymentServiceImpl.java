@@ -7,7 +7,9 @@ import com.parking.entity.ParkingSlot;
 import com.parking.entity.Payment;
 import com.parking.entity.SlotStatus;
 import com.parking.entity.User;
+import com.parking.exception.ConflictException;
 import com.parking.exception.ResourceNotFoundException;
+import com.parking.repository.ParkingSessionExceptionRepository;
 import com.parking.repository.ParkingSessionRepository;
 import com.parking.repository.ParkingSlotRepository;
 import com.parking.repository.PaymentRepository;
@@ -32,6 +34,8 @@ public class PaymentServiceImpl implements PaymentService {
     private final ParkingSlotRepository parkingSlotRepository;
     private final PricingService pricingService;
     private final UserRepository userRepository;
+    private final AuditService auditService;
+    private final ParkingSessionExceptionRepository parkingSessionExceptionRepository;
 
     /** Resolve User hiện tại từ Principal */
     private User getCurrentUser(Principal principal) {
@@ -63,24 +67,35 @@ public class PaymentServiceImpl implements PaymentService {
             }
         }
 
-        // Tính phí và đóng session nếu chưa thanh toán (workflow §5.1 step 8-9)
-        if ("ACTIVE".equals(session.getStatus()) || "UNPAID".equals(session.getStatus())) {
-            LocalDateTime checkOutTime = LocalDateTime.now();
-            double fee = pricingService.calculateOvernightFee(
-                    session.getCheckInAt(),
-                    checkOutTime,
-                    String.valueOf(session.getVehicleType().getId())
-            ).getTotal().doubleValue();
-
-            session.setCheckOutAt(checkOutTime);
-            session.setFee(fee);
-            session.setStatus("COMPLETED");
-            parkingSessionRepository.save(session);
-
-            ParkingSlot slot = session.getSlot();
-            slot.setStatus(SlotStatus.AVAILABLE);
-            parkingSlotRepository.save(slot);
+        // Guard: chỉ cho phép thanh toán khi session ở trạng thái có thể thu phí
+        String status = session.getStatus();
+        if ("COMPLETED".equals(status)) {
+            throw new ConflictException("Lượt gửi xe này đã hoàn thành thanh toán, không thể thu phí lại.");
         }
+        if (!"ACTIVE".equals(status) && !"PENDING_PAYMENT".equals(status) && !"UNPAID".equals(status)) {
+            throw new ConflictException("Lượt gửi xe không ở trạng thái có thể thanh toán: " + status);
+        }
+
+        // Tính phí: phí giờ + tổng phụ phí từ các ngoại lệ đã ghi nhận (workflow §5.1 step 8-9)
+        LocalDateTime checkOutTime = LocalDateTime.now();
+        double baseFee = pricingService.calculateOvernightFee(
+                session.getCheckInAt(),
+                checkOutTime,
+                String.valueOf(session.getVehicleType().getId())
+        ).getTotal().doubleValue();
+        double exceptionFees = parkingSessionExceptionRepository
+                .sumExtraFeeBySessionId(session.getId())
+                .doubleValue();
+        double fee = baseFee + exceptionFees;
+
+        session.setCheckOutAt(checkOutTime);
+        session.setFee(fee);
+        session.setStatus("COMPLETED");
+        parkingSessionRepository.save(session);
+
+        ParkingSlot slot = session.getSlot();
+        slot.setStatus(SlotStatus.AVAILABLE);
+        parkingSlotRepository.save(slot);
 
         Payment payment = Payment.builder()
                 .session(session)
@@ -90,6 +105,7 @@ public class PaymentServiceImpl implements PaymentService {
                 .build();
 
         Payment saved = paymentRepository.save(payment);
+        auditService.log("PAYMENT", "SESSION", session.getId(), currentUser.getId(), currentUser.getUsername());
         return convertToDto(saved);
     }
 

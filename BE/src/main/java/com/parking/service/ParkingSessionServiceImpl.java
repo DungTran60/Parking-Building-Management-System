@@ -238,7 +238,7 @@ public class ParkingSessionServiceImpl implements ParkingSessionService {
 
         session.setCheckOutAt(checkOutTime);
         session.setFee(fee.doubleValue());
-        // Giữ nguyên trạng thái ACTIVE, chờ thanh toán (workflow §5.1 step 7-9)
+        session.setStatus("PENDING_PAYMENT");
         ParkingSession saved = parkingSessionRepository.save(session);
 
         // KHÔNG giải phóng slot — chỉ giải phóng khi thanh toán thành công
@@ -367,13 +367,6 @@ public class ParkingSessionServiceImpl implements ParkingSessionService {
                 .build();
 
         parkingSessionExceptionRepository.save(exception);
-        
-        // Cập nhật phí nếu có
-        if (request.getExtraFee() != null && request.getExtraFee().compareTo(BigDecimal.ZERO) > 0) {
-            double currentFee = session.getFee() != null ? session.getFee() : 0.0;
-            session.setFee(currentFee + request.getExtraFee().doubleValue());
-            parkingSessionRepository.save(session);
-        }
 
         return convertToDto(session);
     }
