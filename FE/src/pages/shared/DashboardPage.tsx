@@ -90,20 +90,20 @@ export function DashboardPage() {
     const actionNote = actionItems === 0 ? "Không có việc ưu tiên" : `${number(data.openIncidents)} chờ nhận · ${number(data.myIncidents)} đang xử lý`;
     return (
       <>
-        <PageHeader title="Tổng quan ca làm việc" description="Nhìn nhanh để biết việc cần làm, xe đang gửi, slot còn trống và sự cố đang mở." />
+        <PageHeader title="Tổng quan ca làm việc" description="" />
         <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
-          <Kpi title="Việc cần xử lý" value={number(actionItems)} note={actionNote} icon={<ClipboardList size={20} />} tone={actionTone} />
-          <Kpi title="Xe đang gửi" value={number(data.activeSessions)} note="Phiên đang ACTIVE" icon={<CarFront size={20} />} tone="blue" />
-          <Kpi title="Slot còn trống" value={number(available)} note={slotNote} icon={<CircleParking size={20} />} tone={slotTone} />
-          <Kpi title="Sự cố đang mở" value={number(data.openIncidents)} note={data.openIncidents > 0 ? "Cần nhận xử lý" : "Không có sự cố"} icon={<Siren size={20} />} tone="amber" />
+          <Kpi title="Việc cần xử lý" value={number(actionItems)} note={actionNote} icon={<ClipboardList size={24} />} tone={actionTone} />
+          <Kpi title="Xe đang gửi" value={number(data.activeSessions)} note="Phiên đang ACTIVE" icon={<CarFront size={24} />} tone="blue" />
+          <Kpi title="Slot còn trống" value={number(available)} note={slotNote} icon={<CircleParking size={24} />} tone={slotTone} />
+          <Kpi title="Sự cố đang mở" value={number(data.openIncidents)} note={data.openIncidents > 0 ? "Cần nhận xử lý" : "Không có sự cố"} icon={<Siren size={24} />} tone="amber" />
         </div>
         <Card className="mt-6">
           <CardContent className="py-6">
             <p className="font-medium text-slate-900">Truy cập nhanh</p>
-            <p className="text-sm text-slate-500">Các thao tác vận hành chính trong ca của bạn.</p>
+            {/* <p className="text-sm text-slate-500">Các thao tác vận hành chính trong ca của bạn.</p> */}
             <div className="mt-4 flex flex-wrap gap-3">
-              <Button onClick={() => navigate("/app/check-in")}><LogIn size={16} /> Check-in xe</Button>
-              <Button variant="secondary" onClick={() => navigate("/app/check-out")}><LogOut size={16} /> Check-out xe</Button>
+              <Button onClick={() => navigate("/app/check-in")}><LogIn size={16} /> Xe vào</Button>
+              <Button variant="secondary" onClick={() => navigate("/app/check-out")}><LogOut size={16} /> Xe ra</Button>
               <Button variant="secondary" onClick={() => navigate("/app/incidents")}><Siren size={16} /> Xử lý sự cố{data.openIncidents > 0 ? ` (${number(data.openIncidents)})` : ""}</Button>
             </div>
             {actionItems > 0 && (
@@ -117,12 +117,12 @@ export function DashboardPage() {
             )}
           </CardContent>
         </Card>
-        <div className="mt-6 grid gap-4 md:grid-cols-2 xl:grid-cols-4">
+        {/* <div className="mt-6 grid gap-4 md:grid-cols-2 xl:grid-cols-4">
           <Status label="Đang dùng" value={data.slotCounts.OCCUPIED} />
           <Status label="Đã đặt" value={data.slotCounts.RESERVED} />
           <Status label="Bảo trì" value={data.slotCounts.MAINTENANCE} />
           <Status label="Tạm khóa" value={data.slotCounts.BLOCKED} />
-        </div>
+        </div> */}
       </>
     );
   }
@@ -134,16 +134,16 @@ export function DashboardPage() {
     <>
       <PageHeader title="Tổng quan hôm nay" description="Những chỉ số vận hành quan trọng cần nắm trong vài giây." />
       <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
-        <Kpi title="Xe đang gửi" value={number(data.occupancy.occupiedSlots)} note="Theo trạng thái slot OCCUPIED" icon={<CarFront size={20} />} tone="blue" />
-        <Kpi title="Slot còn trống" value={number(data.occupancy.availableSlots)} note={`${number(data.occupancy.totalSlots)} slot toàn hệ thống`} icon={<CircleParking size={20} />} tone="emerald" />
-        <Kpi title="Doanh thu hôm nay" value={currency(data.todayRevenue.totalRevenue)} note={`${number(data.traffic.totalCheckIns)} vào · ${number(data.traffic.totalCheckOuts)} ra`} icon={<WalletCards size={20} />} tone="violet" />
-        <Kpi title="Tỷ lệ lấp đầy" value={`${occupancyRate}%`} note={occupancyRate >= 80 ? "Sắp đạt công suất cao" : "Công suất ổn định"} icon={<CirclePercent size={20} />} tone="amber" />
+        <Kpi title="Xe đang gửi" value={number(data.occupancy.occupiedSlots)} note="Theo trạng thái slot OCCUPIED" icon={<CarFront size={24} />} tone="blue" />
+        <Kpi title="Slot còn trống" value={number(data.occupancy.availableSlots)} note={`${number(data.occupancy.totalSlots)} slot toàn hệ thống`} icon={<CircleParking size={24} />} tone="emerald" />
+        <Kpi title="Doanh thu hôm nay" value={currency(data.todayRevenue.totalRevenue)} note={`${number(data.traffic.totalCheckIns)} vào · ${number(data.traffic.totalCheckOuts)} ra`} icon={<WalletCards size={24} />} tone="violet" />
+        <Kpi title="Tỷ lệ lấp đầy" value={`${occupancyRate}%`} note={occupancyRate >= 80 ? "Sắp đạt công suất cao" : "Công suất ổn định"} icon={<CirclePercent size={24} />} tone="amber" />
       </div>
       {(data.openIncidents > 0 || data.resolvedIncidents > 0) && (
         <Card className="mt-6">
           <CardContent className="flex flex-col gap-3 py-5 sm:flex-row sm:items-center sm:justify-between">
             <div className="flex items-start gap-3">
-              <TriangleAlert className="mt-0.5 shrink-0 text-amber-500" size={20} />
+              <TriangleAlert className="mt-0.5 shrink-0 text-amber-500" size={24} />
               <div>
                 <p className="font-medium text-slate-900">Sự cố cần bạn xử lý</p>
                 <p className="text-sm text-slate-500">
@@ -179,10 +179,10 @@ function Kpi({ title, value, note, icon, tone }: { title: string; value: string;
   const tones = { blue: "bg-blue-50 text-blue-600", emerald: "bg-emerald-50 text-emerald-600", violet: "bg-violet-50 text-violet-600", amber: "bg-amber-50 text-amber-600", rose: "bg-rose-50 text-rose-600" };
   return (
     <Card>
-      <CardContent className="p-5">
-        <div className="flex items-center justify-between"><p className="text-sm text-slate-500">{title}</p><span className={`rounded-lg p-2 ${tones[tone]}`}>{icon}</span></div>
-        <p className="mt-2 text-2xl font-semibold text-slate-950">{value}</p>
-        <p className="mt-1 text-xs text-slate-500">{note}</p>
+      <CardContent className="p-6">
+        <div className="flex items-center justify-between"><p className="text-base font-medium text-slate-600">{title}</p><span className={`rounded-xl p-2.5 ${tones[tone]}`}>{icon}</span></div>
+        <p className="mt-3 text-4xl font-bold tracking-tight text-slate-950">{value}</p>
+        <p className="mt-1.5 text-sm text-slate-500">{note}</p>
       </CardContent>
     </Card>
   );

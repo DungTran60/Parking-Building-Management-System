@@ -15,6 +15,7 @@ import com.parking.repository.VehicleTypeRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import java.util.Comparator;
 import java.util.List;
 import java.util.stream.Collectors;
 
@@ -44,6 +45,9 @@ public class ParkingSlotServiceImpl implements ParkingSlotService {
         } else {
             slots = parkingSlotRepository.findByStatus(SlotStatus.AVAILABLE);
         }
+        slots.sort(Comparator
+                .comparing((ParkingSlot s) -> s.getFloor().getId())
+                .thenComparing(ParkingSlot::getCode));
         return slots.stream()
                 .map(this::convertToDto)
                 .collect(Collectors.toList());

@@ -3,7 +3,7 @@ import { keepPreviousData, useMutation, useQuery, useQueryClient } from "@tansta
 import type { ColumnDef } from "@tanstack/react-table";
 import dayjs from "dayjs";
 import { dateConfig, formatInTz } from "../../utils/dateConfig";
-import { Activity, AlertCircle, AlertTriangle, Clock, Download, RefreshCw, Save, Search, ShieldCheck, Unlock } from "lucide-react";
+import { Activity, AlertCircle, AlertTriangle, Clock, Download, RefreshCw, Save, Search, ShieldCheck, Unlock, type LucideIcon } from "lucide-react";
 import { auditApi, type AuditLogQuery } from "@/api/auditApi";
 import { settingApi, type UpdateSystemSettingsRequest } from "@/api/settingApi";
 import { userApi } from "@/api/userApi";
@@ -98,14 +98,14 @@ const LOGIN_COLUMNS: ColumnDef<AuditLog>[] = [
       const os = ua.match(/\(([^)]+)\)/)?.[1] ?? "";
       const osShort = os.includes("Windows") ? "Win" :
         os.includes("Mac OS") ? "macOS" :
-        os.includes("Linux") && ua.includes("Android") ? "Android" :
-        os.includes("Linux") ? "Linux" :
-        os.includes("iPhone") || os.includes("iPad") ? "iOS" : "";
+          os.includes("Linux") && ua.includes("Android") ? "Android" :
+            os.includes("Linux") ? "Linux" :
+              os.includes("iPhone") || os.includes("iPad") ? "iOS" : "";
       const browser = ua.includes("Edg/") ? "Edge" :
         ua.includes("Chrome") && !ua.includes("Edg/") ? "Chrome" :
-        ua.includes("Firefox") ? "Firefox" :
-        ua.includes("Safari") && !ua.includes("Chrome") ? "Safari" :
-        "";
+          ua.includes("Firefox") ? "Firefox" :
+            ua.includes("Safari") && !ua.includes("Chrome") ? "Safari" :
+              "";
       return browser || osShort ? `${browser}/${osShort}` : ua.length > 30 ? ua.substring(0, 30) + "..." : ua;
     }
   }
@@ -227,7 +227,7 @@ export function AuditLogsPage() {
   const isFormDirty = Boolean(
     settings && securityForm &&
     (securityForm.passwordPolicy !== (settings.passwordPolicy ?? "medium") ||
-     securityForm.sessionTimeout !== (settings.sessionTimeout ?? 30))
+      securityForm.sessionTimeout !== (settings.sessionTimeout ?? 30))
   );
 
   const handleSessionTimeoutChange = (value: string) => {
@@ -380,7 +380,7 @@ export function AuditLogsPage() {
                 <td className="py-2 font-medium text-slate-600">Chính sách mật khẩu</td>
                 <td className="py-2 text-right">
                   {securityForm?.passwordPolicy === "low" ? "Thấp" :
-                   securityForm?.passwordPolicy === "high" ? "Cao" : "Trung bình"}
+                    securityForm?.passwordPolicy === "high" ? "Cao" : "Trung bình"}
                 </td>
               </tr>
               <tr>
@@ -418,7 +418,6 @@ export function AuditLogsPage() {
                     <Badge value="INACTIVE" />
                     <Button
                       variant="secondary"
-                      size="sm"
                       onClick={() => unlockMutation.mutate(user.id)}
                       disabled={unlockMutation.isPending}
                     >
@@ -437,7 +436,7 @@ export function AuditLogsPage() {
         <CardHeader
           title="Lịch sử đăng nhập"
           action={
-            <Button variant="secondary" size="sm" onClick={exportLogs}>
+            <Button variant="secondary" onClick={exportLogs}>
               <Download size={16} />
               Xuất CSV
             </Button>
@@ -508,7 +507,7 @@ export function AuditLogsPage() {
   );
 }
 
-function MetricCard({ icon: Icon, label, value, color }: { icon: React.ComponentType<{ className?: string; size?: number }>; label: string; value: string; color: string }) {
+function MetricCard({ icon: Icon, label, value, color }: { icon: LucideIcon; label: string; value: string; color: string }) {
   const colorClass: Record<string, string> = {
     emerald: "bg-emerald-50 text-emerald-700",
     red: "bg-red-50 text-red-700",

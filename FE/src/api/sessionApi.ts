@@ -1,5 +1,5 @@
 import { httpClient } from "./httpClient";
-import type { ParkingSession, PaymentMethod, SessionStatus } from "@/types/domain";
+import type { ExceptionType, ParkingSession, PaymentMethod, SessionStatus } from "@/types/domain";
 
 export interface CheckInRequest {
   plateNumber: string;
@@ -221,6 +221,11 @@ export const sessionApi = {
 
   lostTicketCheckout: async (payload: LostTicketCheckoutRequest): Promise<ParkingSession> => {
     const response = await httpClient.post<SessionResponse>("/sessions/lost-ticket-checkout", payload);
+    return normalizeSession(response.data);
+  },
+
+  handleException: async (sessionId: string | number, payload: { type: ExceptionType; reason?: string; extraFee?: number }): Promise<ParkingSession> => {
+    const response = await httpClient.post<SessionResponse>(`/sessions/${sessionId}/exceptions`, payload);
     return normalizeSession(response.data);
   }
 };
