@@ -456,7 +456,7 @@ public class DataInitializer implements CommandLineRunner {
                             .themeColor("#2563eb")
                             .passwordPolicy("medium")
                             .sessionTimeout(30)
-                            .logoUrl("/images/logo.png")
+                            .logoUrl("/logo.png")
                             .version("1.0.0")
                             .build());
         }
