@@ -51,14 +51,14 @@ export const registerUser = async (payload: RegisterRequest): Promise<RegisterRe
       if (!error.response) {
         throw new Error("Không thể kết nối đến máy chủ. Vui lòng thử lại sau.");
       }
-      const serverMessage = typeof error.response.data === "object" && error.response.data !== null && "error" in error.response.data
-        ? String(error.response.data.error)
+      const serverMessage = typeof error.response.data === "object" && error.response.data !== null && "message" in error.response.data
+        ? String(error.response.data.message)
         : "";
       if (error.response.status === 409 || /already exists/i.test(serverMessage)) {
-        throw new Error("Tên đăng nhập hoặc email đã được sử dụng.");
+        throw new Error(serverMessage || "Tên đăng nhập hoặc email đã được sử dụng.");
       }
       if (error.response.status === 400) {
-        throw new Error("Thông tin đăng ký không hợp lệ. Vui lòng kiểm tra lại.");
+        throw new Error(serverMessage || "Thông tin đăng ký không hợp lệ. Vui lòng kiểm tra lại.");
       }
       throw new Error("Đăng ký thất bại. Vui lòng thử lại.");
     }

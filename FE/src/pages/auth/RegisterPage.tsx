@@ -104,16 +104,16 @@ const RegisterPage = () => {
                             </div>
 
                             <form onSubmit={handleSubmit} className="space-y-4">
-                                <div>
-                                        <label className="block text-sm font-medium text-slate-700 mb-2" htmlFor="phone">Số điện thoại</label>
-                                        <div className="relative">
-                                            <div className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400">
-                                                <Icon name="phone" className="w-[18px] h-[18px]" />
-                                            </div>
-                                            <input id="phone" name="phoneNumber" type="tel" value={phoneNumber} onChange={(event) => setPhoneNumber(event.target.value)} autoComplete="tel" className="w-full bg-white border border-slate-200 focus:border-blue-500 focus:ring-2 focus:ring-blue-100 rounded-lg py-3 pl-10 pr-3 text-sm text-slate-800 placeholder-slate-400 focus:outline-none transition" placeholder="09xx xxx xxx" required />
-                                        </div>
-                                </div>
 
+                                <div>
+                                    <label className="block text-sm font-medium text-slate-700 mb-2" htmlFor="username">Tên đăng nhập</label>
+                                    <div className="relative">
+                                        <div className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400">
+                                            <Icon name="user" className="w-[18px] h-[18px]" />
+                                        </div>
+                                        <input id="username" name="username" value={username} onChange={(event) => setUsername(event.target.value)} autoComplete="username" minLength={3} maxLength={50} className="w-full bg-white border border-slate-200 focus:border-blue-500 focus:ring-2 focus:ring-blue-100 rounded-lg py-3 pl-10 pr-3 text-sm text-slate-800 placeholder-slate-400 focus:outline-none transition" placeholder="newdriver" required />
+                                    </div>
+                                </div>
                                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                                     <div>
                                         <label className="block text-sm font-medium text-slate-700 mb-2" htmlFor="email">Email</label>
@@ -125,12 +125,12 @@ const RegisterPage = () => {
                                         </div>
                                     </div>
                                     <div>
-                                        <label className="block text-sm font-medium text-slate-700 mb-2" htmlFor="username">Tên đăng nhập</label>
+                                        <label className="block text-sm font-medium text-slate-700 mb-2" htmlFor="phone">Số điện thoại</label>
                                         <div className="relative">
                                             <div className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400">
-                                                <Icon name="user" className="w-[18px] h-[18px]" />
+                                                <Icon name="phone" className="w-[18px] h-[18px]" />
                                             </div>
-                                            <input id="username" name="username" value={username} onChange={(event) => setUsername(event.target.value)} autoComplete="username" minLength={3} maxLength={50} className="w-full bg-white border border-slate-200 focus:border-blue-500 focus:ring-2 focus:ring-blue-100 rounded-lg py-3 pl-10 pr-3 text-sm text-slate-800 placeholder-slate-400 focus:outline-none transition" placeholder="newdriver" required />
+                                            <input id="phone" name="phoneNumber" type="tel" value={phoneNumber} onChange={(event) => setPhoneNumber(event.target.value)} autoComplete="tel" className="w-full bg-white border border-slate-200 focus:border-blue-500 focus:ring-2 focus:ring-blue-100 rounded-lg py-3 pl-10 pr-3 text-sm text-slate-800 placeholder-slate-400 focus:outline-none transition" placeholder="09xx xxx xxx" required />
                                         </div>
                                     </div>
                                 </div>

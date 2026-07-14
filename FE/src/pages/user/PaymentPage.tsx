@@ -149,9 +149,9 @@ export function PaymentPage() {
           {/* Tra cứu biển số walk-in */}
           <Card>
             <CardContent className="pt-4">
-              <p className="mb-2 text-sm font-medium text-slate-700">
+              <p className="mb-2 text-base font-medium text-slate-700">
                 Tìm xe theo biển số
-                <span className="ml-2 text-xs font-normal text-slate-400">
+                <span className="ml-2 text-base font-normal text-slate-400">
                   (xe check-in tại quầy chưa liên kết tài khoản)
                 </span>
               </p>
@@ -172,9 +172,9 @@ export function PaymentPage() {
                   <Button variant="secondary" onClick={handlePlateClear}>Xóa</Button>
                 )}
               </div>
-              {plateSearchErrorMsg && <p className="mt-2 text-sm text-red-600">{plateSearchErrorMsg}</p>}
+              {plateSearchErrorMsg && <p className="mt-2 text-base text-red-600">{plateSearchErrorMsg}</p>}
               {isWalkInSession && (
-                <div role="alert" className="mt-2 rounded-lg border border-amber-200 bg-amber-50 px-3 py-2 text-sm text-amber-700">
+                <div role="alert" className="mt-2 rounded-lg border border-amber-200 bg-amber-50 px-3 py-2 text-base text-amber-700">
                   Xe này check-in tại quầy và chưa liên kết tài khoản. Bạn chỉ có thể xem thông tin — vui lòng thanh toán tại quầy hoặc nhờ nhân viên hỗ trợ.
                 </div>
               )}</CardContent>
@@ -185,10 +185,10 @@ export function PaymentPage() {
             <CardHeader title="Chi tiết phí" />
             <CardContent>
               {isLoading ? (
-                <p className="py-6 text-center text-sm text-slate-400">Đang tải...</p>
+                <p className="py-6 text-center text-base text-slate-400">Đang tải...</p>
               ) : session ? (
                 <>
-                  <div className="mb-4 grid gap-2 text-sm">
+                  <div className="mb-4 grid gap-2 text-base">
                     <FeeRow label="Mã vé" value={session.ticketCode || "N/A"} mono />
                     <FeeRow label="Biển số" value={session.plateNumber} mono />
                     {session.slotCode && <FeeRow label="Slot" value={session.slotCode} />}
@@ -205,13 +205,13 @@ export function PaymentPage() {
                         {feeLoading ? "..." : currency(totalFee)}
                       </span>
                     </div>
-                    <p className="mt-2 text-xs text-slate-500">
+                    <p className="mt-2 text-base text-slate-500">
                       Phí tính đến thời điểm hiện tại. Sẽ được xác nhận khi thanh toán.
                     </p>
                   </div>
                 </>
               ) : (
-                <p className="py-8 text-center text-sm text-slate-500">
+                <p className="py-8 text-center text-base text-slate-500">
                   Không có phiên gửi xe nào đang hoạt động.
                   {!plateSearch && " Hãy tra cứu theo biển số nếu xe đã check-in tại quầy."}
                 </p>
@@ -227,11 +227,10 @@ export function PaymentPage() {
                 {METHODS.map((item) => (
                   <label
                     key={item.value}
-                    className={`cursor-pointer rounded-md border p-4 text-sm transition-colors ${
-                      method === item.value
+                    className={`cursor-pointer rounded-md border p-4 text-base transition-colors ${method === item.value
                         ? "border-blue-400 bg-blue-50 font-medium text-blue-800"
                         : "border-border text-slate-600 hover:bg-slate-50"
-                    } ${!canPay || submitMutation.isPending ? "pointer-events-none opacity-50" : ""}`}
+                      } ${!canPay || submitMutation.isPending ? "pointer-events-none opacity-50" : ""}`}
                   >
                     <input
                       type="radio"
@@ -248,17 +247,17 @@ export function PaymentPage() {
               </div>
 
               {formError && (
-                <div role="alert" className="mb-4 rounded-lg border border-red-200 bg-red-50 px-3 py-2 text-sm text-red-700">
+                <div role="alert" className="mb-4 rounded-lg border border-red-200 bg-red-50 px-3 py-2 text-base text-red-700">
                   {formError}
                 </div>
               )}
 
               {success && (
-                <div role="status" className="mb-4 flex items-center gap-2 rounded-lg border border-emerald-200 bg-emerald-50 px-3 py-3 text-sm text-emerald-700">
+                <div role="status" className="mb-4 flex items-center gap-2 rounded-lg border border-emerald-200 bg-emerald-50 px-3 py-3 text-base text-emerald-700">
                   <CheckCircle size={18} className="shrink-0" />
                   <div>
                     <p className="font-semibold">Thanh toán thành công!</p>
-                    <p className="text-xs text-emerald-600">Vui lòng đưa xe ra cổng trong 15 phút.</p>
+                    <p className="text-base text-emerald-600">Vui lòng đưa xe ra cổng trong 15 phút.</p>
                   </div>
                 </div>
               )}
@@ -279,26 +278,26 @@ export function PaymentPage() {
         <Card className="h-fit">
           <CardHeader title="Lịch sử gần đây" />
           <CardContent className="grid gap-3">
-            {paymentsLoading && <p className="text-sm text-slate-400">Đang tải...</p>}
+            {paymentsLoading && <p className="text-base text-slate-400">Đang tải...</p>}
             {!paymentsLoading && payments.length === 0 && (
-              <p className="text-sm text-slate-500">Không có giao dịch nào.</p>
+              <p className="text-base text-slate-500">Không có giao dịch nào.</p>
             )}
             {payments.map((payment) => (
-              <div key={payment.id} className="rounded-md border border-slate-100 bg-slate-50 p-3 text-sm">
+              <div key={payment.id} className="rounded-md border border-slate-100 bg-slate-50 p-3 text-base">
                 <div className="flex items-center justify-between gap-2">
-                  <span className="font-mono text-xs font-semibold text-slate-800 truncate max-w-[140px]">
+                  <span className="font-mono text-base font-semibold text-slate-800 truncate max-w-[140px]">
                     {payment.sessionId}
                   </span>
-                  <span className="shrink-0 text-xs font-medium text-emerald-600">Đã trả</span>
+                  <span className="shrink-0 text-base font-medium text-emerald-600">Đã trả</span>
                 </div>
                 {payment.plateNumber && (
-                  <p className="mt-0.5 font-mono text-xs text-slate-500">{payment.plateNumber}</p>
+                  <p className="mt-0.5 font-mono text-base text-slate-500">{payment.plateNumber}</p>
                 )}
                 <div className="mt-1 flex items-center justify-between gap-2">
-                  <span className="text-xs text-slate-500">{dateTime(payment.paidAt)}</span>
+                  <span className="text-base text-slate-500">{dateTime(payment.paidAt)}</span>
                   <span className="font-semibold text-slate-800">{currency(payment.amount)}</span>
                 </div>
-                <p className="mt-0.5 text-xs text-slate-400">{METHOD_LABEL[payment.method] ?? payment.method}</p>
+                <p className="mt-0.5 text-base text-slate-400">{METHOD_LABEL[payment.method] ?? payment.method}</p>
               </div>
             ))}
           </CardContent>
