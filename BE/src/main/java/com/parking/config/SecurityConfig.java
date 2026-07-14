@@ -36,7 +36,7 @@ public class SecurityConfig {
                 .authorizeHttpRequests(authorize -> authorize
                         .requestMatchers("/api/auth/**").permitAll()
                         // Slot mutations are enforced via @PreAuthorize at ParkingSlotController.
-                        .requestMatchers(HttpMethod.GET, "/api/slots/**").hasAnyRole("STAFF", "MANAGER", "ADMIN")
+                        .requestMatchers(HttpMethod.GET, "/api/slots/**").authenticated()
                         .anyRequest().authenticated()
                 )
                 .sessionManagement(session -> session.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
