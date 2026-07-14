@@ -1,6 +1,6 @@
 import { useState } from "react";
-import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { BadgeCheck, Search, CheckCircle } from "lucide-react";
+import { useQuery } from "@tanstack/react-query";
+import { Search } from "lucide-react";
 import { Button } from "@/components/common/Button";
 import { Card, CardContent, CardHeader } from "@/components/common/Card";
 import { PageHeader } from "@/components/layout/PageHeader";
@@ -11,28 +11,13 @@ import { currency, dateTime } from "@/utils/format";
 import { getApiErrorMessage } from "@/utils/apiError";
 import type { PaymentMethod, ParkingSession } from "@/types/domain";
 
-/* ─── Phương thức thanh toán ─── */
-const METHODS: { label: string; value: PaymentMethod }[] = [
-  { label: "Mã QR", value: "QR_CODE" },
-  { label: "Thẻ ngân hàng", value: "BANK_CARD" },
-  { label: "Tiền mặt", value: "CASH" }
-];
-
 const METHOD_LABEL: Record<PaymentMethod, string> = {
   QR_CODE: "Mã QR",
   BANK_CARD: "Thẻ ngân hàng",
   CASH: "Tiền mặt"
 };
 
-/* ─────────────────────────────────────────────────────────────
-   Page
-───────────────────────────────────────────────────────────── */
 export function PaymentPage() {
-  const queryClient = useQueryClient();
-  const [method, setMethod] = useState<PaymentMethod>("QR_CODE");
-  const [success, setSuccess] = useState(false);
-  const [formError, setFormError] = useState<string | null>(null);
-
   // Tra cứu theo biển số (walk-in)
   const [plateInput, setPlateInput] = useState("");
   const [plateSearch, setPlateSearch] = useState("");
@@ -64,7 +49,7 @@ export function PaymentPage() {
     ...plateSessions.filter((ps) => !mySessions.some((ms) => ms.id === ps.id))
   ];
 
-  // Chọn session đầu tiên để thanh toán
+  // Chọn session đầu tiên để tra cứu
   const session = allSessions[0] ?? null;
 
   /* ── Phí tạm tính — dùng /api/fee/preview (chính xác, tính từ DB) ── */
@@ -99,47 +84,13 @@ export function PaymentPage() {
       ? getApiErrorMessage(plateRawError, `Không tìm thấy xe với biển số "${plateSearch}".`)
       : plateError;
 
-  /* ── Mutation thanh toán ── */
-  const submitMutation = useMutation({
-    mutationFn: (payMethod: PaymentMethod) => {
-      if (!session) throw new Error("Không tìm thấy lượt gửi xe.");
-      return paymentApi.create({ sessionId: String(session.id), method: payMethod });
-    },
-    onSuccess: () => {
-      setSuccess(true);
-      setFormError(null);
-      setPlateSearch("");
-      setPlateInput("");
-      queryClient.invalidateQueries({ queryKey: ["payment-my-sessions"] });
-      queryClient.invalidateQueries({ queryKey: ["payment-sessions-plate"] });
-      queryClient.invalidateQueries({ queryKey: ["payments"] });
-      queryClient.invalidateQueries({ queryKey: ["my-sessions-active"] });
-      queryClient.invalidateQueries({ queryKey: ["slots"] });
-    },
-    onError: (error) => {
-      setFormError(getApiErrorMessage(error, "Không thể thanh toán. Vui lòng thử lại."));
-      setSuccess(false);
-    }
-  });
-
-  const submit = () => {
-    if (!canPay) { setFormError("Không thể thanh toán lượt gửi xe này."); return; }
-    setFormError(null);
-    setSuccess(false);
-    submitMutation.mutate(method);
-  };
-
-  // Session walk-in: tìm được qua biển số nhưng không có driverId liên kết tài khoản
-  // → Driver không được phép thanh toán theo document (§4.4 & §5.1)
-  const isWalkInSession = session !== null && plateSessions.some((ps) => ps.id === session.id);
   const isLoading = myLoading || (plateLoading && Boolean(plateSearch));
-  const canPay = session !== null && !isWalkInSession;
 
   return (
     <>
       <PageHeader
-        title="Thanh toán phí gửi xe"
-        description="Thanh toán phí gửi xe và dịch vụ bổ sung nếu có."
+        title="Tra cứu thông tin gửi xe"
+        description=""
       />
       <div className="grid gap-6 xl:grid-cols-[1fr_360px]">
 
@@ -151,9 +102,6 @@ export function PaymentPage() {
             <CardContent className="pt-4">
               <p className="mb-2 text-base font-medium text-slate-700">
                 Tìm xe theo biển số
-                <span className="ml-2 text-base font-normal text-slate-400">
-                  (xe check-in tại quầy chưa liên kết tài khoản)
-                </span>
               </p>
               <div className="flex flex-wrap gap-2">
                 <Input
@@ -162,9 +110,8 @@ export function PaymentPage() {
                   onKeyDown={(e) => e.key === "Enter" && handlePlateSearch()}
                   placeholder="VD: 51G-12345"
                   className="font-mono uppercase max-w-xs"
-                  disabled={submitMutation.isPending}
                 />
-                <Button onClick={handlePlateSearch} disabled={isLoading || submitMutation.isPending}>
+                <Button onClick={handlePlateSearch} disabled={isLoading}>
                   <Search size={16} />
                   Tìm
                 </Button>
@@ -173,16 +120,15 @@ export function PaymentPage() {
                 )}
               </div>
               {plateSearchErrorMsg && <p className="mt-2 text-base text-red-600">{plateSearchErrorMsg}</p>}
-              {isWalkInSession && (
-                <div role="alert" className="mt-2 rounded-lg border border-amber-200 bg-amber-50 px-3 py-2 text-base text-amber-700">
-                  Xe này check-in tại quầy và chưa liên kết tài khoản. Bạn chỉ có thể xem thông tin — vui lòng thanh toán tại quầy hoặc nhờ nhân viên hỗ trợ.
-                </div>
-              )}</CardContent>
+              {/* <div role="alert" className="mt-2 text-sm text-slate-500">
+                Hãy nhập biển số để tra cứu trong trường hợp gửi vãng lai (không đăng nhập app).
+              </div> */}
+            </CardContent>
           </Card>
 
           {/* Chi tiết phí */}
           <Card>
-            <CardHeader title="Chi tiết phí" />
+            <CardHeader title="Chi tiết phí tạm tính" />
             <CardContent>
               {isLoading ? (
                 <p className="py-6 text-center text-base text-slate-400">Đang tải...</p>
@@ -200,83 +146,29 @@ export function PaymentPage() {
                   </div>
                   <div className="border-t border-border pt-3">
                     <div className="flex items-center justify-between rounded-md bg-blue-50 p-4">
-                      <span className="font-medium text-slate-700">Tổng thanh toán</span>
+                      <span className="font-medium text-slate-700">Phí tính đến hiện tại</span>
                       <span className="text-2xl font-semibold text-blue-700">
                         {feeLoading ? "..." : currency(totalFee)}
                       </span>
                     </div>
-                    <p className="mt-2 text-base text-slate-500">
-                      Phí tính đến thời điểm hiện tại. Sẽ được xác nhận khi thanh toán.
-                    </p>
+                    <div role="alert" className="mt-3 rounded-lg border border-amber-200 bg-amber-50 px-3 py-2 text-sm text-amber-700">
+                      Đây là phí tạm tính dựa trên thời gian gửi xe. Quý khách vui lòng thanh toán trực tiếp tại quầy cho nhân viên.
+                    </div>
                   </div>
                 </>
               ) : (
                 <p className="py-8 text-center text-base text-slate-500">
                   Không có phiên gửi xe nào đang hoạt động.
-                  {!plateSearch && " Hãy tra cứu theo biển số nếu xe đã check-in tại quầy."}
+                  {!plateSearch && " Hãy tra cứu theo biển số để xem chi tiết."}
                 </p>
               )}
-            </CardContent>
-          </Card>
-
-          {/* Phương thức thanh toán */}
-          <Card>
-            <CardHeader title="Phương thức thanh toán" />
-            <CardContent>
-              <div className="mb-4 grid gap-3 md:grid-cols-3">
-                {METHODS.map((item) => (
-                  <label
-                    key={item.value}
-                    className={`cursor-pointer rounded-md border p-4 text-base transition-colors ${method === item.value
-                        ? "border-blue-400 bg-blue-50 font-medium text-blue-800"
-                        : "border-border text-slate-600 hover:bg-slate-50"
-                      } ${!canPay || submitMutation.isPending ? "pointer-events-none opacity-50" : ""}`}
-                  >
-                    <input
-                      type="radio"
-                      name="payMethod"
-                      value={item.value}
-                      checked={method === item.value}
-                      onChange={() => setMethod(item.value)}
-                      className="mr-2 accent-blue-600"
-                      disabled={!canPay || submitMutation.isPending}
-                    />
-                    {item.label}
-                  </label>
-                ))}
-              </div>
-
-              {formError && (
-                <div role="alert" className="mb-4 rounded-lg border border-red-200 bg-red-50 px-3 py-2 text-base text-red-700">
-                  {formError}
-                </div>
-              )}
-
-              {success && (
-                <div role="status" className="mb-4 flex items-center gap-2 rounded-lg border border-emerald-200 bg-emerald-50 px-3 py-3 text-base text-emerald-700">
-                  <CheckCircle size={18} className="shrink-0" />
-                  <div>
-                    <p className="font-semibold">Thanh toán thành công!</p>
-                    <p className="text-base text-emerald-600">Vui lòng đưa xe ra cổng trong 15 phút.</p>
-                  </div>
-                </div>
-              )}
-
-              <Button
-                className="h-12 w-full"
-                onClick={submit}
-                disabled={!canPay || submitMutation.isPending}
-              >
-                <BadgeCheck size={20} />
-                {submitMutation.isPending ? "Đang xử lý..." : "Thanh toán ngay"}
-              </Button>
             </CardContent>
           </Card>
         </div>
 
         {/* ── Cột phải: Lịch sử ── */}
         <Card className="h-fit">
-          <CardHeader title="Lịch sử gần đây" />
+          <CardHeader title="Lịch sử giao dịch" />
           <CardContent className="grid gap-3">
             {paymentsLoading && <p className="text-base text-slate-400">Đang tải...</p>}
             {!paymentsLoading && payments.length === 0 && (
