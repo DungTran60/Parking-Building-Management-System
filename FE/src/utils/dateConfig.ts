@@ -40,10 +40,10 @@ export function formatInTz(
   }
 
   return fmt
-    .replace("YYYY", map.year ?? "")
-    .replace("MM", map.month ?? "")
-    .replace("DD", map.day ?? "")
-    .replace("HH", map.hour ?? "")
-    .replace("mm", map.minute ?? "")
-    .replace("ss", map.second ?? "");
+    .replace(/yyyy/gi, map.year ?? "")
+    .replace(/MM/g, map.month ?? "")
+    .replace(/dd/gi, map.day ?? "")
+    .replace(/HH/gi, map.hour ?? "")
+    .replace(/mm/g, map.minute ?? "")
+    .replace(/ss/gi, map.second ?? "");
 }
