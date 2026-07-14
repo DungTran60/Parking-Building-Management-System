@@ -256,7 +256,7 @@ export function CheckInPage() {
                       Slot {matchingReservation.slotCode ?? `#${matchingReservation.slotId}`} · {dateTime(matchingReservation.startAt)} → {dateTime(matchingReservation.endAt)}
                     </span>
                     <span className="text-emerald-700">
-                      {useReservation ? "Sẽ check-in vào slot đã đặt." : "Bỏ chọn để check-in như lượt gửi thường (BE tự cấp slot khác)."}
+                      {useReservation ? "Sẽ check-in vào chỗ đã đặt." : "Bỏ chọn để check-in như lượt gửi thường"}
                     </span>
                   </span>
                 </label>
@@ -269,13 +269,13 @@ export function CheckInPage() {
                 </div>
 
                 {loadingSuggestion ? (
-                  <p className="mt-2">Đang kiểm tra slot khả dụng...</p>
+                  <p className="mt-2">Đang kiểm tra chỗ trống...</p>
                 ) : availableCount === 0 ? (
-                  <p className="mt-2">Hiện không còn slot `AVAILABLE` phù hợp cho loại xe này.</p>
+                  <p className="mt-2">Hiện không còn chỗ trống phù hợp cho loại xe này.</p>
                 ) : suggestedSlot ? (
                   <>
-                    <p className="mt-2">Còn {number(availableCount ?? 0)} slot phù hợp trên hệ thống.</p>
-                    <p>Slot khả dụng gần nhất: {suggestedSlot.code}</p>
+                    <p className="mt-2">Còn {number(availableCount ?? 0)} chỗ trống phù hợp trên hệ thống.</p>
+                    <p>Chỗ trống khả dụng gần nhất: {suggestedSlot.code}</p>
                   </>
                 ) : (
                   <p className="mt-2">BE sẽ tự cấp slot phù hợp khi check-in nếu còn chỗ trống.</p>

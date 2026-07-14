@@ -118,7 +118,7 @@ export function ReservationsPage() {
 
   return (
     <>
-      <PageHeader title="Đặt chỗ trước" description="Chọn phương tiện, thời gian gửi và slot còn trống. Người dùng chỉ có thể tạo hoặc hủy đặt chỗ của mình." />
+      <PageHeader title="Đặt chỗ trước" description="" />
       <div className="grid gap-6 xl:grid-cols-[1fr_380px]">
         <Card>
           <CardHeader title="Thông tin đặt chỗ" />
@@ -141,15 +141,15 @@ export function ReservationsPage() {
             </div>
 
             <div>
-              <p className="mb-2 text-sm font-medium text-slate-700">
+              <p className="mb-2 text-base font-medium text-slate-700">
                 Slot còn trống
                 {availableSlots.length > 0 && (
-                  <span className="ml-2 text-xs font-normal text-slate-400">({availableSlots.length} slot)</span>
+                  <span className="ml-2 text-base font-normal text-slate-400">({availableSlots.length} slot)</span>
                 )}
               </p>
               <div className="grid grid-cols-2 gap-2 sm:grid-cols-3 md:grid-cols-6">
                 {availableSlots.length === 0 && (
-                  <p className="col-span-full rounded-md border border-amber-200 bg-amber-50 px-3 py-2 text-sm text-amber-700">
+                  <p className="col-span-full rounded-md border border-amber-200 bg-amber-50 px-3 py-2 text-base text-amber-700">
                     Không có slot trống cho loại phương tiện này.
                   </p>
                 )}
@@ -160,7 +160,7 @@ export function ReservationsPage() {
                       key={slot.id}
                       type="button"
                       onClick={() => setSlotId(String(slot.id))}
-                      className={`rounded-md border p-3 text-xs font-semibold transition-colors ${selectedSlotId === String(slot.id) ? "border-blue-500 bg-blue-50 text-blue-700 ring-1 ring-blue-300" : "border-border text-slate-700 hover:border-blue-300 hover:bg-blue-50"}`}
+                      className={`rounded-md border p-3 text-base font-semibold transition-colors ${selectedSlotId === String(slot.id) ? "border-blue-500 bg-blue-50 text-blue-700 ring-1 ring-blue-300" : "border-border text-slate-700 hover:border-blue-300 hover:bg-blue-50"}`}
                       title={floor ? `Tầng ${floor.name} – Khu ${floor.zone}` : slot.code}
                     >
                       {slot.code}
@@ -171,14 +171,14 @@ export function ReservationsPage() {
             </div>
 
             {successMessage && (
-              <div role="status" className="flex items-center gap-2 rounded-lg border border-green-200 bg-green-50 px-3 py-2 text-sm text-green-700">
+              <div role="status" className="flex items-center gap-2 rounded-lg border border-green-200 bg-green-50 px-3 py-2 text-base text-green-700">
                 <CheckCircle size={16} className="shrink-0" />
                 {successMessage}
               </div>
             )}
 
             {formError && (
-              <div role="alert" className="rounded-lg border border-red-200 bg-red-50 px-3 py-2 text-sm text-red-700">
+              <div role="alert" className="rounded-lg border border-red-200 bg-red-50 px-3 py-2 text-base text-red-700">
                 {formError}
               </div>
             )}
@@ -194,21 +194,21 @@ export function ReservationsPage() {
           <Card>
             <CardHeader title="Đặt chỗ gần nhất" />
             <CardContent className="grid gap-3">
-              {rows.length === 0 && <p className="text-sm text-slate-500">Chưa có đặt chỗ nào.</p>}
+              {rows.length === 0 && <p className="text-base text-slate-500">Chưa có đặt chỗ nào.</p>}
               {rows.map((reservation) => {
                 const slotCode = reservation.slotCode
                   ?? slotRows.find((slot) => String(slot.id) === String(reservation.slotId))?.code
                   ?? `Slot #${reservation.slotId}`;
                 return (
-                  <div key={reservation.id} className="rounded-md border border-slate-100 bg-slate-50 p-3 text-sm">
+                  <div key={reservation.id} className="rounded-md border border-slate-100 bg-slate-50 p-3 text-base">
                     <div className="flex items-center justify-between gap-3">
                       <span className="font-mono font-semibold">{reservation.plateNumber}</span>
                       <Badge value={reservation.status} />
                     </div>
-                    <p className="mt-1 text-xs text-slate-500">Slot {slotCode}</p>
-                    <p className="mt-0.5 text-xs text-slate-500">{dateTime(reservation.startAt)} – {dateTime(reservation.endAt)}</p>
+                    <p className="mt-1 text-base text-slate-500">Slot {slotCode}</p>
+                    <p className="mt-0.5 text-base text-slate-500">{dateTime(reservation.startAt)} – {dateTime(reservation.endAt)}</p>
                     {["PENDING", "CONFIRMED"].includes(reservation.status) && (
-                      <Button variant="secondary" className="mt-3 h-8 w-full text-xs" disabled={cancelMutation.isPending} onClick={() => cancel(reservation.id)}>
+                      <Button variant="secondary" className="mt-3 h-8 w-full text-base" disabled={cancelMutation.isPending} onClick={() => cancel(reservation.id)}>
                         Hủy đặt chỗ
                       </Button>
                     )}
@@ -219,7 +219,7 @@ export function ReservationsPage() {
           </Card>
           <div className="rounded-lg border border-amber-200 bg-amber-50 p-5">
             <h3 className="font-semibold text-amber-800">Lưu ý</h3>
-            <p className="mt-2 text-sm text-amber-700">Chỗ đặt được giữ trong 30 phút kể từ giờ vào dự kiến. Quá thời gian này hệ thống có thể giải phóng slot.</p>
+            <p className="mt-2 text-base text-amber-700">Chỗ đặt được giữ trong 30 phút kể từ giờ vào dự kiến. Quá thời gian này hệ thống có thể giải phóng slot.</p>
           </div>
         </div>
       </div>

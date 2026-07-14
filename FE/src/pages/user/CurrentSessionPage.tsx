@@ -110,15 +110,15 @@ export function CurrentSessionPage() {
     <>
       <PageHeader
         title="Xe đang gửi"
-        description="Theo dõi giờ vào, vị trí gửi và phí tạm tính."
+        description=""
       />
 
       {/* Thanh tra cứu biển số */}
       <Card className="mb-6">
         <CardContent className="pt-4">
-          <p className="mb-2 text-sm font-medium text-slate-700">
+          <p className="mb-2 text-base font-medium text-slate-700">
             Tra cứu theo biển số
-            <span className="ml-2 text-xs font-normal text-slate-400">
+            <span className="ml-2 text-base font-normal text-slate-400">
               (dành cho xe check-in tại quầy chưa liên kết tài khoản)
             </span>
           </p>
@@ -149,7 +149,7 @@ export function CurrentSessionPage() {
             </Button>
           </div>
           {searchError && (
-            <p className="mt-2 text-sm text-red-600">{searchError}</p>
+            <p className="mt-2 text-base text-red-600">{searchError}</p>
           )}
         </CardContent>
       </Card>
@@ -157,7 +157,7 @@ export function CurrentSessionPage() {
       {/* Loading */}
       {isLoading && (
         <Card>
-          <CardContent className="flex items-center justify-center py-16 text-sm text-slate-500">
+          <CardContent className="flex items-center justify-center py-16 text-base text-slate-500">
             <RefreshCw size={20} className="mr-2 animate-spin" />
             Đang tải thông tin lượt gửi xe...
           </CardContent>
@@ -167,7 +167,7 @@ export function CurrentSessionPage() {
       {/* Lỗi hệ thống */}
       {!isLoading && myError && (
         <Card className="mb-4">
-          <CardContent className="flex flex-col items-center justify-center py-10 text-center text-sm text-red-600">
+          <CardContent className="flex flex-col items-center justify-center py-10 text-center text-base text-red-600">
             <AlertCircle size={28} className="mb-2" />
             Không thể tải thông tin. Vui lòng thử lại sau.
           </CardContent>
@@ -184,7 +184,7 @@ export function CurrentSessionPage() {
             <h3 className="mt-4 text-lg font-semibold text-slate-900">
               Không có lượt gửi xe nào đang hoạt động
             </h3>
-            <p className="mt-2 max-w-sm text-sm text-slate-500">
+            <p className="mt-2 max-w-sm text-base text-slate-500">
               Bạn hiện không có xe nào đang được gửi trong bãi.
               Thông tin lượt gửi sẽ tự động xuất hiện sau khi check-in thành công.
               Nếu đã check-in tại quầy, hãy tra cứu theo biển số ở trên.
@@ -265,7 +265,7 @@ function SessionCard({
           {/* Header */}
           <div className="mb-5 flex flex-wrap items-center justify-between gap-3">
             <div>
-              <p className="text-xs font-medium uppercase tracking-wide text-slate-500">
+              <p className="text-base font-medium uppercase tracking-wide text-slate-500">
                 Mã lượt gửi
               </p>
               <h2 className="mt-1 font-mono text-xl font-semibold text-slate-950">
@@ -294,7 +294,7 @@ function SessionCard({
             <div className="flex items-center justify-between gap-3">
               <div>
                 <span className="font-medium text-slate-700">Phí tạm tính</span>
-                <p className="mt-0.5 text-xs text-slate-500">
+                <p className="mt-0.5 text-base text-slate-500">
                   Cập nhật mỗi 30 giây · {displayHours.toFixed(1)} giờ
                 </p>
               </div>
@@ -302,7 +302,7 @@ function SessionCard({
                 {currency(estimatedFee)}
               </span>
             </div>
-            <p className="mt-2 text-xs text-slate-500">
+            <p className="mt-2 text-base text-slate-500">
               Phí cuối cùng được xác nhận khi xe ra bãi.
             </p>
           </div>
@@ -314,7 +314,7 @@ function SessionCard({
         {/* Hướng dẫn tìm xe */}
         <Card>
           <CardHeader title="Hướng dẫn tìm xe" />
-          <CardContent className="grid gap-4 text-sm">
+          <CardContent className="grid gap-4 text-base">
             <GuideItem
               icon={<Map size={16} />}
               title={floor ? `Đi đến tầng ${floor.name}` : "Đi đến khu vực gửi xe"}
@@ -337,10 +337,10 @@ function SessionCard({
                 <QrCode size={20} />
               </div>
               <div>
-                <p className="font-mono text-sm font-semibold text-slate-900">
+                <p className="font-mono text-base font-semibold text-slate-900">
                   {session.ticketCode || "N/A"}
                 </p>
-                <p className="text-xs text-slate-500">Xuất trình khi ra bãi</p>
+                <p className="text-base text-slate-500">Xuất trình khi ra bãi</p>
               </div>
             </div>
           </CardContent>
@@ -366,11 +366,10 @@ function InfoBox({
 }) {
   return (
     <div className="rounded-md bg-slate-50 p-3">
-      <p className="text-xs font-medium uppercase text-slate-500">{label}</p>
+      <p className="text-base font-medium uppercase text-slate-500">{label}</p>
       <p
-        className={`mt-1 flex items-center gap-1 text-sm font-semibold text-slate-900 ${
-          mono ? "font-mono" : ""
-        }`}
+        className={`mt-1 flex items-center gap-1 text-base font-semibold text-slate-900 ${mono ? "font-mono" : ""
+          }`}
       >
         {icon}
         {value}
@@ -395,7 +394,7 @@ function GuideItem({
       </div>
       <div>
         <p className="font-medium text-slate-800">{title}</p>
-        <p className="text-xs text-slate-500">{description}</p>
+        <p className="text-base text-slate-500">{description}</p>
       </div>
     </div>
   );

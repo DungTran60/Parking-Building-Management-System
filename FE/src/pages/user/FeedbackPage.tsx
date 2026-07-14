@@ -62,7 +62,7 @@ export function FeedbackPage() {
 
   return (
     <>
-      <PageHeader title="Gửi phản hồi sự cố" description="Báo mất thẻ, sai phí, khó tìm xe, slot bị chiếm hoặc vấn đề trong bãi." />
+      <PageHeader title="Gửi phản hồi sự cố" description="" />
       <div className="grid gap-6 xl:grid-cols-[1fr_360px]">
         <Card>
           <CardContent className="grid gap-4">
@@ -79,15 +79,15 @@ export function FeedbackPage() {
                 rows={5}
                 maxLength={MAX_MESSAGE}
                 disabled={submitMutation.isPending}
-                className="w-full rounded-md border border-border bg-white px-3 py-2 text-sm outline-none focus:border-primary focus:ring-2 focus:ring-blue-100 disabled:opacity-60"
+                className="w-full rounded-md border border-border bg-white px-3 py-2 text-base outline-none focus:border-primary focus:ring-2 focus:ring-blue-100 disabled:opacity-60"
                 placeholder="Nhập nội dung cần hỗ trợ..."
               />
-              <p className={`mt-1 text-xs text-right ${message.length > MAX_MESSAGE ? 'text-red-500' : 'text-slate-400'}`}>
+              <p className={`mt-1 text-base text-right ${message.length > MAX_MESSAGE ? 'text-red-500' : 'text-slate-400'}`}>
                 {message.length}/{MAX_MESSAGE}
               </p>
             </Field>
 
-            <Field label="ID lượt gửi xe liên quan (tùy chọn)">
+            {/* <Field label="ID lượt gửi xe liên quan (tùy chọn)">
               <Input
                 type="number"
                 value={sessionId}
@@ -95,10 +95,10 @@ export function FeedbackPage() {
                 placeholder="Để trống nếu không liên quan đến lượt gửi xe cụ thể"
                 disabled={submitMutation.isPending}
               />
-            </Field>
+            </Field> */}
 
             {formError && (
-              <div role="alert" className="rounded-lg border border-red-200 bg-red-50 px-3 py-2 text-sm text-red-700">
+              <div role="alert" className="rounded-lg border border-red-200 bg-red-50 px-3 py-2 text-base text-red-700">
                 {formError}
               </div>
             )}
@@ -113,7 +113,7 @@ export function FeedbackPage() {
         <div className="grid gap-4 content-start">
           <Card>
             <CardHeader title="Kênh hỗ trợ nhanh" />
-            <CardContent className="grid gap-2 text-sm">
+            <CardContent className="grid gap-2 text-base">
               <Support icon={<Phone size={16} />} label="Hotline bãi xe" />
               <Support icon={<MessageCircle size={16} />} label="Chat với nhân viên" />
               <Support icon={<Send size={16} />} label="Đến quầy hỗ trợ" />
@@ -123,10 +123,10 @@ export function FeedbackPage() {
           {created && (
             <div className="rounded-lg border border-emerald-200 bg-emerald-50 p-5 text-center">
               <p className="font-semibold text-emerald-700">Đã gửi phản hồi thành công</p>
-              <p className="mt-1 text-sm text-emerald-600">
+              <p className="mt-1 text-base text-emerald-600">
                 Mã yêu cầu: <span className="font-mono">#{created.id}</span>
               </p>
-              <p className="mt-1 text-xs text-emerald-500">Nhân viên sẽ xử lý trong thời gian sớm nhất.</p>
+              <p className="mt-1 text-base text-emerald-500">Nhân viên sẽ xử lý trong thời gian sớm nhất.</p>
             </div>
           )}
         </div>

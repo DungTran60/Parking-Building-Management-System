@@ -47,6 +47,7 @@ export function SlotsPage() {
   const [editingSlot, setEditingSlot] = useState<ParkingSlot | null>(null);
   const [formError, setFormError] = useState<string | null>(null);
   const [formFloorId, setFormFloorId] = useState<string>("");
+  const [confirmStatusModal, setConfirmStatusModal] = useState<{ slot: ParkingSlot, nextStatus: SlotStatus, message: string } | null>(null);
   const invalidateSlots = () => queryClient.invalidateQueries({ queryKey: ["slots"] });
   const saveMutation = useMutation({
     mutationFn: ({ id, payload }: { id?: string; payload: Parameters<typeof slotApi.create>[0] }) => id ? slotApi.update(id, payload) : slotApi.create(payload),
@@ -55,7 +56,7 @@ export function SlotsPage() {
   });
   const statusMutation = useMutation({
     mutationFn: ({ id, nextStatus }: { id: string; nextStatus: SlotStatus }) => slotApi.updateStatus(id, nextStatus),
-    onSuccess: () => void invalidateSlots(),
+    onSuccess: () => { void invalidateSlots(); setConfirmStatusModal(null); },
     onError: (requestError) => setFormError(getApiErrorMessage(requestError, "Không thể cập nhật trạng thái slot."))
   });
   const isSaving = saveMutation.isPending;
@@ -83,23 +84,23 @@ export function SlotsPage() {
   const toggleBlockedStatus = (slot: ParkingSlot) => {
     const unlocking = slot.status === "BLOCKED";
     const message = unlocking
-      ? "Bạn có chắc muốn mở khóa slot " + slot.code + "?"
-      : "Bạn có chắc muốn tạm khóa slot " + slot.code + "?";
-    if (!window.confirm(message)) return;
+      ? "Bạn có chắc muốn mở khóa vị trí " + slot.code + "?"
+      : "Bạn có chắc muốn tạm khóa vị trí " + slot.code + "?";
 
     const nextStatus: SlotStatus = unlocking ? "AVAILABLE" : "BLOCKED";
-    statusMutation.mutate({ id: slot.id, nextStatus });
+    setFormError(null);
+    setConfirmStatusModal({ slot, nextStatus, message });
   };
 
   const toggleMaintenanceStatus = (slot: ParkingSlot) => {
     const clearing = slot.status === "MAINTENANCE";
     const message = clearing
-      ? "Bạn có chắc muốn đưa slot " + slot.code + " trở lại hoạt động?"
-      : "Bạn có chắc muốn đưa slot " + slot.code + " vào bảo trì?";
-    if (!window.confirm(message)) return;
+      ? "Bạn có chắc muốn đưa vị trí " + slot.code + " trở lại hoạt động?"
+      : "Bạn có chắc muốn đưa vị trí " + slot.code + " vào bảo trì?";
 
     const nextStatus: SlotStatus = clearing ? "AVAILABLE" : "MAINTENANCE";
-    statusMutation.mutate({ id: slot.id, nextStatus });
+    setFormError(null);
+    setConfirmStatusModal({ slot, nextStatus, message });
   };
 
   const openCreate = () => {
@@ -305,6 +306,25 @@ export function SlotsPage() {
             <div className="rounded-lg border border-border p-4">
               <p className="font-medium text-slate-800">Lịch sử gần nhất</p>
               <div className="mt-3 flex items-center gap-3"><span className={cn("h-2.5 w-2.5 rounded-full", statusMeta[history.status].dot)} /><span className="text-slate-600">Cập nhật trạng thái thành {statusMeta[history.status].label}</span><span className="ml-auto text-sm text-slate-400">{dateTime(history.updatedAt)}</span></div>
+            </div>
+          </div>
+        )}
+      </Modal>
+
+      <Modal open={Boolean(confirmStatusModal)} title="Xác nhận" onClose={() => setConfirmStatusModal(null)}>
+        {confirmStatusModal && (
+          <div className="grid gap-4 text-base">
+            <p className="text-slate-600">{confirmStatusModal.message}</p>
+            {formError && <div role="alert" className="rounded-lg border border-red-200 bg-red-50 px-3 py-2 text-sm text-red-700">{formError}</div>}
+            <div className="mt-2 flex justify-end gap-3">
+              <Button type="button" variant="secondary" onClick={() => setConfirmStatusModal(null)} disabled={statusMutation.isPending}>Hủy</Button>
+              <Button
+                type="button"
+                onClick={() => statusMutation.mutate({ id: confirmStatusModal.slot.id, nextStatus: confirmStatusModal.nextStatus })}
+                disabled={statusMutation.isPending}
+              >
+                {statusMutation.isPending ? "Đang xử lý..." : "Xác nhận"}
+              </Button>
             </div>
           </div>
         )}

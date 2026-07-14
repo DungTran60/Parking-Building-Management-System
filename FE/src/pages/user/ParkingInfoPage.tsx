@@ -111,11 +111,11 @@ export function ParkingInfoPage() {
 
   if (firstError) {
     return <>
-      <PageHeader title="Thông tin bãi xe" description="Theo dõi thời gian hoạt động, bảng giá, quy định và số slot trống theo khu vực." />
+      <PageHeader title="Thông tin bãi xe" description="" />
       <Card>
         <CardContent className="grid justify-items-center gap-3 py-12">
-          <p className="text-sm text-red-600">{getApiErrorMessage(firstError, "Không thể tải thông tin bãi xe.")}</p>
-          <button type="button" onClick={retryAll} className="inline-flex h-9 items-center justify-center rounded-md border border-slate-200 px-4 text-sm font-medium text-slate-700 hover:bg-slate-50">
+          <p className="text-base text-red-600">{getApiErrorMessage(firstError, "Không thể tải thông tin bãi xe.")}</p>
+          <button type="button" onClick={retryAll} className="inline-flex h-9 items-center justify-center rounded-md border border-slate-200 px-4 text-base font-medium text-slate-700 hover:bg-slate-50">
             Thử lại
           </button>
         </CardContent>
@@ -125,8 +125,8 @@ export function ParkingInfoPage() {
 
   if (isLoading || !settings) {
     return <>
-      <PageHeader title="Thông tin bãi xe" description="Theo dõi thời gian hoạt động, bảng giá, quy định và số slot trống theo khu vực." />
-      <Card><CardContent className="py-12 text-center text-sm text-slate-500">Đang tải dữ liệu bãi xe...</CardContent></Card>
+      <PageHeader title="Thông tin bãi xe" description="" />
+      <Card><CardContent className="py-12 text-center text-base text-slate-500">Đang tải dữ liệu bãi xe...</CardContent></Card>
     </>;
   }
 
@@ -138,23 +138,23 @@ export function ParkingInfoPage() {
   const parkingRulesList = configuredRules
     ? configuredRules.split(/\r?\n+/).map((line) => line.trim()).filter(Boolean)
     : [
-        "Giữ thẻ xe hoặc mã QR trong suốt thời gian gửi.",
-        "Không để tài sản giá trị cao trong xe.",
-        "Xe gửi qua đêm tính phí theo chính sách hiện hành.",
-        `Tự động khóa slot quá hạn: ${autoBlockLabel === "Bật" ? "Hệ thống sẽ hỗ trợ khóa khi hết hạn" : "Nhân viên xử lý thủ công theo quy trình"}.`
-      ];
+      "Giữ thẻ xe hoặc mã QR trong suốt thời gian gửi.",
+      "Không để tài sản giá trị cao trong xe.",
+      "Xe gửi qua đêm tính phí theo chính sách hiện hành.",
+      `Tự động khóa slot quá hạn: ${autoBlockLabel === "Bật" ? "Hệ thống sẽ hỗ trợ khóa khi hết hạn" : "Nhân viên xử lý thủ công theo quy trình"}.`
+    ];
 
   return (
     <>
-      <PageHeader title="Thông tin bãi xe" description="Theo dõi thời gian hoạt động, bảng giá, quy định và số slot trống theo khu vực." />
+      <PageHeader title="Thông tin bãi xe" description="" />
 
       <Card className="mb-6 overflow-hidden border-blue-200 bg-gradient-to-r from-blue-600 to-blue-700 text-white">
         <CardContent className="flex flex-col gap-5 sm:flex-row sm:items-center sm:justify-between">
           <div>
             <p className="text-lg font-semibold">{settings.buildingName}</p>
-            <p className="mt-1 text-sm text-blue-100">Giữ chỗ trước để tiết kiệm thời gian; nhân viên sẽ tạo lượt gửi khi bạn đến.</p>
+            <p className="mt-1 text-base text-blue-100">Giữ chỗ trước để tiết kiệm thời gian; nhân viên sẽ tạo lượt gửi khi bạn đến.</p>
           </div>
-          <Link to="/app/reservations" className="inline-flex h-10 items-center justify-center gap-2 rounded-md bg-white px-4 text-sm font-medium text-blue-700 transition hover:bg-blue-50">
+          <Link to="/app/reservations" className="inline-flex h-10 items-center justify-center gap-2 rounded-md bg-white px-4 text-base font-medium text-blue-700 transition hover:bg-blue-50">
             <CalendarClock size={17} /> Đặt chỗ ngay
           </Link>
         </CardContent>
@@ -185,7 +185,7 @@ export function ParkingInfoPage() {
         </CardContent>
       </Card>
 
-      <div className="mt-3 flex items-center justify-end gap-1.5 text-xs text-slate-400">
+      <div className="mt-3 flex items-center justify-end gap-1.5 text-base text-slate-400">
         <RefreshCw size={13} /> Cập nhật lúc {dateTime(lastUpdatedAt)}
       </div>
 
@@ -198,7 +198,7 @@ export function ParkingInfoPage() {
                 const progressColor = usedPercent >= 85 ? "bg-red-500" : usedPercent >= 70 ? "bg-amber-500" : "bg-emerald-500";
                 return (
                   <div key={floor.id}>
-                    <div className="mb-1 flex items-center justify-between text-sm">
+                    <div className="mb-1 flex items-center justify-between text-base">
                       <span className="font-medium text-slate-700">{floor.name} - {floor.zone}</span>
                       <span className={usedPercent >= 85 ? "font-semibold text-red-600" : "font-semibold text-emerald-600"}>{number(available)}/{number(capacity)} trống</span>
                     </div>
@@ -214,10 +214,10 @@ export function ParkingInfoPage() {
           <Card>
             <CardHeader
               title="Bảng giá áp dụng"
-              action={<button type="button" onClick={() => setShowFullPricing((current) => !current)} className="inline-flex items-center gap-1 text-sm font-medium text-primary hover:text-blue-700">{showFullPricing ? "Thu gọn" : "Xem chi tiết"}<ArrowRight size={15} /></button>}
+              action={<button type="button" onClick={() => setShowFullPricing((current) => !current)} className="inline-flex items-center gap-1 text-base font-medium text-primary hover:text-blue-700">{showFullPricing ? "Thu gọn" : "Xem chi tiết"}<ArrowRight size={15} /></button>}
             />
             <CardContent className="overflow-x-auto">
-              <table className="w-full text-sm">
+              <table className="w-full text-base">
                 <thead className="bg-slate-50 text-slate-600">
                   <tr>
                     <th className="p-3 text-left font-medium">Loại xe</th>
@@ -241,7 +241,7 @@ export function ParkingInfoPage() {
                   ))}
                   {pricingRows.length === 0 && (
                     <tr>
-                      <td className="p-3 text-sm text-slate-500" colSpan={showFullPricing ? 7 : 5}>Chưa có bảng giá nào đang áp dụng.</td>
+                      <td className="p-3 text-base text-slate-500" colSpan={showFullPricing ? 7 : 5}>Chưa có bảng giá nào đang áp dụng.</td>
                     </tr>
                   )}
                 </tbody>
@@ -257,9 +257,9 @@ export function ParkingInfoPage() {
               {availableByVehicle.map((type) => {
                 const Icon = vehicleIcons[type.code] ?? Car;
                 return (
-                  <div key={type.id} className="rounded-md bg-slate-50 p-3 text-sm">
+                  <div key={type.id} className="rounded-md bg-slate-50 p-3 text-base">
                     <div className="flex items-center gap-2"><Icon size={16} /><span>{type.name}</span></div>
-                    <p className={type.available ? "mt-2 text-xs font-semibold text-emerald-600" : "mt-2 text-xs font-semibold text-red-500"}>{number(type.available)} slot còn trống</p>
+                    <p className={type.available ? "mt-2 text-base font-semibold text-emerald-600" : "mt-2 text-base font-semibold text-red-500"}>{number(type.available)} slot còn trống</p>
                   </div>
                 );
               })}
@@ -269,7 +269,7 @@ export function ParkingInfoPage() {
           <Card>
             <CardHeader title="Quy định gửi xe" />
             <CardContent>
-              <ul className="grid gap-3 text-sm text-slate-600">
+              <ul className="grid gap-3 text-base text-slate-600">
                 {parkingRulesList.map((item, index) => (
                   <li key={index} className="flex gap-2">
                     <Check size={16} className="mt-0.5 shrink-0 text-emerald-600" />
@@ -283,9 +283,9 @@ export function ParkingInfoPage() {
           <Card>
             <CardHeader title="Cần hỗ trợ?" />
             <CardContent className="grid gap-3">
-              <div className="flex items-start gap-3"><Clock className="mt-1 text-amber-600" size={22} /><div><p className="font-semibold text-slate-900">Hỗ trợ tại quầy 24/7</p><p className="mt-1 text-sm text-slate-500">Mất thẻ, sai phí hoặc không tìm được xe.</p></div></div>
-              <a href={settings.hotline ? `tel:${settings.hotline}` : undefined} className="flex items-center gap-2 rounded-md bg-slate-50 p-3 text-sm font-medium text-slate-700 hover:bg-slate-100"><Phone size={16} className="text-primary" /> Hotline: {settings.hotline || "Chưa cập nhật"}</a>
-              <Link to="/app/feedback" className="flex items-center gap-2 rounded-md bg-slate-50 p-3 text-sm font-medium text-slate-700 hover:bg-slate-100"><MessageCircle size={16} className="text-primary" /> Gửi yêu cầu hỗ trợ</Link>
+              <div className="flex items-start gap-3"><Clock className="mt-1 text-amber-600" size={22} /><div><p className="font-semibold text-slate-900">Hỗ trợ tại quầy 24/7</p><p className="mt-1 text-base text-slate-500">Mất thẻ, sai phí hoặc không tìm được xe.</p></div></div>
+              <a href={settings.hotline ? `tel:${settings.hotline}` : undefined} className="flex items-center gap-2 rounded-md bg-slate-50 p-3 text-base font-medium text-slate-700 hover:bg-slate-100"><Phone size={16} className="text-primary" /> Hotline: {settings.hotline || "Chưa cập nhật"}</a>
+              <Link to="/app/feedback" className="flex items-center gap-2 rounded-md bg-slate-50 p-3 text-base font-medium text-slate-700 hover:bg-slate-100"><MessageCircle size={16} className="text-primary" /> Gửi yêu cầu hỗ trợ</Link>
             </CardContent>
           </Card>
         </div>
@@ -298,9 +298,9 @@ function Metric({ title, value, note }: { title: string; value: string; note: st
   return (
     <Card>
       <CardContent>
-        <p className="text-xs font-medium uppercase tracking-wide text-slate-500">{title}</p>
+        <p className="text-base font-medium uppercase tracking-wide text-slate-500">{title}</p>
         <p className="mt-2 text-2xl font-semibold text-slate-950">{value}</p>
-        <p className="mt-2 text-xs text-slate-500">{note}</p>
+        <p className="mt-2 text-base text-slate-500">{note}</p>
       </CardContent>
     </Card>
   );
@@ -309,8 +309,8 @@ function Metric({ title, value, note }: { title: string; value: string; note: st
 function InfoCard({ label, value }: { label: string; value: string }) {
   return (
     <div className="rounded-lg border border-slate-200 bg-slate-50 p-4">
-      <p className="text-xs font-medium uppercase tracking-wide text-slate-500">{label}</p>
-      <p className="mt-2 text-sm font-semibold text-slate-900">{value}</p>
+      <p className="text-base font-medium uppercase tracking-wide text-slate-500">{label}</p>
+      <p className="mt-2 text-base font-semibold text-slate-900">{value}</p>
     </div>
   );
 }
